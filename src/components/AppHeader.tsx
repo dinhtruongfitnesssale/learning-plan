@@ -16,16 +16,16 @@ export function AppHeader({
 
   return (
     <header className="border-b border-ink/10 bg-paper/80 backdrop-blur sticky top-0 z-30">
-      <div className="mx-auto max-w-5xl px-5 h-14 flex items-center justify-between">
-        <Link href={home} className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="" width={28} height={28} />
-          <span className="font-serif text-lg leading-none">{APP_NAME}</span>
+      <div className="mx-auto max-w-5xl px-5 h-14 flex items-center justify-between gap-6">
+        <Link href={home} className="flex items-center gap-2.5 min-w-0 shrink">
+          <Image src="/logo.png" alt="" width={28} height={28} className="shrink-0" />
+          <span className="font-serif text-lg leading-none truncate">{APP_NAME}</span>
           {variant === "coach" && (
-            <span className="eyebrow ml-1 hidden sm:inline">Quản trị</span>
+            <span className="eyebrow ml-1 hidden sm:inline shrink-0">Quản trị</span>
           )}
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-2">
+        <nav className="flex items-center gap-1 sm:gap-2 shrink-0">
           {variant === "learner" ? (
             <>
               <NavLink href="/hoc">Bảng học</NavLink>

@@ -1,5 +1,5 @@
 // Thông tin nhận diện thương hiệu — đổi tên app ở đây là đổi toàn bộ.
-export const APP_NAME = "Bếp Học";
+export const APP_NAME = "Trung Precision Coach";
 export const APP_TAGLINE = "Học khỏe mỗi ngày";
 
 // Bảng màu (đồng bộ với @theme trong globals.css) — dùng khi cần màu trong JS/SVG.

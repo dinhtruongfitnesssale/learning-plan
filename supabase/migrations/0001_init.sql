@@ -133,8 +133,10 @@ begin
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', ''),
-    case when new.email = 'ladysfit.mastertrainer@gmail.com'
-         then 'coach' else 'learner' end
+    case when new.email in (
+           'ladysfit.mastertrainer@gmail.com',
+           'tbtrungdvhn@gmail.com'
+         ) then 'coach' else 'learner' end
   )
   on conflict (id) do nothing;
 

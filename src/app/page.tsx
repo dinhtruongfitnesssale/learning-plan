@@ -10,12 +10,12 @@ export default async function Landing() {
 
   return (
     <>
-      <header className="mx-auto max-w-5xl px-5 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="" width={30} height={30} />
-          <span className="font-serif text-lg">{APP_NAME}</span>
+      <header className="mx-auto max-w-5xl px-5 h-16 flex items-center justify-between gap-6">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Image src="/logo.png" alt="" width={30} height={30} className="shrink-0" />
+          <span className="font-serif text-lg truncate">{APP_NAME}</span>
         </div>
-        <ButtonLink href={dest} variant="outline">
+        <ButtonLink href={dest} variant="outline" className="shrink-0">
           {me ? "Vào học" : "Đăng nhập"}
         </ButtonLink>
       </header>
