@@ -55,14 +55,18 @@ export default async function LessonPage({
                 {lesson.pdf_name || "Tài liệu bài học"}
               </span>
             </div>
-            <a
-              href={lesson.pdf_url}
-              target="_blank"
-              rel="noreferrer"
-              className="link text-sm shrink-0"
-            >
-              Mở / Tải về
-            </a>
+            {lesson.allow_download ? (
+              <a
+                href={lesson.pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                className="link text-sm shrink-0"
+              >
+                Mở / Tải về
+              </a>
+            ) : (
+              <span className="text-xs text-ink/45 shrink-0">Chỉ xem trong bài</span>
+            )}
           </div>
           <iframe
             src={pdfEmbedSrc(lesson.pdf_url)}

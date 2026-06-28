@@ -49,6 +49,7 @@ export interface Lesson {
   video_url: string;
   pdf_url: string;
   pdf_name: string;
+  allow_download: boolean;
   est_minutes: number;
   xp_reward: number;
   sort_order: number;

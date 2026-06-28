@@ -110,11 +110,15 @@ export async function createLesson(formData: FormData) {
   if (data) redirect(`/admin/khoa-hoc/${courseId}/bai/${data.id}`);
 }
 
-export async function updateLesson(formData: FormData) {
-  const supabase = await guard();
+export async function updateLesson(
+  _prev: { ok: boolean; savedAt?: number; message?: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; savedAt?: number; message?: string }> {
+  await requireCoach();
+  const supabase = await createClient();
   const id = String(formData.get("id"));
   const courseId = String(formData.get("course_id"));
-  await supabase
+  const { error } = await supabase
     .from("lessons")
     .update({
       title: String(formData.get("title")),
@@ -127,10 +131,13 @@ export async function updateLesson(formData: FormData) {
       xp_reward: Number(formData.get("xp_reward") || 20),
       module_id: String(formData.get("module_id") || "") || null,
       published: String(formData.get("published")) === "on",
+      allow_download: String(formData.get("allow_download")) === "on",
     })
     .eq("id", id);
+  if (error) return { ok: false, message: "Lưu lỗi: " + error.message };
   revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${id}`);
   revalidatePath(`/admin/khoa-hoc/${courseId}`);
+  return { ok: true, savedAt: Date.now() };
 }
 
 export async function deleteLesson(formData: FormData) {

@@ -2,13 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
-import {
-  updateLesson,
-  deleteLesson,
-  upsertQuiz,
-  addQuestion,
-  deleteQuestion,
-} from "../../../../actions";
+import { upsertQuiz, addQuestion, deleteQuestion } from "../../../../actions";
+import { LessonEditForm } from "./LessonEditForm";
 import type { Lesson, Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
 
 const inputCls =
@@ -58,117 +53,7 @@ export default async function LessonEditor({
       </section>
 
       {/* Nội dung bài */}
-      <Card className="p-6">
-        <form action={updateLesson} className="space-y-4">
-          <input type="hidden" name="id" value={l.id} />
-          <input type="hidden" name="course_id" value={courseId} />
-          <label className="block">
-            <span className="text-sm text-ink/70">Tiêu đề</span>
-            <input name="title" defaultValue={l.title} className={inputCls} />
-          </label>
-          <label className="block">
-            <span className="text-sm text-ink/70">Tóm tắt (1 dòng)</span>
-            <input name="summary" defaultValue={l.summary} className={inputCls} />
-          </label>
-          <label className="block">
-            <span className="text-sm text-ink/70">
-              Link video (YouTube / Vimeo / Google Drive / .mp4) — để trống nếu không có
-            </span>
-            <input
-              name="video_url"
-              defaultValue={l.video_url}
-              placeholder="https://youtu.be/..."
-              className={inputCls}
-            />
-          </label>
-          <div className="grid sm:grid-cols-[1fr_220px] gap-3">
-            <label className="block">
-              <span className="text-sm text-ink/70">
-                Link tài liệu PDF (Google Drive) — để trống nếu không có
-              </span>
-              <input
-                name="pdf_url"
-                defaultValue={l.pdf_url}
-                placeholder="https://drive.google.com/file/d/.../view"
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm text-ink/70">Tên tài liệu hiển thị</span>
-              <input
-                name="pdf_name"
-                defaultValue={l.pdf_name}
-                placeholder="VD: Mâm cơm mẫu.pdf"
-                className={inputCls}
-              />
-            </label>
-          </div>
-          <label className="block">
-            <span className="text-sm text-ink/70">
-              Nội dung (Markdown — ## tiêu đề, - gạch đầu dòng, **đậm**, &gt; trích dẫn)
-            </span>
-            <textarea
-              name="content"
-              defaultValue={l.content}
-              rows={14}
-              className={`${inputCls} font-mono leading-relaxed`}
-            />
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <label className="block">
-              <span className="text-sm text-ink/70">Phút đọc</span>
-              <input
-                name="est_minutes"
-                type="number"
-                defaultValue={l.est_minutes}
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm text-ink/70">XP thưởng</span>
-              <input
-                name="xp_reward"
-                type="number"
-                defaultValue={l.xp_reward}
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm text-ink/70">Chương</span>
-              <select
-                name="module_id"
-                defaultValue={l.module_id ?? ""}
-                className={inputCls}
-              >
-                <option value="">Không xếp</option>
-                {mods.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex items-end gap-2 pb-2">
-              <input
-                type="checkbox"
-                name="published"
-                defaultChecked={l.published}
-                className="w-4 h-4 accent-[var(--color-herb)]"
-              />
-              <span className="text-sm text-ink/70">Hiển thị</span>
-            </label>
-          </div>
-          <div className="flex items-center justify-between">
-            <button className={buttonClass("primary")}>Lưu bài học</button>
-            <button
-              formAction={deleteLesson}
-              className="text-sm text-clay hover:underline"
-            >
-              Xóa bài
-            </button>
-          </div>
-        </form>
-      </Card>
+      <LessonEditForm lesson={l} courseId={courseId} modules={mods} />
 
       {/* Quiz */}
       <section>
