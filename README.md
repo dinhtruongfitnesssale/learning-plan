@@ -21,6 +21,7 @@ deploy trên Vercel. Thiết kế theo brand "mâm cơm Việt": paper + ink, qu
 1. Tạo **một project Supabase mới** (đừng dùng chung với training-plan).
 2. Vào **SQL Editor**, chạy lần lượt:
    - `supabase/migrations/0001_init.sql` (bảng, RLS, RPC, trigger)
+   - `supabase/migrations/0002_media.sql` (cột video/PDF cho bài học)
    - `supabase/seed.sql` (dữ liệu mẫu — tùy chọn)
 3. Vào **Project Settings → API**, copy các key vào `.env.local`:
    ```
@@ -64,3 +65,6 @@ npm run dev      # http://localhost:3000
   (chưa có tên miền/email tự động). Khi có domain, có thể bật magic link.
 - Quiz giấu đáp án khỏi học viên: câu hỏi lấy qua RPC `get_quiz`, chấm qua
   `submit_quiz` — đáp án không bao giờ gửi xuống client trước khi nộp.
+- Tài liệu PDF & video đều **nhúng theo link** (Google Drive / YouTube...), không
+  upload file lên Supabase — tiết kiệm dữ liệu. Nhớ đặt quyền chia sẻ "Bất kỳ ai
+  có đường liên kết" cho file Drive/video để học viên xem được.

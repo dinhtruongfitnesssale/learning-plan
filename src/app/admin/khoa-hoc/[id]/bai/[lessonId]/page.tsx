@@ -9,7 +9,6 @@ import {
   addQuestion,
   deleteQuestion,
 } from "../../../../actions";
-import { PdfUpload } from "@/components/PdfUpload";
 import type { Lesson, Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
 
 const inputCls =
@@ -82,6 +81,28 @@ export default async function LessonEditor({
               className={inputCls}
             />
           </label>
+          <div className="grid sm:grid-cols-[1fr_220px] gap-3">
+            <label className="block">
+              <span className="text-sm text-ink/70">
+                Link tài liệu PDF (Google Drive) — để trống nếu không có
+              </span>
+              <input
+                name="pdf_url"
+                defaultValue={l.pdf_url}
+                placeholder="https://drive.google.com/file/d/.../view"
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm text-ink/70">Tên tài liệu hiển thị</span>
+              <input
+                name="pdf_name"
+                defaultValue={l.pdf_name}
+                placeholder="VD: Mâm cơm mẫu.pdf"
+                className={inputCls}
+              />
+            </label>
+          </div>
           <label className="block">
             <span className="text-sm text-ink/70">
               Nội dung (Markdown — ## tiêu đề, - gạch đầu dòng, **đậm**, &gt; trích dẫn)
@@ -146,20 +167,6 @@ export default async function LessonEditor({
             </form>
           </div>
         </form>
-      </Card>
-
-      {/* Tài liệu PDF */}
-      <Card className="p-6">
-        <h2 className="font-serif text-xl mb-1">Tài liệu PDF</h2>
-        <p className="text-sm text-ink/60 mb-4">
-          Tải lên tài liệu bài học để học viên đọc/tải trực tiếp trong bài.
-        </p>
-        <PdfUpload
-          lessonId={l.id}
-          courseId={courseId}
-          pdfUrl={l.pdf_url}
-          pdfName={l.pdf_name}
-        />
       </Card>
 
       {/* Quiz */}

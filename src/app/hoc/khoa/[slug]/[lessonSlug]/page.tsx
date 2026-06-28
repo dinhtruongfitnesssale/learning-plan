@@ -65,7 +65,7 @@ export default async function LessonPage({
             </a>
           </div>
           <iframe
-            src={lesson.pdf_url}
+            src={pdfEmbedSrc(lesson.pdf_url)}
             className="w-full rounded-lg border border-ink/10 bg-paper"
             style={{ height: "70vh" }}
             title={lesson.pdf_name || "Tài liệu PDF"}
@@ -101,4 +101,15 @@ export default async function LessonPage({
       </nav>
     </article>
   );
+}
+
+// Chuyển link PDF sang dạng nhúng được trong iframe.
+function pdfEmbedSrc(url: string): string {
+  const drive = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/);
+  if (drive) return `https://drive.google.com/file/d/${drive[1]}/preview`;
+  // Link Drive dạng open?id=FILE_ID
+  const open = url.match(/[?&]id=([\w-]+)/);
+  if (open && url.includes("drive.google.com"))
+    return `https://drive.google.com/file/d/${open[1]}/preview`;
+  return url; // PDF trực tiếp
 }

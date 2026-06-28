@@ -121,6 +121,8 @@ export async function updateLesson(formData: FormData) {
       summary: String(formData.get("summary") ?? ""),
       content: String(formData.get("content") ?? ""),
       video_url: String(formData.get("video_url") ?? "").trim(),
+      pdf_url: String(formData.get("pdf_url") ?? "").trim(),
+      pdf_name: String(formData.get("pdf_name") ?? "").trim(),
       est_minutes: Number(formData.get("est_minutes") || 5),
       xp_reward: Number(formData.get("xp_reward") || 20),
       module_id: String(formData.get("module_id") || "") || null,
@@ -129,32 +131,6 @@ export async function updateLesson(formData: FormData) {
     .eq("id", id);
   revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${id}`);
   revalidatePath(`/admin/khoa-hoc/${courseId}`);
-}
-
-// Lưu URL PDF (sau khi client upload lên Storage).
-export async function saveLessonPdf(formData: FormData) {
-  const supabase = await guard();
-  const lessonId = String(formData.get("lesson_id"));
-  const courseId = String(formData.get("course_id"));
-  await supabase
-    .from("lessons")
-    .update({
-      pdf_url: String(formData.get("pdf_url")),
-      pdf_name: String(formData.get("pdf_name") ?? "Tài liệu.pdf"),
-    })
-    .eq("id", lessonId);
-  revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${lessonId}`);
-}
-
-export async function removeLessonPdf(formData: FormData) {
-  const supabase = await guard();
-  const lessonId = String(formData.get("lesson_id"));
-  const courseId = String(formData.get("course_id"));
-  await supabase
-    .from("lessons")
-    .update({ pdf_url: "", pdf_name: "" })
-    .eq("id", lessonId);
-  revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${lessonId}`);
 }
 
 export async function deleteLesson(formData: FormData) {
