@@ -5,13 +5,10 @@ import { getLearnerDetail } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge, Stat, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
-import { CATEGORIES } from "@/lib/brand";
 import { assignCourse, unassignCourse } from "../../actions";
 import { ManageLearner } from "./ManageLearner";
+import { AssignCourse } from "./AssignCourse";
 import type { Course } from "@/lib/supabase/types";
-
-const inputCls =
-  "rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
 
 export default async function LearnerDetail({
   params,
@@ -155,29 +152,16 @@ export default async function LearnerDetail({
       <section>
         <h2 className="font-serif text-2xl mb-3">Phân khóa học</h2>
         <Card className="p-5 space-y-4">
-          {/* Gán khóa mới */}
-          <form action={assignCourse} className="flex flex-wrap gap-2 items-center">
-            <input type="hidden" name="user_id" value={id} />
-            <select name="course_id" required className={`${inputCls} flex-1 min-w-[200px]`} defaultValue="">
-              <option value="" disabled>
-                Chọn khóa để gán…
-              </option>
-              {unassigned.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.cover_emoji} {c.title} ({CATEGORIES[c.category]?.label})
-                </option>
-              ))}
-            </select>
-            <button
-              disabled={unassigned.length === 0}
-              className={buttonClass("primary")}
-            >
-              Gán &amp; duyệt
-            </button>
-          </form>
-          {unassigned.length === 0 && (
-            <p className="text-xs text-ink/45">Học viên đã có mặt ở tất cả khóa.</p>
-          )}
+          {/* Gán khóa mới (có tìm kiếm) */}
+          <AssignCourse
+            userId={id}
+            courses={unassigned.map((c) => ({
+              id: c.id,
+              title: c.title,
+              cover_emoji: c.cover_emoji,
+              category: c.category,
+            }))}
+          />
 
           {/* Khóa đang ghi danh */}
           {statusByCourse.size > 0 && (
