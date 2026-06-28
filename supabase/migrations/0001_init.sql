@@ -3,20 +3,6 @@
 -- Chạy file này trong Supabase Dashboard > SQL Editor.
 -- ============================================================
 
--- ---------- Helper: kiểm tra coach ----------
-create or replace function public.is_coach()
-returns boolean
-language sql
-security definer
-stable
-set search_path = public
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and role = 'coach'
-  );
-$$;
-
 -- ============================================================
 -- BẢNG
 -- ============================================================
@@ -369,6 +355,22 @@ as $$
   from wk
   join public.profiles p on p.id = wk.user_id
   order by wk.xp_week desc, p.full_name;
+$$;
+
+-- ============================================================
+-- Helper: kiểm tra coach (định nghĩa sau khi đã có bảng profiles)
+-- ============================================================
+create or replace function public.is_coach()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'coach'
+  );
 $$;
 
 -- ============================================================
