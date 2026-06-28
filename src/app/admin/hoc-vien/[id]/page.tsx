@@ -7,6 +7,7 @@ import { Card, Eyebrow, Badge, Stat, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
 import { CATEGORIES } from "@/lib/brand";
 import { assignCourse, unassignCourse } from "../../actions";
+import { ManageLearner } from "./ManageLearner";
 import type { Course } from "@/lib/supabase/types";
 
 const inputCls =
@@ -138,6 +139,16 @@ export default async function LearnerDetail({
             ))}
           </Card>
         )}
+      </section>
+
+      {/* Quản lý tài khoản */}
+      <section>
+        <h2 className="font-serif text-2xl mb-3">Quản lý tài khoản</h2>
+        <ManageLearner
+          id={profile.id}
+          fullName={profile.full_name}
+          email={profile.email}
+        />
       </section>
 
       {/* Phân khóa học */}

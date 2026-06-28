@@ -296,3 +296,62 @@ export async function createLearner(
     email,
   };
 }
+
+type LearnerState = {
+  ok: boolean;
+  message: string;
+  password?: string;
+} | null;
+
+// Sửa tên + email học viên (email đổi qua auth admin).
+export async function updateLearner(
+  _prev: LearnerState,
+  formData: FormData,
+): Promise<LearnerState> {
+  await requireCoach();
+  const id = String(formData.get("id"));
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!email) return { ok: false, message: "Cần nhập email." };
+
+  const admin = createAdminClient();
+  const { error: authErr } = await admin.auth.admin.updateUserById(id, {
+    email,
+    email_confirm: true,
+    user_metadata: { full_name: fullName },
+  });
+  if (authErr) return { ok: false, message: `Lỗi: ${authErr.message}` };
+
+  await admin
+    .from("profiles")
+    .update({ full_name: fullName, email })
+    .eq("id", id);
+
+  revalidatePath(`/admin/hoc-vien/${id}`);
+  revalidatePath("/admin/hoc-vien");
+  return { ok: true, message: "Đã lưu thay đổi." };
+}
+
+// Đặt lại mật khẩu (sinh mật khẩu tạm mới để gửi cho học viên).
+export async function resetLearnerPassword(
+  _prev: LearnerState,
+  formData: FormData,
+): Promise<LearnerState> {
+  await requireCoach();
+  const id = String(formData.get("id"));
+  const password = tempPassword();
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(id, { password });
+  if (error) return { ok: false, message: `Lỗi: ${error.message}` };
+  return { ok: true, message: "Mật khẩu mới (gửi cho học viên):", password };
+}
+
+// Xóa hẳn tài khoản học viên (kéo theo tiến độ, ghi danh, XP… qua cascade).
+export async function deleteLearner(formData: FormData) {
+  await requireCoach();
+  const id = String(formData.get("id"));
+  const admin = createAdminClient();
+  await admin.auth.admin.deleteUser(id);
+  revalidatePath("/admin/hoc-vien");
+  redirect("/admin/hoc-vien");
+}
