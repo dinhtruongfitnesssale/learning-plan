@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/*
+  Bếp Học — design system
+  Quy tắc 90/5/5:
+    90% paper + ink (nền be ấm, chữ đen ấm)
+     5% amber (eyebrow, italic highlight, link, dấu check, « »)
+     5% herb / slate / clay (chỉ khi có vai trò rõ ràng)
+  KHÔNG dùng trắng tinh (#fff) hay đen lạnh (#000).
+*/
+
+@theme {
+  /* Bảng màu brand */
+  --color-paper: #f6f2ea; /* nền của mọi thứ */
+  --color-paper-2: #efe9dd; /* nền chìm: card phụ, hover */
+  --color-ink: #14110e; /* chữ chính, rule lines editorial */
+  --color-ink-60: #4a463f; /* chữ phụ / muted */
+  --color-ink-40: #807b72; /* chú thích, placeholder */
+
+  --color-amber: #b5651e; /* eyebrow, link, check, « » — dùng tiết kiệm */
+  --color-amber-soft: #e8d8c2; /* nền amber rất nhạt cho highlight */
+  --color-herb: #5c6e48; /* tốt / đạt / tươi — success, delta+ */
+  --color-herb-soft: #dde2d2;
+  --color-slate: #3a5567; /* note coach, dữ liệu trung tính */
+  --color-slate-soft: #d4dbe0;
+  --color-clay: #a33a2a; /* sai / trễ hạn / lỗi nghiêm trọng */
+  --color-clay-soft: #ecccc6;
+
+  /* Alias nền/chữ mặc định */
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+
+  /* Typography */
+  --font-serif: var(--font-source-serif), Georgia, serif;
+  --font-sans: var(--font-be-vietnam), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  /* Bo góc & shadow ấm (không dùng shadow xám lạnh) */
+  --radius-card: 0.75rem;
+  --shadow-soft: 0 1px 2px rgba(20, 17, 14, 0.04),
+    0 8px 24px -12px rgba(20, 17, 14, 0.12);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01";
+}
+
+/* Số liệu: luôn tabular, dùng JetBrains Mono */
+.tnum,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Headline / title editorial */
+.font-serif {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+/* ── Component primitives của brand ─────────────────────────── */
+
+/* Eyebrow label: amber, chữ hoa nhỏ, giãn cách */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-amber);
+}
+
+/* Rule line editorial mảnh */
+.rule {
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+}
+.rule-amber {
+  border-top: 1px solid var(--color-amber);
+}
+
+/* Link mặc định: amber có gạch chân mảnh */
+.link {
+  color: var(--color-amber);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-amber) 45%, transparent);
+}
+.link:hover {
+  text-decoration-color: var(--color-amber);
+}
+
+/* Highlight cuối câu (5% amber) */
+.hl {
+  font-style: italic;
+  color: var(--color-amber);
+}
+
+/* Dấu nháy Việt « » */
+.guillemet::before {
+  content: "« ";
+  color: var(--color-amber);
+}
+.guillemet::after {
+  content: " »";
+  color: var(--color-amber);
+}
+
+::selection {
+  background: var(--color-amber-soft);
+  color: var(--color-ink);
+}
+
+/* Scrollbar ấm, kín đáo */
+* {
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 22%, transparent)
+    transparent;
+}

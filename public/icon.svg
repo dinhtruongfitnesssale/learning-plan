@@ -1,0 +1,13 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bếp Học">
+  <rect width="32" height="32" rx="7" fill="#F6F2EA"/>
+  <!-- Quyển sách mở -->
+  <path d="M16 9.4C13.7 7.9 10.9 7.6 8.2 8.4C7.5 8.6 7 9.3 7 10.1V22.1C7 23.1 8 23.8 9 23.5C11.3 22.9 13.9 23.2 16 24.6C18.1 23.2 20.7 22.9 23 23.5C24 23.8 25 23.1 25 22.1V10.1C25 9.3 24.5 8.6 23.8 8.4C21.1 7.6 18.3 7.9 16 9.4Z" fill="#14110E"/>
+  <!-- Gáy sách / dấu trang amber -->
+  <rect x="15" y="9" width="2" height="15.6" rx="1" fill="#B5651E"/>
+  <!-- Dòng chữ trang trái -->
+  <path d="M9.6 12.3C11 12.1 12.4 12.3 13.7 12.9" stroke="#F6F2EA" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M9.6 15.2C11 15 12.4 15.2 13.7 15.8" stroke="#F6F2EA" stroke-width="1.1" stroke-linecap="round"/>
+  <!-- Dòng chữ trang phải -->
+  <path d="M22.4 12.3C21 12.1 19.6 12.3 18.3 12.9" stroke="#F6F2EA" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M22.4 15.2C21 15 19.6 15.2 18.3 15.8" stroke="#F6F2EA" stroke-width="1.1" stroke-linecap="round"/>
+</svg>
