@@ -3,31 +3,53 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCoach } from "@/lib/auth";
 import { levelForXp } from "@/lib/brand";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
+import { Pagination } from "@/components/Pagination";
 import { CreateLearnerForm } from "./CreateLearnerForm";
 import type { Profile } from "@/lib/supabase/types";
 
 const inputCls =
   "rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
 
+const PER_PAGE = 4;
+
 export default async function AdminLearners({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   await requireCoach();
-  const q = (await searchParams).q ?? "";
+  const sp = await searchParams;
+  const q = sp.q ?? "";
+  const page = Math.max(1, Number(sp.page) || 1);
+  const from = (page - 1) * PER_PAGE;
   const supabase = await createClient();
 
-  let pq = supabase.from("profiles").select("*").eq("role", "learner");
+  let pq = supabase
+    .from("profiles")
+    .select("*", { count: "exact" })
+    .eq("role", "learner");
   if (q) pq = pq.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
 
-  const [{ data: profiles }, { data: xp }, { data: enr }] = await Promise.all([
-    pq.order("created_at", { ascending: false }),
-    supabase.from("xp_events").select("user_id, amount"),
-    supabase.from("enrollments").select("user_id").eq("status", "approved"),
-  ]);
+  const { data: profiles, count } = await pq
+    .order("created_at", { ascending: false })
+    .range(from, from + PER_PAGE - 1);
 
   const learners = (profiles as Profile[]) ?? [];
+  const ids = learners.map((p) => p.id);
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
+
+  // Chỉ lấy XP & ghi danh của các học viên hiển thị trên trang này.
+  const [{ data: xp }, { data: enr }] = ids.length
+    ? await Promise.all([
+        supabase.from("xp_events").select("user_id, amount").in("user_id", ids),
+        supabase
+          .from("enrollments")
+          .select("user_id")
+          .eq("status", "approved")
+          .in("user_id", ids),
+      ])
+    : [{ data: [] }, { data: [] }];
+
   const xpByUser = new Map<string, number>();
   (xp ?? []).forEach((e) =>
     xpByUser.set(e.user_id, (xpByUser.get(e.user_id) ?? 0) + (e.amount ?? 0)),
@@ -91,6 +113,13 @@ export default async function AdminLearners({
               );
             })
           )}
+
+          <Pagination
+            basePath="/admin/hoc-vien"
+            page={page}
+            totalPages={totalPages}
+            params={{ q }}
+          />
         </div>
 
         {/* Tạo học viên */}

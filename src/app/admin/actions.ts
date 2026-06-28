@@ -275,9 +275,12 @@ export async function createLearner(
   await requireCoach();
   const email = String(formData.get("email")).trim().toLowerCase();
   const fullName = String(formData.get("full_name") ?? "").trim();
+  const customPw = String(formData.get("password") ?? "").trim();
   if (!email) return { ok: false, message: "Cần nhập email." };
+  if (customPw && customPw.length < 6)
+    return { ok: false, message: "Mật khẩu cần ít nhất 6 ký tự." };
 
-  const password = tempPassword();
+  const password = customPw || tempPassword();
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.createUser({
     email,

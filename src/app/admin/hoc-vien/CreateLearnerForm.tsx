@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createLearner } from "../actions";
 import { buttonClass } from "@/components/ui";
 
@@ -9,6 +9,7 @@ const inputCls =
 
 export function CreateLearnerForm() {
   const [state, formAction, pending] = useActionState(createLearner, null);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div>
@@ -26,6 +27,29 @@ export function CreateLearnerForm() {
             className={inputCls}
             placeholder="hocvien@email.com"
           />
+        </label>
+        <label className="block">
+          <span className="text-sm text-ink/70">
+            Mật khẩu (để trống = tự tạo)
+          </span>
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              minLength={6}
+              className={`${inputCls} pr-12`}
+              placeholder="Ít nhất 6 ký tự"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              className="absolute inset-y-0 right-0 px-3 grid place-items-center text-ink/45 hover:text-ink transition-colors"
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
         </label>
         <button disabled={pending} className={buttonClass("primary", "w-full")}>
           {pending ? "Đang tạo…" : "Tạo tài khoản"}
