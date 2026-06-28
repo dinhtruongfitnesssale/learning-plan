@@ -8,6 +8,7 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { assignCourse, unassignCourse } from "../../actions";
 import { ManageLearner } from "./ManageLearner";
 import { AssignCourse } from "./AssignCourse";
+import { QuizResults } from "./QuizResults";
 import type { Course } from "@/lib/supabase/types";
 
 export default async function LearnerDetail({
@@ -114,28 +115,7 @@ export default async function LearnerDetail({
       {/* Kết quả quiz (năng lực thật) */}
       <section>
         <h2 className="font-serif text-2xl mb-3">Kết quả kiểm tra</h2>
-        {quizzes.length === 0 ? (
-          <Card className="p-6 text-ink/60 text-sm">Chưa làm quiz nào.</Card>
-        ) : (
-          <Card className="divide-y divide-ink/10">
-            {quizzes.map((q, i) => (
-              <div key={i} className="flex items-center gap-4 px-5 py-3.5">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{q.title}</div>
-                  <div className="text-xs text-ink/50 font-mono tnum">
-                    {q.attempts} lượt làm
-                  </div>
-                </div>
-                <Badge accent={q.passed ? "herb" : "clay"}>
-                  {q.passed ? "Đạt" : "Chưa đạt"}
-                </Badge>
-                <span className="font-mono text-lg font-semibold tnum w-14 text-right">
-                  {q.best}%
-                </span>
-              </div>
-            ))}
-          </Card>
-        )}
+        <QuizResults quizzes={quizzes} />
       </section>
 
       {/* Quản lý tài khoản */}

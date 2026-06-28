@@ -32,6 +32,7 @@ export function AppHeader({
             <>
               <NavLink href="/hoc">Bảng học</NavLink>
               <NavLink href="/hoc/khoa-hoc">Khóa học</NavLink>
+              <NavLink href="/hoc/doi-mat-khau">Đổi mật khẩu</NavLink>
               {isCoach && <NavLink href="/admin">Quản trị</NavLink>}
             </>
           ) : (
