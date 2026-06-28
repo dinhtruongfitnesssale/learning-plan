@@ -160,11 +160,12 @@ export default async function LessonEditor({
           </div>
           <div className="flex items-center justify-between">
             <button className={buttonClass("primary")}>Lưu bài học</button>
-            <form action={deleteLesson}>
-              <input type="hidden" name="id" value={l.id} />
-              <input type="hidden" name="course_id" value={courseId} />
-              <button className="text-sm text-clay hover:underline">Xóa bài</button>
-            </form>
+            <button
+              formAction={deleteLesson}
+              className="text-sm text-clay hover:underline"
+            >
+              Xóa bài
+            </button>
           </div>
         </form>
       </Card>
