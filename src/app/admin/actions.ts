@@ -30,6 +30,7 @@ export async function createCourse(formData: FormData) {
         | "herb"
         | "slate"
         | "clay",
+      category: (String(formData.get("category")) || "dinh_duong") as never,
     })
     .select("id")
     .single();
@@ -47,6 +48,7 @@ export async function updateCourse(formData: FormData) {
       summary: String(formData.get("summary") ?? ""),
       cover_emoji: String(formData.get("cover_emoji") || "🍲"),
       accent: String(formData.get("accent")) as never,
+      category: String(formData.get("category")) as never,
     })
     .eq("id", id);
   revalidatePath(`/admin/khoa-hoc/${id}`);
@@ -207,6 +209,60 @@ export async function deleteQuestion(formData: FormData) {
     .delete()
     .eq("id", String(formData.get("id")));
   revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${lessonId}`);
+}
+
+// ── Duyệt ghi danh / phân khóa ────────────────────────────────
+export async function approveEnrollment(formData: FormData) {
+  const supabase = await guard();
+  await supabase
+    .from("enrollments")
+    .update({ status: "approved" })
+    .eq("id", String(formData.get("id")));
+  revalidatePath("/admin/yeu-cau");
+  revalidatePath("/admin");
+}
+
+export async function denyEnrollment(formData: FormData) {
+  const supabase = await guard();
+  await supabase.from("enrollments").delete().eq("id", String(formData.get("id")));
+  revalidatePath("/admin/yeu-cau");
+  revalidatePath("/admin");
+}
+
+// Admin phân khóa trực tiếp cho học viên (duyệt luôn).
+export async function assignCourse(formData: FormData) {
+  const supabase = await guard();
+  const userId = String(formData.get("user_id"));
+  const courseId = String(formData.get("course_id"));
+  if (!courseId) return;
+  const { data: existing } = await supabase
+    .from("enrollments")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (existing) {
+    await supabase
+      .from("enrollments")
+      .update({ status: "approved" })
+      .eq("id", existing.id);
+  } else {
+    await supabase
+      .from("enrollments")
+      .insert({ user_id: userId, course_id: courseId, status: "approved" });
+  }
+  revalidatePath(`/admin/hoc-vien/${userId}`);
+}
+
+export async function unassignCourse(formData: FormData) {
+  const supabase = await guard();
+  const userId = String(formData.get("user_id"));
+  await supabase
+    .from("enrollments")
+    .delete()
+    .eq("user_id", userId)
+    .eq("course_id", String(formData.get("course_id")));
+  revalidatePath(`/admin/hoc-vien/${userId}`);
 }
 
 // ── Học viên ──────────────────────────────────────────────────

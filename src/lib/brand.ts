@@ -13,6 +13,13 @@ export const COLORS = {
   clay: "#A33A2A",
 } as const;
 
+// Loại khóa học
+export const CATEGORIES = {
+  dinh_duong: { label: "Dinh dưỡng", emoji: "🍲" },
+  tap_luyen: { label: "Tập luyện", emoji: "🏃" },
+} as const;
+export type CategoryKey = keyof typeof CATEGORIES;
+
 // Cấp độ (level) dựa trên tổng XP — đo sự tiến bộ thật, không phải mở app nhiều lần.
 export const LEVELS = [
   { level: 1, min: 0, name: "Tập sự" },

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export async function enroll(formData: FormData) {
+// Học viên GỬI YÊU CẦU học (chờ admin duyệt). Không vào học ngay.
+export async function requestEnroll(formData: FormData) {
   const courseId = String(formData.get("course_id"));
   const slug = String(formData.get("slug"));
   const supabase = await createClient();
@@ -13,10 +14,19 @@ export async function enroll(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  await supabase
+  const { data: existing } = await supabase
     .from("enrollments")
-    .insert({ user_id: user.id, course_id: courseId });
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("course_id", courseId)
+    .maybeSingle();
 
-  revalidatePath("/hoc");
-  redirect(`/hoc/khoa/${slug}`);
+  if (!existing) {
+    await supabase
+      .from("enrollments")
+      .insert({ user_id: user.id, course_id: courseId, status: "pending" });
+  }
+
+  revalidatePath("/hoc/khoa-hoc");
+  if (slug) revalidatePath(`/hoc/khoa/${slug}`);
 }

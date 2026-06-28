@@ -14,6 +14,7 @@ export type Json =
 export interface Profile {
   id: string;
   full_name: string;
+  email: string;
   role: Role;
   avatar_url: string | null;
   created_at: string;
@@ -26,6 +27,7 @@ export interface Course {
   summary: string;
   cover_emoji: string;
   accent: Accent;
+  category: "dinh_duong" | "tap_luyen";
   sort_order: number;
   published: boolean;
   created_at: string;
@@ -61,6 +63,7 @@ export interface Enrollment {
   id: string;
   user_id: string;
   course_id: string;
+  status: "pending" | "approved";
   created_at: string;
 }
 

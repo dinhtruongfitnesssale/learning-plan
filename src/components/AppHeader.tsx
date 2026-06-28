@@ -7,9 +7,11 @@ import { cn } from "@/lib/cn";
 export function AppHeader({
   profile,
   variant = "learner",
+  pendingCount = 0,
 }: {
   profile: Profile | null;
   variant?: "learner" | "coach";
+  pendingCount?: number;
 }) {
   const isCoach = profile?.role === "coach";
   const home = variant === "coach" ? "/admin" : "/hoc";
@@ -37,6 +39,17 @@ export function AppHeader({
               <NavLink href="/admin">Tổng quan</NavLink>
               <NavLink href="/admin/khoa-hoc">Khóa học</NavLink>
               <NavLink href="/admin/hoc-vien">Học viên</NavLink>
+              <Link
+                href="/admin/yeu-cau"
+                className="relative rounded-full px-3 py-1.5 text-sm text-ink/70 hover:bg-paper-2 hover:text-ink transition-colors"
+              >
+                Yêu cầu
+                {pendingCount > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-clay text-paper text-xs font-semibold tabular-nums align-middle">
+                    {pendingCount}
+                  </span>
+                )}
+              </Link>
               <NavLink href="/hoc">Xem như học viên</NavLink>
             </>
           )}

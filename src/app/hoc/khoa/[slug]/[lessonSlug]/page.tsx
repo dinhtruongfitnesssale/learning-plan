@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getLessonView } from "@/lib/data";
 import { Markdown } from "@/components/Markdown";
@@ -17,6 +17,8 @@ export default async function LessonPage({
   const { user } = await requireUser();
   const data = await getLessonView(slug, lessonSlug, user.id);
   if (!data) notFound();
+  // Chưa được duyệt → quay về trang khóa (hiện trạng thái chờ duyệt).
+  if (data.locked) redirect(`/hoc/khoa/${slug}`);
 
   const { course, lesson, done, hasQuiz, bestPercent, prev, next } = data;
 

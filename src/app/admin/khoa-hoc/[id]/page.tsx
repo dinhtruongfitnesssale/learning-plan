@@ -145,6 +145,13 @@ export default async function CourseEditor({
                   className={inputCls}
                 />
               </label>
+              <label className="block">
+                <span className="text-sm text-ink/70">Loại khóa</span>
+                <select name="category" defaultValue={c.category} className={inputCls}>
+                  <option value="dinh_duong">🍲 Dinh dưỡng</option>
+                  <option value="tap_luyen">🏃 Tập luyện</option>
+                </select>
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="text-sm text-ink/70">Biểu tượng</span>

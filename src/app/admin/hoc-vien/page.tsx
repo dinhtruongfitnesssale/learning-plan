@@ -1,20 +1,30 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireCoach } from "@/lib/auth";
 import { levelForXp } from "@/lib/brand";
-import { Card, Eyebrow, Badge } from "@/components/ui";
+import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { CreateLearnerForm } from "./CreateLearnerForm";
 import type { Profile } from "@/lib/supabase/types";
 
-export default async function AdminLearners() {
+const inputCls =
+  "rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
+
+export default async function AdminLearners({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  await requireCoach();
+  const q = (await searchParams).q ?? "";
   const supabase = await createClient();
+
+  let pq = supabase.from("profiles").select("*").eq("role", "learner");
+  if (q) pq = pq.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
+
   const [{ data: profiles }, { data: xp }, { data: enr }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("role", "learner")
-      .order("created_at", { ascending: false }),
+    pq.order("created_at", { ascending: false }),
     supabase.from("xp_events").select("user_id, amount"),
-    supabase.from("enrollments").select("user_id"),
+    supabase.from("enrollments").select("user_id").eq("status", "approved"),
   ]);
 
   const learners = (profiles as Profile[]) ?? [];
@@ -39,10 +49,20 @@ export default async function AdminLearners() {
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
         {/* Danh sách */}
-        <div className="space-y-2.5">
+        <div className="space-y-3">
+          <form action="/admin/hoc-vien" method="get" className="flex gap-2">
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Tìm theo tên hoặc email…"
+              className={`${inputCls} flex-1`}
+            />
+            <button className={buttonClass("outline")}>Tìm</button>
+          </form>
+
           {learners.length === 0 ? (
             <Card className="p-6 text-ink/60 text-sm">
-              Chưa có học viên nào. Tạo tài khoản ở bên phải.
+              {q ? "Không tìm thấy học viên khớp." : "Chưa có học viên nào. Tạo tài khoản ở bên phải."}
             </Card>
           ) : (
             learners.map((p) => {
@@ -58,7 +78,8 @@ export default async function AdminLearners() {
                       <div className="font-medium truncate">
                         {p.full_name || "(chưa đặt tên)"}
                       </div>
-                      <div className="text-xs text-ink/50 font-mono tnum">
+                      <div className="text-xs text-ink/50 truncate">{p.email}</div>
+                      <div className="text-xs text-ink/40 font-mono tnum">
                         {enrByUser.get(p.id) ?? 0} khóa · {totalXp} XP
                       </div>
                     </div>

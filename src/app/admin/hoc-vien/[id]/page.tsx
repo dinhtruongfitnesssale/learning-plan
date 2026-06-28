@@ -2,8 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCoach } from "@/lib/auth";
 import { getLearnerDetail } from "@/lib/data";
-import { Card, Eyebrow, Badge, Stat } from "@/components/ui";
+import { createClient } from "@/lib/supabase/server";
+import { Card, Eyebrow, Badge, Stat, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
+import { CATEGORIES } from "@/lib/brand";
+import { assignCourse, unassignCourse } from "../../actions";
+import type { Course } from "@/lib/supabase/types";
+
+const inputCls =
+  "rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
 
 export default async function LearnerDetail({
   params,
@@ -16,6 +23,21 @@ export default async function LearnerDetail({
   if (!data) notFound();
 
   const { profile, totalXp, level, streak, courses, quizzes, lessonsDone } = data;
+
+  // Dữ liệu cho mục phân khóa: tất cả khóa + trạng thái ghi danh của học viên này.
+  const supabase = await createClient();
+  const [{ data: allCourses }, { data: enrolls }] = await Promise.all([
+    supabase.from("courses").select("*").order("sort_order"),
+    supabase
+      .from("enrollments")
+      .select("course_id, status")
+      .eq("user_id", id),
+  ]);
+  const statusByCourse = new Map(
+    (enrolls ?? []).map((e) => [e.course_id, e.status as "pending" | "approved"]),
+  );
+  const courseList = (allCourses as Course[]) ?? [];
+  const unassigned = courseList.filter((c) => !statusByCourse.has(c.id));
 
   return (
     <div className="space-y-8">
@@ -116,6 +138,72 @@ export default async function LearnerDetail({
             ))}
           </Card>
         )}
+      </section>
+
+      {/* Phân khóa học */}
+      <section>
+        <h2 className="font-serif text-2xl mb-3">Phân khóa học</h2>
+        <Card className="p-5 space-y-4">
+          {/* Gán khóa mới */}
+          <form action={assignCourse} className="flex flex-wrap gap-2 items-center">
+            <input type="hidden" name="user_id" value={id} />
+            <select name="course_id" required className={`${inputCls} flex-1 min-w-[200px]`} defaultValue="">
+              <option value="" disabled>
+                Chọn khóa để gán…
+              </option>
+              {unassigned.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.cover_emoji} {c.title} ({CATEGORIES[c.category]?.label})
+                </option>
+              ))}
+            </select>
+            <button
+              disabled={unassigned.length === 0}
+              className={buttonClass("primary")}
+            >
+              Gán &amp; duyệt
+            </button>
+          </form>
+          {unassigned.length === 0 && (
+            <p className="text-xs text-ink/45">Học viên đã có mặt ở tất cả khóa.</p>
+          )}
+
+          {/* Khóa đang ghi danh */}
+          {statusByCourse.size > 0 && (
+            <div className="divide-y divide-ink/10 border-t border-ink/10 pt-1">
+              {courseList
+                .filter((c) => statusByCourse.has(c.id))
+                .map((c) => {
+                  const st = statusByCourse.get(c.id);
+                  return (
+                    <div key={c.id} className="flex items-center gap-3 py-2.5">
+                      <span className="text-xl shrink-0">{c.cover_emoji}</span>
+                      <span className="flex-1 min-w-0 truncate">{c.title}</span>
+                      <Badge accent={st === "approved" ? "herb" : "slate"}>
+                        {st === "approved" ? "Đang học" : "Chờ duyệt"}
+                      </Badge>
+                      {st === "pending" && (
+                        <form action={assignCourse}>
+                          <input type="hidden" name="user_id" value={id} />
+                          <input type="hidden" name="course_id" value={c.id} />
+                          <button className={buttonClass("ghost", "!px-3 !py-1.5 text-xs")}>
+                            Duyệt
+                          </button>
+                        </form>
+                      )}
+                      <form action={unassignCourse}>
+                        <input type="hidden" name="user_id" value={id} />
+                        <input type="hidden" name="course_id" value={c.id} />
+                        <button className="text-xs text-clay hover:underline shrink-0">
+                          Gỡ
+                        </button>
+                      </form>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </Card>
       </section>
     </div>
   );

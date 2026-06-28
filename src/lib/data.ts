@@ -20,7 +20,8 @@ export async function getLearnerDashboard(userId: string) {
     supabase
       .from("enrollments")
       .select("course_id, courses(*)")
-      .eq("user_id", userId),
+      .eq("user_id", userId)
+      .eq("status", "approved"),
   ]);
 
   const totalXp = (xp ?? []).reduce((a, b) => a + (b.amount ?? 0), 0);
@@ -73,18 +74,63 @@ export async function getLearnerDashboard(userId: string) {
   };
 }
 
-// Danh mục: tất cả khóa đã publish + đánh dấu đã ghi danh.
-export async function getCatalog(userId: string) {
+export const PAGE_SIZE = 6;
+
+export type CourseFilters = { q?: string; cat?: string; page?: number };
+
+// Danh mục cho học viên: khóa đã publish + lọc + phân trang + trạng thái ghi danh.
+export async function getCatalog(userId: string, filters: CourseFilters = {}) {
   const supabase = await createClient();
-  const [{ data: courses }, { data: enr }] = await Promise.all([
-    supabase.from("courses").select("*").eq("published", true).order("sort_order"),
-    supabase.from("enrollments").select("course_id").eq("user_id", userId),
+  const page = Math.max(1, filters.page ?? 1);
+  const from = (page - 1) * PAGE_SIZE;
+
+  let query = supabase
+    .from("courses")
+    .select("*", { count: "exact" })
+    .eq("published", true);
+  if (filters.cat) query = query.eq("category", filters.cat);
+  if (filters.q) query = query.ilike("title", `%${filters.q}%`);
+
+  const [{ data: courses, count }, { data: enr }] = await Promise.all([
+    query.order("sort_order").range(from, from + PAGE_SIZE - 1),
+    supabase.from("enrollments").select("course_id, status").eq("user_id", userId),
   ]);
-  const enrolled = new Set((enr ?? []).map((e) => e.course_id));
-  return ((courses as Course[]) ?? []).map((c) => ({
-    course: c,
-    enrolled: enrolled.has(c.id),
-  }));
+
+  const statusByCourse = new Map(
+    (enr ?? []).map((e) => [e.course_id, e.status as "pending" | "approved"]),
+  );
+  const total = count ?? 0;
+  return {
+    items: ((courses as Course[]) ?? []).map((c) => ({
+      course: c,
+      status: statusByCourse.get(c.id) ?? null,
+    })),
+    page,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+  };
+}
+
+// Danh sách khóa cho admin: tất cả khóa + lọc + phân trang.
+export async function getAdminCourses(filters: CourseFilters = {}) {
+  const supabase = await createClient();
+  const page = Math.max(1, filters.page ?? 1);
+  const from = (page - 1) * PAGE_SIZE;
+
+  let query = supabase.from("courses").select("*", { count: "exact" });
+  if (filters.cat) query = query.eq("category", filters.cat);
+  if (filters.q) query = query.ilike("title", `%${filters.q}%`);
+
+  const { data, count } = await query
+    .order("sort_order")
+    .range(from, from + PAGE_SIZE - 1);
+  const total = count ?? 0;
+  return {
+    items: (data as Course[]) ?? [],
+    page,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+  };
 }
 
 // Chi tiết khóa học cho học viên.
@@ -109,11 +155,12 @@ export async function getCourseDetail(slug: string, userId: string) {
       supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
       supabase
         .from("enrollments")
-        .select("id")
+        .select("status")
         .eq("user_id", userId)
         .eq("course_id", course.id)
         .maybeSingle(),
     ]);
+  const enrollStatus = (enr?.status as "pending" | "approved" | undefined) ?? null;
 
   const lessonList = (lessons as Lesson[]) ?? [];
   const quizLessonIds = new Set<string>();
@@ -141,7 +188,8 @@ export async function getCourseDetail(slug: string, userId: string) {
       done: doneSet.has(l.id),
       hasQuiz: quizLessonIds.has(l.id),
     })),
-    enrolled: !!enr,
+    enrollStatus,
+    approved: enrollStatus === "approved",
     done: lessonList.filter((l) => doneSet.has(l.id)).length,
     total: lessonList.length,
     leaderboard: (lb as LeaderboardRow[]) ?? [],
@@ -267,6 +315,18 @@ export async function getLessonView(
     .maybeSingle();
   if (!course) return null;
 
+  // Chỉ học viên đã được duyệt mới xem được bài.
+  const { data: enr } = await supabase
+    .from("enrollments")
+    .select("status")
+    .eq("user_id", userId)
+    .eq("course_id", course.id)
+    .maybeSingle();
+  const approved = enr?.status === "approved";
+  if (!approved) {
+    return { locked: true as const, course: course as Course };
+  }
+
   const { data: lessons } = await supabase
     .from("lessons")
     .select("*")
@@ -306,6 +366,7 @@ export async function getLessonView(
   }
 
   return {
+    locked: false as const,
     course: course as Course,
     lesson,
     done: !!doneRow,
@@ -314,4 +375,29 @@ export async function getLessonView(
     prev: idx > 0 ? list[idx - 1] : null,
     next: idx < list.length - 1 ? list[idx + 1] : null,
   };
+}
+
+// ── Admin: yêu cầu học đang chờ duyệt ─────────────────────────
+export async function getPendingRequests() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("enrollments")
+    .select("id, created_at, user_id, course_id, profiles(full_name, email), courses(title, cover_emoji)")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    createdAt: r.created_at as string,
+    learner: r.profiles as unknown as { full_name: string; email: string },
+    course: r.courses as unknown as { title: string; cover_emoji: string },
+  }));
+}
+
+export async function getPendingCount() {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("enrollments")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  return count ?? 0;
 }
