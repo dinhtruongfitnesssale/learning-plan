@@ -46,6 +46,9 @@ export interface Lesson {
   slug: string;
   summary: string;
   content: string;
+  video_url: string;
+  pdf_url: string;
+  pdf_name: string;
   est_minutes: number;
   xp_reward: number;
   sort_order: number;

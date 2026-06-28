@@ -5,6 +5,7 @@ import type {
   Course,
   Lesson,
   Module,
+  Profile,
   Streak,
   LeaderboardRow,
 } from "./supabase/types";
@@ -144,6 +145,111 @@ export async function getCourseDetail(slug: string, userId: string) {
     done: lessonList.filter((l) => doneSet.has(l.id)).length,
     total: lessonList.length,
     leaderboard: (lb as LeaderboardRow[]) ?? [],
+  };
+}
+
+// Chi tiết tiến độ một học viên (cho coach).
+export async function getLearnerDetail(userId: string) {
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profile) return null;
+
+  const [{ data: xp }, { data: streakRow }, { data: enr }, { data: prog }] =
+    await Promise.all([
+      supabase.from("xp_events").select("amount").eq("user_id", userId),
+      supabase.from("streaks").select("*").eq("user_id", userId).maybeSingle(),
+      supabase
+        .from("enrollments")
+        .select("course_id, created_at, courses(*)")
+        .eq("user_id", userId),
+      supabase
+        .from("lesson_progress")
+        .select("lesson_id, completed_at")
+        .eq("user_id", userId),
+    ]);
+
+  const totalXp = (xp ?? []).reduce((a, b) => a + (b.amount ?? 0), 0);
+  const courses = (enr ?? [])
+    .map((e) => e.courses as unknown as Course)
+    .filter(Boolean);
+  const courseIds = courses.map((c) => c.id);
+  const doneSet = new Set((prog ?? []).map((p) => p.lesson_id));
+
+  const lessonCount: Record<string, { done: number; total: number }> = {};
+  if (courseIds.length) {
+    const { data: lessons } = await supabase
+      .from("lessons")
+      .select("id, course_id")
+      .in("course_id", courseIds)
+      .eq("published", true);
+    (lessons ?? []).forEach((l) => {
+      const c = (lessonCount[l.course_id] ??= { done: 0, total: 0 });
+      c.total += 1;
+      if (doneSet.has(l.id)) c.done += 1;
+    });
+  }
+
+  // Điểm quiz: lấy attempt, gắn tên bài học, tính kỷ lục theo từng quiz.
+  const { data: attempts } = await supabase
+    .from("quiz_attempts")
+    .select("quiz_id, percent, passed, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  const quizIds = [...new Set((attempts ?? []).map((a) => a.quiz_id))];
+  const quizLessonTitle: Record<string, string> = {};
+  if (quizIds.length) {
+    const { data: quizzes } = await supabase
+      .from("quizzes")
+      .select("id, lesson_id")
+      .in("id", quizIds);
+    const lessonIds = [...new Set((quizzes ?? []).map((q) => q.lesson_id))];
+    const { data: lessons } = await supabase
+      .from("lessons")
+      .select("id, title")
+      .in("id", lessonIds);
+    const titleById = new Map((lessons ?? []).map((l) => [l.id, l.title]));
+    (quizzes ?? []).forEach((q) => {
+      quizLessonTitle[q.id] = titleById.get(q.lesson_id) ?? "Bài học";
+    });
+  }
+
+  const bestByQuiz = new Map<string, { title: string; best: number; attempts: number; passed: boolean }>();
+  (attempts ?? []).forEach((a) => {
+    const cur = bestByQuiz.get(a.quiz_id);
+    if (!cur) {
+      bestByQuiz.set(a.quiz_id, {
+        title: quizLessonTitle[a.quiz_id] ?? "Bài học",
+        best: a.percent,
+        attempts: 1,
+        passed: a.passed,
+      });
+    } else {
+      cur.attempts += 1;
+      cur.best = Math.max(cur.best, a.percent);
+      cur.passed = cur.passed || a.passed;
+    }
+  });
+
+  return {
+    profile: profile as Profile,
+    totalXp,
+    level: levelForXp(totalXp),
+    streak: (streakRow as Streak | null) ?? null,
+    enrolledAt: (enr ?? []).reduce<Record<string, string>>((acc, e) => {
+      acc[e.course_id] = e.created_at;
+      return acc;
+    }, {}),
+    courses: courses.map((c) => {
+      const p = lessonCount[c.id] ?? { done: 0, total: 0 };
+      return { course: c, done: p.done, total: p.total, percent: p.total ? p.done / p.total : 0 };
+    }),
+    quizzes: [...bestByQuiz.values()],
+    lessonsDone: doneSet.size,
   };
 }
 

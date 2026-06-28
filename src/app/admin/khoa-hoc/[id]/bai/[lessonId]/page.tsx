@@ -9,6 +9,7 @@ import {
   addQuestion,
   deleteQuestion,
 } from "../../../../actions";
+import { PdfUpload } from "@/components/PdfUpload";
 import type { Lesson, Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
 
 const inputCls =
@@ -69,6 +70,17 @@ export default async function LessonEditor({
           <label className="block">
             <span className="text-sm text-ink/70">Tóm tắt (1 dòng)</span>
             <input name="summary" defaultValue={l.summary} className={inputCls} />
+          </label>
+          <label className="block">
+            <span className="text-sm text-ink/70">
+              Link video (YouTube / Vimeo / Google Drive / .mp4) — để trống nếu không có
+            </span>
+            <input
+              name="video_url"
+              defaultValue={l.video_url}
+              placeholder="https://youtu.be/..."
+              className={inputCls}
+            />
           </label>
           <label className="block">
             <span className="text-sm text-ink/70">
@@ -134,6 +146,20 @@ export default async function LessonEditor({
             </form>
           </div>
         </form>
+      </Card>
+
+      {/* Tài liệu PDF */}
+      <Card className="p-6">
+        <h2 className="font-serif text-xl mb-1">Tài liệu PDF</h2>
+        <p className="text-sm text-ink/60 mb-4">
+          Tải lên tài liệu bài học để học viên đọc/tải trực tiếp trong bài.
+        </p>
+        <PdfUpload
+          lessonId={l.id}
+          courseId={courseId}
+          pdfUrl={l.pdf_url}
+          pdfName={l.pdf_name}
+        />
       </Card>
 
       {/* Quiz */}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getLessonView } from "@/lib/data";
 import { Markdown } from "@/components/Markdown";
+import { VideoEmbed } from "@/components/VideoEmbed";
 import { Quiz } from "@/components/Quiz";
 import { LessonComplete } from "@/components/LessonComplete";
 import { Eyebrow, Badge } from "@/components/ui";
@@ -41,7 +42,36 @@ export default async function LessonPage({
 
       <hr className="rule" />
 
-      <Markdown>{lesson.content}</Markdown>
+      {lesson.video_url && <VideoEmbed url={lesson.video_url} />}
+
+      {lesson.content.trim() && <Markdown>{lesson.content}</Markdown>}
+
+      {lesson.pdf_url && (
+        <section className="rounded-[var(--radius-card)] border border-ink/10 bg-paper-2 p-5">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xl">📄</span>
+              <span className="font-medium truncate">
+                {lesson.pdf_name || "Tài liệu bài học"}
+              </span>
+            </div>
+            <a
+              href={lesson.pdf_url}
+              target="_blank"
+              rel="noreferrer"
+              className="link text-sm shrink-0"
+            >
+              Mở / Tải về
+            </a>
+          </div>
+          <iframe
+            src={lesson.pdf_url}
+            className="w-full rounded-lg border border-ink/10 bg-paper"
+            style={{ height: "70vh" }}
+            title={lesson.pdf_name || "Tài liệu PDF"}
+          />
+        </section>
+      )}
 
       {hasQuiz && <Quiz lessonId={lesson.id} bestPercent={bestPercent} />}
 

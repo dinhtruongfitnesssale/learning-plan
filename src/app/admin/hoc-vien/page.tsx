@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { levelForXp } from "@/lib/brand";
 import { Card, Eyebrow, Badge } from "@/components/ui";
@@ -48,22 +49,24 @@ export default async function AdminLearners() {
               const totalXp = xpByUser.get(p.id) ?? 0;
               const lv = levelForXp(totalXp);
               return (
-                <Card key={p.id} className="p-4 flex items-center gap-4">
-                  <div className="grid place-items-center w-10 h-10 rounded-full bg-paper-2 font-serif text-lg shrink-0">
-                    {(p.full_name || "?").charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">
-                      {p.full_name || "(chưa đặt tên)"}
+                <Link key={p.id} href={`/admin/hoc-vien/${p.id}`}>
+                  <Card className="p-4 flex items-center gap-4 hover:border-ink/25 transition-colors">
+                    <div className="grid place-items-center w-10 h-10 rounded-full bg-paper-2 font-serif text-lg shrink-0">
+                      {(p.full_name || "?").charAt(0).toUpperCase()}
                     </div>
-                    <div className="text-xs text-ink/50 font-mono tnum">
-                      {enrByUser.get(p.id) ?? 0} khóa · {totalXp} XP
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">
+                        {p.full_name || "(chưa đặt tên)"}
+                      </div>
+                      <div className="text-xs text-ink/50 font-mono tnum">
+                        {enrByUser.get(p.id) ?? 0} khóa · {totalXp} XP
+                      </div>
                     </div>
-                  </div>
-                  <Badge accent="amber">
-                    Lv{lv.level} · {lv.name}
-                  </Badge>
-                </Card>
+                    <Badge accent="amber">
+                      Lv{lv.level} · {lv.name}
+                    </Badge>
+                  </Card>
+                </Link>
               );
             })
           )}

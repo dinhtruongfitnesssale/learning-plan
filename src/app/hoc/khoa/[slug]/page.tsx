@@ -86,6 +86,8 @@ export default async function CoursePage({
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
+                          {lesson.video_url && <span title="Có video">🎥</span>}
+                          {lesson.pdf_url && <span title="Có tài liệu PDF">📄</span>}
                           {hasQuiz && <Badge accent="slate">quiz</Badge>}
                           <span className="font-mono text-xs text-ink/40 tnum">
                             {lesson.est_minutes}′
