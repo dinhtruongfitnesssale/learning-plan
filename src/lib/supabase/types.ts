@@ -149,6 +149,10 @@ export interface SubmitQuizResult {
     correct_index: number;
     explanation: string;
   }[];
+  /** true khi vừa fail đủ 2 lần → khóa học bị khóa. */
+  locked: boolean;
+  /** Số lượt fail còn lại trước khi bị khóa. */
+  fails_left: number;
 }
 
 export interface LeaderboardRow {

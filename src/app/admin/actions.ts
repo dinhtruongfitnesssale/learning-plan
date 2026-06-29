@@ -206,6 +206,34 @@ export async function addQuestion(formData: FormData) {
   revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
 }
 
+export async function editQuestion(formData: FormData) {
+  const supabase = await guard();
+  const courseSlug = String(formData.get("course_slug"));
+  const lessonSlug = String(formData.get("lesson_slug"));
+  const options = [
+    String(formData.get("opt0") ?? ""),
+    String(formData.get("opt1") ?? ""),
+    String(formData.get("opt2") ?? ""),
+    String(formData.get("opt3") ?? ""),
+  ].filter((o) => o.trim() !== "");
+  if (options.length < 2) return;
+  // Đáp án đúng không được trỏ ra ngoài số đáp án còn lại.
+  const correctIndex = Math.min(
+    Number(formData.get("correct_index") || 0),
+    options.length - 1,
+  );
+  await supabase
+    .from("quiz_questions")
+    .update({
+      prompt: String(formData.get("prompt")),
+      options,
+      correct_index: correctIndex,
+      explanation: String(formData.get("explanation") ?? ""),
+    })
+    .eq("id", String(formData.get("id")));
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
+}
+
 export async function deleteQuestion(formData: FormData) {
   const supabase = await guard();
   const courseSlug = String(formData.get("course_slug"));
@@ -220,9 +248,10 @@ export async function deleteQuestion(formData: FormData) {
 // ── Duyệt ghi danh / phân khóa ────────────────────────────────
 export async function approveEnrollment(formData: FormData) {
   const supabase = await guard();
+  // Duyệt = cấp lại lượt làm quiz mới (quan trọng khi duyệt HỌC LẠI).
   await supabase
     .from("enrollments")
-    .update({ status: "approved" })
+    .update({ status: "approved", attempts_reset_at: new Date().toISOString() })
     .eq("id", String(formData.get("id")));
   revalidatePath("/admin/yeu-cau");
   revalidatePath("/admin");
@@ -250,7 +279,7 @@ export async function assignCourse(formData: FormData) {
   if (existing) {
     await supabase
       .from("enrollments")
-      .update({ status: "approved" })
+      .update({ status: "approved", attempts_reset_at: new Date().toISOString() })
       .eq("id", existing.id);
   } else {
     await supabase

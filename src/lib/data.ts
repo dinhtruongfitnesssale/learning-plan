@@ -97,7 +97,10 @@ export async function getCatalog(userId: string, filters: CourseFilters = {}) {
   ]);
 
   const statusByCourse = new Map(
-    (enr ?? []).map((e) => [e.course_id, e.status as "pending" | "approved"]),
+    (enr ?? []).map((e) => [
+      e.course_id,
+      e.status as "pending" | "approved" | "failed",
+    ]),
   );
   const total = count ?? 0;
   return {
@@ -160,7 +163,8 @@ export async function getCourseDetail(slug: string, userId: string) {
         .eq("course_id", course.id)
         .maybeSingle(),
     ]);
-  const enrollStatus = (enr?.status as "pending" | "approved" | undefined) ?? null;
+  const enrollStatus =
+    (enr?.status as "pending" | "approved" | "failed" | undefined) ?? null;
 
   const lessonList = (lessons as Lesson[]) ?? [];
   const quizLessonIds = new Set<string>();

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
-import { upsertQuiz, addQuestion, deleteQuestion } from "../../../../actions";
+import { upsertQuiz, addQuestion, editQuestion, deleteQuestion } from "../../../../actions";
 import { LessonEditForm } from "./LessonEditForm";
 import type { Lesson, Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
 
@@ -161,6 +161,71 @@ export default async function LessonEditor({
                           </li>
                         ))}
                       </ul>
+
+                      {/* Sửa câu hỏi */}
+                      <details className="mt-3">
+                        <summary className="cursor-pointer select-none text-xs link">
+                          ✎ Sửa câu hỏi
+                        </summary>
+                        <form
+                          action={editQuestion}
+                          className="mt-3 space-y-3 rounded-lg border border-ink/10 bg-paper p-4"
+                        >
+                          <input type="hidden" name="id" value={q.id} />
+                          <input type="hidden" name="lesson_id" value={l.id} />
+                          <input type="hidden" name="course_id" value={courseId} />
+                          <input type="hidden" name="course_slug" value={slug} />
+                          <input type="hidden" name="lesson_slug" value={l.slug} />
+                          <input
+                            name="prompt"
+                            required
+                            defaultValue={q.prompt}
+                            placeholder="Câu hỏi…"
+                            className={inputCls}
+                          />
+                          <div className="grid sm:grid-cols-2 gap-2">
+                            {[0, 1, 2, 3].map((oi) => (
+                              <input
+                                key={oi}
+                                name={`opt${oi}`}
+                                defaultValue={q.options[oi] ?? ""}
+                                placeholder={`Đáp án ${String.fromCharCode(
+                                  65 + oi,
+                                )}${oi < 2 ? " (bắt buộc)" : ""}`}
+                                className={inputCls}
+                              />
+                            ))}
+                          </div>
+                          <div className="grid sm:grid-cols-[auto_1fr] gap-3 items-end">
+                            <label className="block">
+                              <span className="text-sm text-ink/70">Đáp án đúng</span>
+                              <select
+                                name="correct_index"
+                                className={inputCls}
+                                defaultValue={String(q.correct_index)}
+                              >
+                                <option value="0">A</option>
+                                <option value="1">B</option>
+                                <option value="2">C</option>
+                                <option value="3">D</option>
+                              </select>
+                            </label>
+                            <label className="block">
+                              <span className="text-sm text-ink/70">
+                                Giải thích (hiện sau khi nộp)
+                              </span>
+                              <input
+                                name="explanation"
+                                defaultValue={q.explanation ?? ""}
+                                className={inputCls}
+                              />
+                            </label>
+                          </div>
+                          <button className={buttonClass("outline")}>
+                            Lưu thay đổi
+                          </button>
+                        </form>
+                      </details>
                     </li>
                   ))}
                 </ol>

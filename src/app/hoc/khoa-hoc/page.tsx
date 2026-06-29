@@ -5,7 +5,7 @@ import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { CourseFilter } from "@/components/CourseFilter";
 import { Pagination } from "@/components/Pagination";
 import { CATEGORIES } from "@/lib/brand";
-import { requestEnroll } from "./actions";
+import { requestEnroll, requestRelearn } from "./actions";
 
 export default async function Catalog({
   searchParams,
@@ -71,6 +71,14 @@ export default async function Catalog({
                   >
                     ⏳ Đang chờ duyệt
                   </button>
+                ) : status === "failed" ? (
+                  <form action={requestRelearn}>
+                    <input type="hidden" name="course_id" value={course.id} />
+                    <input type="hidden" name="slug" value={course.slug} />
+                    <button type="submit" className={buttonClass("primary", "w-full")}>
+                      🔒 Yêu cầu học lại
+                    </button>
+                  </form>
                 ) : (
                   <form action={requestEnroll}>
                     <input type="hidden" name="course_id" value={course.id} />

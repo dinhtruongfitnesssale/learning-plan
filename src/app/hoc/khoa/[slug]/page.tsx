@@ -5,7 +5,7 @@ import { getCourseDetail } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
 import { CATEGORIES } from "@/lib/brand";
-import { requestEnroll } from "../../khoa-hoc/actions";
+import { requestEnroll, requestRelearn } from "../../khoa-hoc/actions";
 import type { Lesson } from "@/lib/supabase/types";
 
 export default async function CoursePage({
@@ -49,6 +49,12 @@ export default async function CoursePage({
         </div>
         {enrollStatus === "pending" ? (
           <Badge accent="slate">⏳ Đang chờ duyệt</Badge>
+        ) : enrollStatus === "failed" ? (
+          <form action={requestRelearn}>
+            <input type="hidden" name="course_id" value={course.id} />
+            <input type="hidden" name="slug" value={course.slug} />
+            <button className={buttonClass("primary")}>Yêu cầu học lại</button>
+          </form>
         ) : !approved ? (
           <form action={requestEnroll}>
             <input type="hidden" name="course_id" value={course.id} />
@@ -60,11 +66,17 @@ export default async function CoursePage({
 
       {/* Banner trạng thái khi chưa được học */}
       {!approved && (
-        <Card className="p-5 bg-paper-2">
+        <Card
+          className={`p-5 ${
+            enrollStatus === "failed" ? "bg-clay-soft" : "bg-paper-2"
+          }`}
+        >
           <p className="text-sm text-ink/70">
             {enrollStatus === "pending"
               ? "🔒 Yêu cầu của bạn đang chờ coach duyệt. Khi được duyệt, bạn sẽ vào học được ngay."
-              : "🔒 Bạn chưa được ghi danh. Bấm “Yêu cầu học” để coach duyệt."}
+              : enrollStatus === "failed"
+                ? "🔒 Bạn đã làm sai quiz quá 2 lần nên khóa học này bị khóa. Bấm “Yêu cầu học lại” để coach mở lại — bạn sẽ có 2 lượt làm mới."
+                : "🔒 Bạn chưa được ghi danh. Bấm “Yêu cầu học” để coach duyệt."}
           </p>
         </Card>
       )}

@@ -159,7 +159,11 @@ function ResultBanner({
     >
       <div>
         <p className="font-serif text-xl">
-          {result.passed ? "Đạt rồi! 🌿" : "Gần đạt — thử lại nhé"}
+          {result.passed
+            ? "Đạt rồi! 🌿"
+            : result.locked
+              ? "Khóa học đã bị khóa 🔒"
+              : "Gần đạt — thử lại nhé"}
         </p>
         <p className="font-mono text-sm tnum mt-0.5">
           {result.correct}/{result.total} đúng · {result.percent}%
@@ -170,10 +174,23 @@ function ResultBanner({
             <span className="text-amber"> · +{result.bonus} thưởng ✨</span>
           )}
         </p>
+        {!result.passed &&
+          (result.locked ? (
+            <p className="text-sm text-clay mt-1">
+              Bạn đã làm sai 2 lần. Hãy vào trang khóa học để “Yêu cầu học
+              lại”.
+            </p>
+          ) : (
+            <p className="text-sm text-clay mt-1">
+              Còn {result.fails_left} lượt làm — sai nữa sẽ bị khóa khóa học.
+            </p>
+          ))}
       </div>
-      <button onClick={onRetry} className={buttonClass("outline")}>
-        Làm lại
-      </button>
+      {!result.locked && (
+        <button onClick={onRetry} className={buttonClass("outline")}>
+          Làm lại
+        </button>
+      )}
     </div>
   );
 }

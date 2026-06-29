@@ -30,3 +30,20 @@ export async function requestEnroll(formData: FormData) {
   revalidatePath("/hoc/khoa-hoc");
   if (slug) revalidatePath(`/hoc/khoa/${slug}`);
 }
+
+// Học viên bị KHÓA (fail quiz quá 2 lần) xin học lại → quay về 'pending'
+// để admin duyệt lại (duyệt sẽ cấp lại 2 lượt làm mới).
+export async function requestRelearn(formData: FormData) {
+  const courseId = String(formData.get("course_id"));
+  const slug = String(formData.get("slug"));
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  await supabase.rpc("request_relearn", { p_course_id: courseId });
+
+  revalidatePath("/hoc/khoa-hoc");
+  if (slug) revalidatePath(`/hoc/khoa/${slug}`);
+}
