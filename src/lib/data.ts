@@ -377,6 +377,80 @@ export async function getLessonView(
   };
 }
 
+// ── Admin: theo dõi tiến độ & nhắc nhở học viên nghỉ học ───────
+
+// Số ngày không học sẽ bị đánh dấu "cần nhắc nhở".
+export const INACTIVE_DAYS = 3;
+
+// Hôm nay theo UTC (khớp current_date của Postgres trên Supabase).
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Số ngày giữa hai mốc YYYY-MM-DD (toISO - fromISO).
+function daysBetween(fromISO: string, toISO: string) {
+  const a = Date.parse(`${fromISO}T00:00:00Z`);
+  const b = Date.parse(`${toISO}T00:00:00Z`);
+  return Math.round((b - a) / 86_400_000);
+}
+
+export interface TrackingRow {
+  id: string;
+  fullName: string;
+  email: string;
+  lastActive: string | null; // YYYY-MM-DD, null = chưa học buổi nào
+  daysSince: number | null; // số ngày kể từ buổi học gần nhất
+  currentStreak: number;
+  longestStreak: number;
+  needsReminder: boolean;
+}
+
+// Bảng theo dõi cho coach: lần học gần nhất, số ngày nghỉ, chuỗi học.
+export async function getLearningTracking() {
+  const supabase = await createClient();
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("role", "learner");
+
+  const learners = (profiles as Pick<Profile, "id" | "full_name" | "email">[]) ?? [];
+  const ids = learners.map((p) => p.id);
+
+  const { data: streaks } = ids.length
+    ? await supabase.from("streaks").select("*").in("user_id", ids)
+    : { data: [] };
+  const streakByUser = new Map(
+    ((streaks as Streak[]) ?? []).map((s) => [s.user_id, s]),
+  );
+
+  const today = todayISO();
+  const rows: TrackingRow[] = learners.map((p) => {
+    const s = streakByUser.get(p.id);
+    const lastActive = s?.last_active_date ?? null;
+    const daysSince = lastActive ? Math.max(0, daysBetween(lastActive, today)) : null;
+    return {
+      id: p.id,
+      fullName: p.full_name,
+      email: p.email,
+      lastActive,
+      daysSince,
+      currentStreak: s?.current_streak ?? 0,
+      longestStreak: s?.longest_streak ?? 0,
+      needsReminder: daysSince === null || daysSince >= INACTIVE_DAYS,
+    };
+  });
+
+  // Sắp xếp: cần nhắc lên trước (nghỉ lâu / chưa học nhất), rồi đến người học đều.
+  const rank = (r: TrackingRow) => (r.daysSince === null ? Infinity : r.daysSince);
+  rows.sort((a, b) => rank(b) - rank(a));
+
+  return {
+    rows,
+    reminders: rows.filter((r) => r.needsReminder),
+    onTrack: rows.filter((r) => !r.needsReminder),
+  };
+}
+
 // ── Admin: yêu cầu học đang chờ duyệt ─────────────────────────
 export async function getPendingRequests() {
   const supabase = await createClient();

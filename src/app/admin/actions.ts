@@ -32,15 +32,16 @@ export async function createCourse(formData: FormData) {
         | "clay",
       category: (String(formData.get("category")) || "dinh_duong") as never,
     })
-    .select("id")
+    .select("id, slug")
     .single();
   revalidatePath("/admin/khoa-hoc");
-  if (data) redirect(`/admin/khoa-hoc/${data.id}`);
+  if (data) redirect(`/admin/khoa-hoc/${data.slug}`);
 }
 
 export async function updateCourse(formData: FormData) {
   const supabase = await guard();
   const id = String(formData.get("id"));
+  const slug = String(formData.get("slug"));
   await supabase
     .from("courses")
     .update({
@@ -51,15 +52,16 @@ export async function updateCourse(formData: FormData) {
       category: String(formData.get("category")) as never,
     })
     .eq("id", id);
-  revalidatePath(`/admin/khoa-hoc/${id}`);
+  revalidatePath(`/admin/khoa-hoc/${slug}`);
 }
 
 export async function toggleCoursePublish(formData: FormData) {
   const supabase = await guard();
   const id = String(formData.get("id"));
+  const slug = String(formData.get("slug"));
   const published = String(formData.get("published")) === "true";
   await supabase.from("courses").update({ published: !published }).eq("id", id);
-  revalidatePath(`/admin/khoa-hoc/${id}`);
+  revalidatePath(`/admin/khoa-hoc/${slug}`);
   revalidatePath("/admin/khoa-hoc");
 }
 
@@ -74,6 +76,7 @@ export async function deleteCourse(formData: FormData) {
 export async function createModule(formData: FormData) {
   const supabase = await guard();
   const courseId = String(formData.get("course_id"));
+  const courseSlug = String(formData.get("course_slug"));
   const { count } = await supabase
     .from("modules")
     .select("id", { count: "exact", head: true })
@@ -83,13 +86,14 @@ export async function createModule(formData: FormData) {
     title: String(formData.get("title")),
     sort_order: count ?? 0,
   });
-  revalidatePath(`/admin/khoa-hoc/${courseId}`);
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
 }
 
 // ── Bài học ───────────────────────────────────────────────────
 export async function createLesson(formData: FormData) {
   const supabase = await guard();
   const courseId = String(formData.get("course_id"));
+  const courseSlug = String(formData.get("course_slug"));
   const title = String(formData.get("title")).trim();
   if (!title) return;
   const { count } = await supabase
@@ -106,10 +110,10 @@ export async function createLesson(formData: FormData) {
       slug: slugify(title) || `bai-${Date.now()}`,
       sort_order: count ?? 0,
     })
-    .select("id")
+    .select("slug")
     .single();
-  revalidatePath(`/admin/khoa-hoc/${courseId}`);
-  if (data) redirect(`/admin/khoa-hoc/${courseId}/bai/${data.id}`);
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
+  if (data) redirect(`/admin/khoa-hoc/${courseSlug}/bai/${data.slug}`);
 }
 
 export async function updateLesson(
@@ -119,7 +123,8 @@ export async function updateLesson(
   await requireCoach();
   const supabase = await createClient();
   const id = String(formData.get("id"));
-  const courseId = String(formData.get("course_id"));
+  const courseSlug = String(formData.get("course_slug"));
+  const lessonSlug = String(formData.get("lesson_slug"));
   const { error } = await supabase
     .from("lessons")
     .update({
@@ -137,24 +142,25 @@ export async function updateLesson(
     })
     .eq("id", id);
   if (error) return { ok: false, message: "Lưu lỗi: " + error.message };
-  revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${id}`);
-  revalidatePath(`/admin/khoa-hoc/${courseId}`);
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
   return { ok: true, savedAt: Date.now() };
 }
 
 export async function deleteLesson(formData: FormData) {
   const supabase = await guard();
-  const courseId = String(formData.get("course_id"));
+  const courseSlug = String(formData.get("course_slug"));
   await supabase.from("lessons").delete().eq("id", String(formData.get("id")));
-  revalidatePath(`/admin/khoa-hoc/${courseId}`);
-  redirect(`/admin/khoa-hoc/${courseId}`);
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
+  redirect(`/admin/khoa-hoc/${courseSlug}`);
 }
 
 // ── Quiz ──────────────────────────────────────────────────────
 export async function upsertQuiz(formData: FormData) {
   const supabase = await guard();
   const lessonId = String(formData.get("lesson_id"));
-  const courseId = String(formData.get("course_id"));
+  const courseSlug = String(formData.get("course_slug"));
+  const lessonSlug = String(formData.get("lesson_slug"));
   const { data: existing } = await supabase
     .from("quizzes")
     .select("id")
@@ -170,14 +176,14 @@ export async function upsertQuiz(formData: FormData) {
   } else {
     await supabase.from("quizzes").insert({ lesson_id: lessonId, ...payload });
   }
-  revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${lessonId}`);
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
 }
 
 export async function addQuestion(formData: FormData) {
   const supabase = await guard();
   const quizId = String(formData.get("quiz_id"));
-  const lessonId = String(formData.get("lesson_id"));
-  const courseId = String(formData.get("course_id"));
+  const courseSlug = String(formData.get("course_slug"));
+  const lessonSlug = String(formData.get("lesson_slug"));
   const options = [
     String(formData.get("opt0") ?? ""),
     String(formData.get("opt1") ?? ""),
@@ -197,18 +203,18 @@ export async function addQuestion(formData: FormData) {
     explanation: String(formData.get("explanation") ?? ""),
     sort_order: count ?? 0,
   });
-  revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${lessonId}`);
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
 }
 
 export async function deleteQuestion(formData: FormData) {
   const supabase = await guard();
-  const lessonId = String(formData.get("lesson_id"));
-  const courseId = String(formData.get("course_id"));
+  const courseSlug = String(formData.get("course_slug"));
+  const lessonSlug = String(formData.get("lesson_slug"));
   await supabase
     .from("quiz_questions")
     .delete()
     .eq("id", String(formData.get("id")));
-  revalidatePath(`/admin/khoa-hoc/${courseId}/bai/${lessonId}`);
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
 }
 
 // ── Duyệt ghi danh / phân khóa ────────────────────────────────

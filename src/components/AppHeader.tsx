@@ -40,6 +40,7 @@ export function AppHeader({
               <NavLink href="/admin">Tổng quan</NavLink>
               <NavLink href="/admin/khoa-hoc">Khóa học</NavLink>
               <NavLink href="/admin/hoc-vien">Học viên</NavLink>
+              <NavLink href="/admin/theo-doi">Theo dõi</NavLink>
               <Link
                 href="/admin/yeu-cau"
                 className="relative rounded-full px-3 py-1.5 text-sm text-ink/70 hover:bg-paper-2 hover:text-ink transition-colors"

@@ -65,11 +65,10 @@ export default async function Landing() {
       </main>
 
       <footer className="border-t border-ink/10">
-        <div className="mx-auto max-w-5xl px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-ink/50">
+        <div className="mx-auto max-w-5xl px-5 py-8 text-center text-sm text-ink/50">
           <span>
             © {new Date().getFullYear()} {APP_NAME} · {APP_TAGLINE}
           </span>
-          <span className="font-mono text-xs">paper + ink · 90/5/5</span>
         </div>
       </footer>
     </>

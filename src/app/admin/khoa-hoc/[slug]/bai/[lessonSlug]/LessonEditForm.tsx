@@ -11,10 +11,12 @@ const inputCls =
 export function LessonEditForm({
   lesson: l,
   courseId,
+  courseSlug,
   modules: mods,
 }: {
   lesson: Lesson;
   courseId: string;
+  courseSlug: string;
   modules: Module[];
 }) {
   const [state, formAction, pending] = useActionState(updateLesson, null);
@@ -24,6 +26,8 @@ export function LessonEditForm({
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="id" value={l.id} />
         <input type="hidden" name="course_id" value={courseId} />
+        <input type="hidden" name="course_slug" value={courseSlug} />
+        <input type="hidden" name="lesson_slug" value={l.slug} />
         <label className="block">
           <span className="text-sm text-ink/70">Tiêu đề</span>
           <input name="title" defaultValue={l.title} className={inputCls} />

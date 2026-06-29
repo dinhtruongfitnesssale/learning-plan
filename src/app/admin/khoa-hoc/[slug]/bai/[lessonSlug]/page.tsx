@@ -12,17 +12,27 @@ const inputCls =
 export default async function LessonEditor({
   params,
 }: {
-  params: Promise<{ id: string; lessonId: string }>;
+  params: Promise<{ slug: string; lessonSlug: string }>;
 }) {
-  const { id: courseId, lessonId } = await params;
+  const { slug, lessonSlug } = await params;
   const supabase = await createClient();
+  const { data: course } = await supabase
+    .from("courses")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!course) notFound();
+  const courseId = course.id as string;
+
   const { data: lesson } = await supabase
     .from("lessons")
     .select("*")
-    .eq("id", lessonId)
+    .eq("course_id", courseId)
+    .eq("slug", lessonSlug)
     .maybeSingle();
   if (!lesson) notFound();
   const l = lesson as Lesson;
+  const lessonId = l.id;
 
   const [{ data: modules }, { data: quizRow }] = await Promise.all([
     supabase.from("modules").select("*").eq("course_id", courseId).order("sort_order"),
@@ -43,7 +53,7 @@ export default async function LessonEditor({
 
   return (
     <div className="space-y-7">
-      <Link href={`/admin/khoa-hoc/${courseId}`} className="link text-sm">
+      <Link href={`/admin/khoa-hoc/${slug}`} className="link text-sm">
         ← Về khóa học
       </Link>
 
@@ -53,7 +63,12 @@ export default async function LessonEditor({
       </section>
 
       {/* Nội dung bài */}
-      <LessonEditForm lesson={l} courseId={courseId} modules={mods} />
+      <LessonEditForm
+        lesson={l}
+        courseId={courseId}
+        courseSlug={slug}
+        modules={mods}
+      />
 
       {/* Quiz */}
       <section>
@@ -69,6 +84,8 @@ export default async function LessonEditor({
           >
             <input type="hidden" name="lesson_id" value={l.id} />
             <input type="hidden" name="course_id" value={courseId} />
+            <input type="hidden" name="course_slug" value={slug} />
+            <input type="hidden" name="lesson_slug" value={l.slug} />
             <label className="block">
               <span className="text-sm text-ink/70">Tiêu đề quiz</span>
               <input
@@ -122,6 +139,8 @@ export default async function LessonEditor({
                           <input type="hidden" name="id" value={q.id} />
                           <input type="hidden" name="lesson_id" value={l.id} />
                           <input type="hidden" name="course_id" value={courseId} />
+                          <input type="hidden" name="course_slug" value={slug} />
+                          <input type="hidden" name="lesson_slug" value={l.slug} />
                           <button className="text-xs text-clay hover:underline shrink-0">
                             xóa
                           </button>
@@ -155,6 +174,8 @@ export default async function LessonEditor({
                 <input type="hidden" name="quiz_id" value={quiz.id} />
                 <input type="hidden" name="lesson_id" value={l.id} />
                 <input type="hidden" name="course_id" value={courseId} />
+                <input type="hidden" name="course_slug" value={slug} />
+                <input type="hidden" name="lesson_slug" value={l.slug} />
                 <p className="eyebrow">Thêm câu hỏi</p>
                 <input
                   name="prompt"

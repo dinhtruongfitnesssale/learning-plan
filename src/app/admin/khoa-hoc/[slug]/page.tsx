@@ -17,21 +17,21 @@ const inputCls =
 export default async function CourseEditor({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = await createClient();
   const { data: course } = await supabase
     .from("courses")
     .select("*")
-    .eq("id", id)
+    .eq("slug", slug)
     .maybeSingle();
   if (!course) notFound();
   const c = course as Course;
 
   const [{ data: modules }, { data: lessons }] = await Promise.all([
-    supabase.from("modules").select("*").eq("course_id", id).order("sort_order"),
-    supabase.from("lessons").select("*").eq("course_id", id).order("sort_order"),
+    supabase.from("modules").select("*").eq("course_id", c.id).order("sort_order"),
+    supabase.from("lessons").select("*").eq("course_id", c.id).order("sort_order"),
   ]);
   const mods = (modules as Module[]) ?? [];
   const lessonList = (lessons as Lesson[]) ?? [];
@@ -45,6 +45,7 @@ export default async function CourseEditor({
         <div className="flex items-center gap-2">
           <form action={toggleCoursePublish}>
             <input type="hidden" name="id" value={c.id} />
+            <input type="hidden" name="slug" value={c.slug} />
             <input type="hidden" name="published" value={String(c.published)} />
             <button className={buttonClass(c.published ? "outline" : "primary")}>
               {c.published ? "Chuyển về nháp" : "Xuất bản"}
@@ -80,7 +81,7 @@ export default async function CourseEditor({
               <ol className="space-y-2">
                 {lessonList.map((l, i) => (
                   <li key={l.id}>
-                    <Link href={`/admin/khoa-hoc/${c.id}/bai/${l.id}`}>
+                    <Link href={`/admin/khoa-hoc/${c.slug}/bai/${l.slug}`}>
                       <Card className="px-4 py-3 flex items-center gap-3 hover:border-ink/25 transition-colors">
                         <span className="font-mono text-sm text-ink/40 w-5 tnum">
                           {i + 1}
@@ -107,6 +108,7 @@ export default async function CourseEditor({
             <h3 className="font-serif text-lg mb-3">Thêm bài học</h3>
             <form action={createLesson} className="flex flex-col sm:flex-row gap-2">
               <input type="hidden" name="course_id" value={c.id} />
+              <input type="hidden" name="course_slug" value={c.slug} />
               <input
                 name="title"
                 required
@@ -132,6 +134,7 @@ export default async function CourseEditor({
             <h3 className="font-serif text-lg mb-3">Thông tin khóa</h3>
             <form action={updateCourse} className="space-y-3">
               <input type="hidden" name="id" value={c.id} />
+              <input type="hidden" name="slug" value={c.slug} />
               <label className="block">
                 <span className="text-sm text-ink/70">Tên khóa</span>
                 <input name="title" defaultValue={c.title} className={inputCls} />
@@ -188,6 +191,7 @@ export default async function CourseEditor({
             )}
             <form action={createModule} className="flex gap-2">
               <input type="hidden" name="course_id" value={c.id} />
+              <input type="hidden" name="course_slug" value={c.slug} />
               <input
                 name="title"
                 required

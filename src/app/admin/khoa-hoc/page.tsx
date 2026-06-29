@@ -41,7 +41,7 @@ export default async function AdminCourses({
               </Card>
             )}
             {items.map((c) => (
-              <Link key={c.id} href={`/admin/khoa-hoc/${c.id}`}>
+              <Link key={c.id} href={`/admin/khoa-hoc/${c.slug}`}>
                 <Card className="p-4 flex items-center gap-4 hover:border-ink/25 transition-colors">
                   <span className="text-2xl">{c.cover_emoji}</span>
                   <div className="flex-1 min-w-0">

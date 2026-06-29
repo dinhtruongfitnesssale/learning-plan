@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Eyebrow, ButtonLink, Stat } from "@/components/ui";
+import { getLearningTracking } from "@/lib/data";
+import { Card, Eyebrow, ButtonLink, Stat, Badge } from "@/components/ui";
 
 export default async function AdminOverview() {
   const supabase = await createClient();
-  const [courses, learners, lessons, attempts] = await Promise.all([
+  const [courses, learners, lessons, attempts, tracking] = await Promise.all([
     supabase.from("courses").select("id", { count: "exact", head: true }),
     supabase
       .from("profiles")
@@ -12,7 +13,9 @@ export default async function AdminOverview() {
       .eq("role", "learner"),
     supabase.from("lessons").select("id", { count: "exact", head: true }),
     supabase.from("quiz_attempts").select("id", { count: "exact", head: true }),
+    getLearningTracking(),
   ]);
+  const reminderCount = tracking.reminders.length;
 
   return (
     <div className="space-y-8">
@@ -59,6 +62,23 @@ export default async function AdminOverview() {
           </ButtonLink>
         </Card>
       </div>
+
+      <Card className="p-6">
+        <div className="flex items-center gap-3">
+          <h2 className="font-serif text-xl">Theo dõi học tập</h2>
+          {reminderCount > 0 && (
+            <Badge accent="clay">{reminderCount} cần nhắc nhở</Badge>
+          )}
+        </div>
+        <p className="text-sm text-ink/60 mt-1 mb-4">
+          {reminderCount > 0
+            ? `Có ${reminderCount} học viên đã nghỉ học từ 3 ngày trở lên.`
+            : "Mọi học viên đều đang học đều. Theo dõi chuỗi học và lần học gần nhất."}
+        </p>
+        <ButtonLink href="/admin/theo-doi" variant="outline">
+          Xem theo dõi
+        </ButtonLink>
+      </Card>
 
       <p className="text-sm text-ink/50">
         Mẹo: bài học viết bằng <Link href="/admin/khoa-hoc" className="link">Markdown</Link>{" "}
