@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
-import { upsertQuiz, addQuestion, editQuestion, deleteQuestion } from "../../../../actions";
+import { addQuestion, editQuestion, deleteQuestion } from "../../../../actions";
 import { LessonEditForm } from "./LessonEditForm";
+import { QuizConfigForm } from "./QuizConfigForm";
 import type { Lesson, Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
 
 const inputCls =
@@ -78,44 +79,13 @@ export default async function LessonEditor({
 
         <Card className="p-6 space-y-5">
           {/* Cấu hình quiz */}
-          <form
-            action={upsertQuiz}
-            className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 items-end"
-          >
-            <input type="hidden" name="lesson_id" value={l.id} />
-            <input type="hidden" name="course_id" value={courseId} />
-            <input type="hidden" name="course_slug" value={slug} />
-            <input type="hidden" name="lesson_slug" value={l.slug} />
-            <label className="block">
-              <span className="text-sm text-ink/70">Tiêu đề quiz</span>
-              <input
-                name="title"
-                defaultValue={quiz?.title ?? "Kiểm tra nhanh"}
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm text-ink/70">Đạt (%)</span>
-              <input
-                name="pass_score"
-                type="number"
-                defaultValue={quiz?.pass_score ?? 70}
-                className={`${inputCls} w-24`}
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm text-ink/70">XP</span>
-              <input
-                name="xp_reward"
-                type="number"
-                defaultValue={quiz?.xp_reward ?? 30}
-                className={`${inputCls} w-20`}
-              />
-            </label>
-            <button className={buttonClass("outline")}>
-              {quiz ? "Lưu" : "Tạo quiz"}
-            </button>
-          </form>
+          <QuizConfigForm
+            quiz={quiz}
+            lessonId={l.id}
+            courseId={courseId}
+            courseSlug={slug}
+            lessonSlug={l.slug}
+          />
 
           {quiz && (
             <>

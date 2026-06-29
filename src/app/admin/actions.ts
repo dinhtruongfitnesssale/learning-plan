@@ -156,7 +156,12 @@ export async function deleteLesson(formData: FormData) {
 }
 
 // ── Quiz ──────────────────────────────────────────────────────
-export async function upsertQuiz(formData: FormData) {
+export type QuizFormState = { ok: boolean; error?: string };
+
+export async function upsertQuiz(
+  _prev: QuizFormState,
+  formData: FormData,
+): Promise<QuizFormState> {
   const supabase = await guard();
   const lessonId = String(formData.get("lesson_id"));
   const courseSlug = String(formData.get("course_slug"));
@@ -171,12 +176,12 @@ export async function upsertQuiz(formData: FormData) {
     pass_score: Number(formData.get("pass_score") || 70),
     xp_reward: Number(formData.get("xp_reward") || 30),
   };
-  if (existing) {
-    await supabase.from("quizzes").update(payload).eq("id", existing.id);
-  } else {
-    await supabase.from("quizzes").insert({ lesson_id: lessonId, ...payload });
-  }
+  const { error } = existing
+    ? await supabase.from("quizzes").update(payload).eq("id", existing.id)
+    : await supabase.from("quizzes").insert({ lesson_id: lessonId, ...payload });
+  if (error) return { ok: false, error: error.message };
   revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
+  return { ok: true };
 }
 
 export async function addQuestion(formData: FormData) {
