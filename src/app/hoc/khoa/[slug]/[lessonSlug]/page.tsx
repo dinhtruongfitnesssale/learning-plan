@@ -49,7 +49,7 @@ export default async function LessonPage({
       {lesson.content.trim() && <Markdown>{lesson.content}</Markdown>}
 
       {lesson.pdf_url && (
-        <section className="rounded-[var(--radius-card)] border border-ink/10 bg-paper-2 p-5">
+        <section className="rounded-[var(--radius-card)] border border-ink/10 bg-paper-2 p-5 lg:w-[min(94vw,1200px)] lg:relative lg:left-1/2 lg:-translate-x-1/2">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-xl">📄</span>
@@ -72,8 +72,7 @@ export default async function LessonPage({
           </div>
           <iframe
             src={pdfEmbedSrc(lesson.pdf_url)}
-            className="w-full rounded-lg border border-ink/10 bg-paper"
-            style={{ height: "70vh" }}
+            className="w-full rounded-lg border border-ink/10 bg-paper h-[75vh] lg:h-[88vh]"
             title={lesson.pdf_name || "Tài liệu PDF"}
           />
         </section>
