@@ -21,6 +21,8 @@ export default async function LessonPage({
   if (data.locked) redirect(`/hoc/khoa/${slug}`);
 
   const { course, lesson, done, hasQuiz, bestPercent, prev, next } = data;
+  const pdfEmbed = lesson.pdf_url ? pdfEmbedSrc(lesson.pdf_url) : "";
+  const pdfIsDrive = pdfEmbed.includes("drive.google.com");
 
   return (
     <article className="max-w-2xl mx-auto space-y-7">
@@ -70,11 +72,28 @@ export default async function LessonPage({
               <span className="text-xs text-ink/45 shrink-0">Chỉ xem trong bài</span>
             )}
           </div>
-          <iframe
-            src={pdfEmbedSrc(lesson.pdf_url)}
-            className="w-full rounded-lg border border-ink/10 bg-paper h-[75vh] lg:h-[88vh]"
-            title={lesson.pdf_name || "Tài liệu PDF"}
-          />
+          <div className="relative w-full overflow-hidden rounded-lg border border-ink/10 bg-paper h-[75vh] lg:h-[88vh]">
+            <iframe
+              src={pdfEmbed}
+              className="w-full h-full"
+              title={lesson.pdf_name || "Tài liệu PDF"}
+            />
+            {/* Google Drive không cho ẩn thanh công cụ qua URL — chặn vùng
+                nút pop-out (góc trên phải) và nút phóng to (góc dưới phải)
+                để học viên không mở/tải tài liệu ra ngoài. */}
+            {pdfIsDrive && (
+              <>
+                <div
+                  aria-hidden
+                  className="absolute right-0 top-0 h-14 w-24 cursor-default"
+                />
+                <div
+                  aria-hidden
+                  className="absolute bottom-0 right-0 h-20 w-32 cursor-default"
+                />
+              </>
+            )}
+          </div>
         </section>
       )}
 
@@ -118,5 +137,6 @@ function pdfEmbedSrc(url: string): string {
   const open = url.match(/[?&]id=([\w-]+)/);
   if (open && url.includes("drive.google.com"))
     return `https://drive.google.com/file/d/${open[1]}/preview`;
-  return url; // PDF trực tiếp
+  // PDF trực tiếp: ẩn thanh công cụ (tải/in/phóng to) của trình xem.
+  return `${url}#toolbar=0&navpanes=0&scrollbar=0`;
 }
