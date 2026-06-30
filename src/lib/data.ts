@@ -136,6 +136,46 @@ export async function getAdminCourses(filters: CourseFilters = {}) {
   };
 }
 
+type DB = Awaited<ReturnType<typeof createClient>>;
+
+// Tính khóa chương: chương bị khóa nếu có chương TRƯỚC (có quiz) chưa ĐẠT.
+async function moduleGating(supabase: DB, userId: string, modules: Module[]) {
+  const moduleIds = modules.map((m) => m.id);
+  const quizByModule = new Map<string, { id: string; pass_score: number }>();
+  if (moduleIds.length) {
+    const { data: mq } = await supabase
+      .from("quizzes")
+      .select("id, module_id, pass_score")
+      .in("module_id", moduleIds);
+    (mq ?? []).forEach((q) =>
+      quizByModule.set(q.module_id as string, {
+        id: q.id as string,
+        pass_score: q.pass_score as number,
+      }),
+    );
+  }
+  const quizIds = [...quizByModule.values()].map((q) => q.id);
+  const passedQuiz = new Set<string>();
+  if (quizIds.length) {
+    const { data: at } = await supabase
+      .from("quiz_attempts")
+      .select("quiz_id")
+      .eq("user_id", userId)
+      .eq("passed", true)
+      .in("quiz_id", quizIds);
+    (at ?? []).forEach((a) => passedQuiz.add(a.quiz_id as string));
+  }
+  // modules đã sắp theo sort_order: gặp 1 chương có quiz chưa đạt → khóa các chương sau.
+  const lockedModules = new Set<string>();
+  let blocked = false;
+  for (const m of modules) {
+    if (blocked) lockedModules.add(m.id);
+    const q = quizByModule.get(m.id);
+    if (q && !passedQuiz.has(q.id)) blocked = true;
+  }
+  return { quizByModule, passedQuiz, lockedModules };
+}
+
 // Chi tiết khóa học cho học viên.
 export async function getCourseDetail(slug: string, userId: string) {
   const supabase = await createClient();
@@ -184,13 +224,38 @@ export async function getCourseDetail(slug: string, userId: string) {
     p_course_id: course.id,
   });
 
+  // Khóa chương + quiz chương.
+  const modList = (modules as Module[]) ?? [];
+  const gating = await moduleGating(supabase, userId, modList);
+  const moduleInfo = modList.map((m) => {
+    const mLessons = lessonList.filter((l) => l.module_id === m.id);
+    const lessonsTotal = mLessons.length;
+    const lessonsDone = mLessons.filter((l) => doneSet.has(l.id)).length;
+    const q = gating.quizByModule.get(m.id) ?? null;
+    const quizPassed = q ? gating.passedQuiz.has(q.id) : false;
+    const locked = gating.lockedModules.has(m.id);
+    const allLessonsDone = lessonsTotal > 0 && lessonsDone === lessonsTotal;
+    return {
+      id: m.id,
+      locked,
+      hasQuiz: !!q,
+      quizPassed,
+      // Quiz chương mở khi: chương không bị khóa, đã học hết bài, và chưa đạt.
+      quizAvailable: !!q && !locked && allLessonsDone && !quizPassed,
+      lessonsDone,
+      lessonsTotal,
+    };
+  });
+
   return {
     course: course as Course,
-    modules: (modules as Module[]) ?? [],
+    modules: modList,
+    moduleInfo,
     lessons: lessonList.map((l) => ({
       lesson: l,
       done: doneSet.has(l.id),
       hasQuiz: quizLessonIds.has(l.id),
+      locked: l.module_id ? gating.lockedModules.has(l.module_id) : false,
     })),
     enrollStatus,
     approved: enrollStatus === "approved",
@@ -343,6 +408,23 @@ export async function getLessonView(
   if (idx === -1) return null;
   const lesson = list[idx];
 
+  // Chặn nếu chương của bài đang bị khóa (chưa đạt quiz của chương trước).
+  if (lesson.module_id) {
+    const { data: modules } = await supabase
+      .from("modules")
+      .select("*")
+      .eq("course_id", course.id)
+      .order("sort_order");
+    const { lockedModules } = await moduleGating(
+      supabase,
+      userId,
+      (modules as Module[]) ?? [],
+    );
+    if (lockedModules.has(lesson.module_id)) {
+      return { locked: true as const, course: course as Course };
+    }
+  }
+
   const [{ data: doneRow }, { data: quiz }, { data: attempts }] =
     await Promise.all([
       supabase
@@ -378,6 +460,89 @@ export async function getLessonView(
     bestPercent,
     prev: idx > 0 ? list[idx - 1] : null,
     next: idx < list.length - 1 ? list[idx + 1] : null,
+  };
+}
+
+// Trang làm QUIZ CHƯƠNG cho học viên. Trả về { locked } nếu chưa đủ điều kiện.
+export async function getModuleQuizView(
+  courseSlug: string,
+  moduleId: string,
+  userId: string,
+) {
+  const supabase = await createClient();
+  const { data: course } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("slug", courseSlug)
+    .maybeSingle();
+  if (!course) return null;
+
+  const { data: enr } = await supabase
+    .from("enrollments")
+    .select("status")
+    .eq("user_id", userId)
+    .eq("course_id", course.id)
+    .maybeSingle();
+  if (enr?.status !== "approved") {
+    return { locked: true as const, course: course as Course };
+  }
+
+  const { data: moduleRow } = await supabase
+    .from("modules")
+    .select("*")
+    .eq("id", moduleId)
+    .eq("course_id", course.id)
+    .maybeSingle();
+  if (!moduleRow) return null;
+
+  const [{ data: modules }, { data: lessons }, { data: prog }, { data: quizRow }] =
+    await Promise.all([
+      supabase
+        .from("modules")
+        .select("*")
+        .eq("course_id", course.id)
+        .order("sort_order"),
+      supabase
+        .from("lessons")
+        .select("id, module_id")
+        .eq("course_id", course.id)
+        .eq("published", true),
+      supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
+      supabase.from("quizzes").select("id").eq("module_id", moduleId).maybeSingle(),
+    ]);
+
+  const { lockedModules } = await moduleGating(
+    supabase,
+    userId,
+    (modules as Module[]) ?? [],
+  );
+  if (lockedModules.has(moduleId) || !quizRow) {
+    return { locked: true as const, course: course as Course };
+  }
+
+  // Phải học hết bài trong chương mới được làm quiz chương.
+  const doneSet = new Set((prog ?? []).map((p) => p.lesson_id));
+  const mLessons = (
+    (lessons as { id: string; module_id: string | null }[]) ?? []
+  ).filter((l) => l.module_id === moduleId);
+  const allDone = mLessons.length > 0 && mLessons.every((l) => doneSet.has(l.id));
+  if (!allDone) {
+    return { locked: true as const, course: course as Course };
+  }
+
+  let bestPercent: number | null = null;
+  const { data: a2 } = await supabase
+    .from("quiz_attempts")
+    .select("percent")
+    .eq("user_id", userId)
+    .eq("quiz_id", quizRow.id);
+  if (a2 && a2.length) bestPercent = Math.max(...a2.map((x) => x.percent));
+
+  return {
+    locked: false as const,
+    course: course as Course,
+    module: moduleRow as Module,
+    bestPercent,
   };
 }
 

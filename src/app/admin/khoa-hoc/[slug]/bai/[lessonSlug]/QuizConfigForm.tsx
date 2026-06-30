@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { upsertQuiz } from "../../../../actions";
+import type { QuizFormState } from "../../../../actions";
 import { buttonClass } from "@/components/ui";
 import type { Quiz } from "@/lib/supabase/types";
 
@@ -10,18 +10,19 @@ const inputCls =
 
 export function QuizConfigForm({
   quiz,
-  lessonId,
-  courseId,
-  courseSlug,
-  lessonSlug,
+  action,
+  hidden,
+  defaultTitle = "Kiểm tra nhanh",
 }: {
   quiz: Quiz | null;
-  lessonId: string;
-  courseId: string;
-  courseSlug: string;
-  lessonSlug: string;
+  action: (
+    prev: QuizFormState,
+    formData: FormData,
+  ) => Promise<QuizFormState>;
+  hidden: Record<string, string>;
+  defaultTitle?: string;
 }) {
-  const [state, action, pending] = useActionState(upsertQuiz, { ok: false });
+  const [state, formAction, pending] = useActionState(action, { ok: false });
 
   // Hiện "Đã lưu ✓" trong vài giây sau khi lưu thành công.
   const [saved, setSaved] = useState(false);
@@ -35,18 +36,17 @@ export function QuizConfigForm({
 
   return (
     <form
-      action={action}
+      action={formAction}
       className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 items-end"
     >
-      <input type="hidden" name="lesson_id" value={lessonId} />
-      <input type="hidden" name="course_id" value={courseId} />
-      <input type="hidden" name="course_slug" value={courseSlug} />
-      <input type="hidden" name="lesson_slug" value={lessonSlug} />
+      {Object.entries(hidden).map(([k, v]) => (
+        <input key={k} type="hidden" name={k} value={v} />
+      ))}
       <label className="block">
         <span className="text-sm text-ink/70">Tiêu đề quiz</span>
         <input
           name="title"
-          defaultValue={quiz?.title ?? "Kiểm tra nhanh"}
+          defaultValue={quiz?.title ?? defaultTitle}
           className={inputCls}
         />
       </label>

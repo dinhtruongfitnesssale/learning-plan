@@ -8,12 +8,17 @@ import { cn } from "@/lib/cn";
 import type { QuizPublic, SubmitQuizResult } from "@/lib/supabase/types";
 
 export function Quiz({
-  lessonId,
+  kind = "lesson",
+  targetId,
   bestPercent,
 }: {
-  lessonId: string;
+  kind?: "lesson" | "module";
+  targetId: string;
   bestPercent: number | null;
 }) {
+  const rpcGet = kind === "module" ? "get_module_quiz" : "get_quiz";
+  const rpcSubmit = kind === "module" ? "submit_module_quiz" : "submit_quiz";
+  const idParam = kind === "module" ? "p_module_id" : "p_lesson_id";
   const router = useRouter();
   const [quiz, setQuiz] = useState<QuizPublic | null>(null);
   const [started, setStarted] = useState(false);
@@ -27,9 +32,9 @@ export function Quiz({
   useEffect(() => {
     const supabase = createClient();
     supabase
-      .rpc("get_quiz", { p_lesson_id: lessonId })
+      .rpc(rpcGet, { [idParam]: targetId })
       .then(({ data }) => setQuiz(data as QuizPublic | null));
-  }, [lessonId]);
+  }, [rpcGet, idParam, targetId]);
 
   if (!quiz) return null;
 
@@ -45,8 +50,8 @@ export function Quiz({
     setSubmitting(true);
     setError(null);
     const supabase = createClient();
-    const { data, error } = await supabase.rpc("submit_quiz", {
-      p_lesson_id: lessonId,
+    const { data, error } = await supabase.rpc(rpcSubmit, {
+      [idParam]: targetId,
       p_answers: answers,
     });
     if (error) {

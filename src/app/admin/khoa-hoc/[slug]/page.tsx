@@ -181,10 +181,21 @@ export default async function CourseEditor({
           <Card className="p-5" as="section">
             <h3 className="font-serif text-lg mb-3">Chương</h3>
             {mods.length > 0 && (
-              <ul className="text-sm text-ink/70 space-y-1 mb-3">
+              <ul className="text-sm space-y-1 mb-3">
                 {mods.map((m, i) => (
-                  <li key={m.id} className="font-mono">
-                    {i + 1}. {m.title}
+                  <li
+                    key={m.id}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="font-mono text-ink/70 truncate">
+                      {i + 1}. {m.title}
+                    </span>
+                    <Link
+                      href={`/admin/khoa-hoc/${c.slug}/chuong/${m.id}`}
+                      className="link text-xs shrink-0"
+                    >
+                      Quiz chương →
+                    </Link>
                   </li>
                 ))}
               </ul>

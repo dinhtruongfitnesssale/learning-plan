@@ -22,6 +22,7 @@ export default async function CoursePage({
     data;
   const percent = total ? done / total : 0;
   const grouped = groupByModule(data.modules, lessons);
+  const modInfo = new Map(data.moduleInfo.map((mi) => [mi.id, mi]));
 
   return (
     <div className="space-y-8">
@@ -87,59 +88,109 @@ export default async function CoursePage({
           {total === 0 && (
             <Card className="p-6 text-ink/60">Khóa đang được soạn bài.</Card>
           )}
-          {grouped.map((g, gi) => (
-            <section key={g.title ?? gi}>
-              {g.title && (
-                <h2 className="eyebrow mb-3">
-                  Chương {gi + 1} · {g.title}
-                </h2>
-              )}
-              <ol className="space-y-2.5">
-                {g.lessons.map(({ lesson, done, hasQuiz }, i) => {
-                  const row = (
-                    <Card
-                      className={`px-4 py-3.5 flex items-center gap-4 ${
-                        approved ? "hover:border-ink/25 transition-colors" : "opacity-70"
-                      }`}
-                    >
-                      <span
-                        className={`grid place-items-center w-8 h-8 rounded-full text-sm font-mono shrink-0 ${
-                          done ? "bg-herb text-paper" : "bg-paper-2 text-ink/50"
+          {grouped.map((g, gi) => {
+            const info = g.id ? modInfo.get(g.id) : undefined;
+            const chapterLocked = info?.locked ?? false;
+            return (
+              <section key={g.id ?? gi}>
+                {g.title && (
+                  <h2 className="eyebrow mb-3">
+                    Chương {gi + 1} · {g.title}
+                    {approved && chapterLocked && <span className="ml-2">🔒</span>}
+                  </h2>
+                )}
+                <ol className="space-y-2.5">
+                  {g.lessons.map(({ lesson, done, hasQuiz, locked }, i) => {
+                    const lessonLocked = !approved || locked;
+                    const row = (
+                      <Card
+                        className={`px-4 py-3.5 flex items-center gap-4 ${
+                          lessonLocked
+                            ? "opacity-70"
+                            : "hover:border-ink/25 transition-colors"
                         }`}
                       >
-                        {approved ? (done ? "✓" : i + 1) : "🔒"}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{lesson.title}</div>
-                        <div className="text-xs text-ink/50 mt-0.5">
-                          {lesson.summary}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {lesson.video_url && <span title="Có video">🎥</span>}
-                        {lesson.pdf_url && <span title="Có tài liệu PDF">📄</span>}
-                        {hasQuiz && <Badge accent="slate">quiz</Badge>}
-                        <span className="font-mono text-xs text-ink/40 tnum">
-                          {lesson.est_minutes}′
+                        <span
+                          className={`grid place-items-center w-8 h-8 rounded-full text-sm font-mono shrink-0 ${
+                            done ? "bg-herb text-paper" : "bg-paper-2 text-ink/50"
+                          }`}
+                        >
+                          {lessonLocked ? "🔒" : done ? "✓" : i + 1}
                         </span>
-                      </div>
-                    </Card>
-                  );
-                  return (
-                    <li key={lesson.id}>
-                      {approved ? (
-                        <Link href={`/hoc/khoa/${course.slug}/${lesson.slug}`}>
-                          {row}
-                        </Link>
-                      ) : (
-                        row
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            </section>
-          ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{lesson.title}</div>
+                          <div className="text-xs text-ink/50 mt-0.5">
+                            {lesson.summary}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {lesson.video_url && <span title="Có video">🎥</span>}
+                          {lesson.pdf_url && <span title="Có tài liệu PDF">📄</span>}
+                          {hasQuiz && <Badge accent="slate">quiz</Badge>}
+                          <span className="font-mono text-xs text-ink/40 tnum">
+                            {lesson.est_minutes}′
+                          </span>
+                        </div>
+                      </Card>
+                    );
+                    return (
+                      <li key={lesson.id}>
+                        {!lessonLocked ? (
+                          <Link href={`/hoc/khoa/${course.slug}/${lesson.slug}`}>
+                            {row}
+                          </Link>
+                        ) : (
+                          row
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+
+                {/* Bài kiểm tra chương */}
+                {approved && info?.hasQuiz && (
+                  <div className="mt-3">
+                    {info.quizPassed ? (
+                      <Card className="px-4 py-3.5 flex items-center gap-3 bg-herb-soft">
+                        <span className="text-xl shrink-0">🏅</span>
+                        <span className="font-medium flex-1">
+                          Bài kiểm tra chương
+                        </span>
+                        <Badge accent="herb">✓ Đã đạt</Badge>
+                      </Card>
+                    ) : info.quizAvailable ? (
+                      <Link href={`/hoc/khoa/${course.slug}/chuong/${g.id}`}>
+                        <Card className="px-4 py-3.5 flex items-center gap-3 bg-amber-soft hover:border-ink/25 transition-colors">
+                          <span className="text-xl shrink-0">📝</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium">Bài kiểm tra chương</div>
+                            <div className="text-xs text-ink/55">
+                              Đạt để mở khóa chương kế tiếp
+                            </div>
+                          </div>
+                          <span className={buttonClass("primary", "shrink-0")}>
+                            Làm bài →
+                          </span>
+                        </Card>
+                      </Link>
+                    ) : (
+                      <Card className="px-4 py-3.5 flex items-center gap-3 opacity-70">
+                        <span className="text-xl shrink-0">🔒</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">Bài kiểm tra chương</div>
+                          <div className="text-xs text-ink/55">
+                            {chapterLocked
+                              ? "Hoàn thành chương trước để mở."
+                              : `Học hết các bài trong chương (${info.lessonsDone}/${info.lessonsTotal}) để mở.`}
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
 
         {/* Bảng xếp hạng tuần (chỉ khi đã được học) */}
@@ -193,14 +244,19 @@ export default async function CoursePage({
 
 function groupByModule(
   modules: { id: string; title: string }[],
-  lessons: { lesson: Lesson; done: boolean; hasQuiz: boolean }[],
+  lessons: { lesson: Lesson; done: boolean; hasQuiz: boolean; locked: boolean }[],
 ) {
-  const groups: { title: string | null; lessons: typeof lessons }[] = [];
+  const groups: { id: string | null; title: string | null; lessons: typeof lessons }[] =
+    [];
   const byId = new Map<string, (typeof groups)[number]>();
-  const noModule: (typeof groups)[number] = { title: null, lessons: [] };
+  const noModule: (typeof groups)[number] = {
+    id: null,
+    title: null,
+    lessons: [],
+  };
 
   for (const m of modules) {
-    const g = { title: m.title, lessons: [] as typeof lessons };
+    const g = { id: m.id, title: m.title, lessons: [] as typeof lessons };
     byId.set(m.id, g);
     groups.push(g);
   }

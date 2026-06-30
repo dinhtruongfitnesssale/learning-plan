@@ -76,7 +76,8 @@ export interface LessonProgress {
 
 export interface Quiz {
   id: string;
-  lesson_id: string;
+  lesson_id: string | null;
+  module_id: string | null;
   title: string;
   pass_score: number;
   xp_reward: number;

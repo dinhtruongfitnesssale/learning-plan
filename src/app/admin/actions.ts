@@ -184,11 +184,45 @@ export async function upsertQuiz(
   return { ok: true };
 }
 
+// Quiz CHƯƠNG (gắn vào module thay vì lesson).
+export async function upsertModuleQuiz(
+  _prev: QuizFormState,
+  formData: FormData,
+): Promise<QuizFormState> {
+  const supabase = await guard();
+  const moduleId = String(formData.get("module_id"));
+  const path = String(formData.get("path"));
+  const { data: existing } = await supabase
+    .from("quizzes")
+    .select("id")
+    .eq("module_id", moduleId)
+    .maybeSingle();
+  const payload = {
+    title: String(formData.get("title") || "Kiểm tra chương"),
+    pass_score: Number(formData.get("pass_score") || 70),
+    xp_reward: Number(formData.get("xp_reward") || 30),
+  };
+  const { error } = existing
+    ? await supabase.from("quizzes").update(payload).eq("id", existing.id)
+    : await supabase.from("quizzes").insert({ module_id: moduleId, ...payload });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(path);
+  return { ok: true };
+}
+
+// Đường quay lại sau khi sửa câu hỏi — ưu tiên `path` (trang quiz chương),
+// nếu không có thì dựng từ slug bài học.
+function quizBackPath(formData: FormData) {
+  const path = formData.get("path");
+  if (path) return String(path);
+  const courseSlug = String(formData.get("course_slug"));
+  const lessonSlug = String(formData.get("lesson_slug"));
+  return `/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`;
+}
+
 export async function addQuestion(formData: FormData) {
   const supabase = await guard();
   const quizId = String(formData.get("quiz_id"));
-  const courseSlug = String(formData.get("course_slug"));
-  const lessonSlug = String(formData.get("lesson_slug"));
   const options = [
     String(formData.get("opt0") ?? ""),
     String(formData.get("opt1") ?? ""),
@@ -208,13 +242,11 @@ export async function addQuestion(formData: FormData) {
     explanation: String(formData.get("explanation") ?? ""),
     sort_order: count ?? 0,
   });
-  revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
+  revalidatePath(quizBackPath(formData));
 }
 
 export async function editQuestion(formData: FormData) {
   const supabase = await guard();
-  const courseSlug = String(formData.get("course_slug"));
-  const lessonSlug = String(formData.get("lesson_slug"));
   const options = [
     String(formData.get("opt0") ?? ""),
     String(formData.get("opt1") ?? ""),
@@ -236,18 +268,16 @@ export async function editQuestion(formData: FormData) {
       explanation: String(formData.get("explanation") ?? ""),
     })
     .eq("id", String(formData.get("id")));
-  revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
+  revalidatePath(quizBackPath(formData));
 }
 
 export async function deleteQuestion(formData: FormData) {
   const supabase = await guard();
-  const courseSlug = String(formData.get("course_slug"));
-  const lessonSlug = String(formData.get("lesson_slug"));
   await supabase
     .from("quiz_questions")
     .delete()
     .eq("id", String(formData.get("id")));
-  revalidatePath(`/admin/khoa-hoc/${courseSlug}/bai/${lessonSlug}`);
+  revalidatePath(quizBackPath(formData));
 }
 
 // ── Duyệt ghi danh / phân khóa ────────────────────────────────

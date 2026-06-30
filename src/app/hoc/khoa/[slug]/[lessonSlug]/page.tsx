@@ -79,7 +79,9 @@ export default async function LessonPage({
         </section>
       )}
 
-      {hasQuiz && <Quiz lessonId={lesson.id} bestPercent={bestPercent} />}
+      {hasQuiz && (
+        <Quiz kind="lesson" targetId={lesson.id} bestPercent={bestPercent} />
+      )}
 
       <LessonComplete
         lessonId={lesson.id}

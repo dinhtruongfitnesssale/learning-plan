@@ -2,18 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge } from "@/components/ui";
-import { upsertQuiz } from "../../../../actions";
-import { LessonEditForm } from "./LessonEditForm";
-import { QuizConfigForm } from "./QuizConfigForm";
+import { upsertModuleQuiz } from "../../../../actions";
+import { QuizConfigForm } from "../../bai/[lessonSlug]/QuizConfigForm";
 import { QuizQuestionsEditor } from "@/components/admin/QuizQuestionsEditor";
-import type { Lesson, Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
+import type { Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
 
-export default async function LessonEditor({
+export default async function ModuleQuizEditor({
   params,
 }: {
-  params: Promise<{ slug: string; lessonSlug: string }>;
+  params: Promise<{ slug: string; moduleId: string }>;
 }) {
-  const { slug, lessonSlug } = await params;
+  const { slug, moduleId } = await params;
   const supabase = await createClient();
   const { data: course } = await supabase
     .from("courses")
@@ -21,23 +20,21 @@ export default async function LessonEditor({
     .eq("slug", slug)
     .maybeSingle();
   if (!course) notFound();
-  const courseId = course.id as string;
 
-  const { data: lesson } = await supabase
-    .from("lessons")
+  const { data: moduleRow } = await supabase
+    .from("modules")
     .select("*")
-    .eq("course_id", courseId)
-    .eq("slug", lessonSlug)
+    .eq("id", moduleId)
+    .eq("course_id", course.id)
     .maybeSingle();
-  if (!lesson) notFound();
-  const l = lesson as Lesson;
-  const lessonId = l.id;
+  if (!moduleRow) notFound();
+  const mod = moduleRow as Module;
 
-  const [{ data: modules }, { data: quizRow }] = await Promise.all([
-    supabase.from("modules").select("*").eq("course_id", courseId).order("sort_order"),
-    supabase.from("quizzes").select("*").eq("lesson_id", lessonId).maybeSingle(),
-  ]);
-  const mods = (modules as Module[]) ?? [];
+  const { data: quizRow } = await supabase
+    .from("quizzes")
+    .select("*")
+    .eq("module_id", moduleId)
+    .maybeSingle();
   const quiz = quizRow as Quiz | null;
 
   let questions: QuizQuestion[] = [];
@@ -50,6 +47,8 @@ export default async function LessonEditor({
     questions = (qs as QuizQuestion[]) ?? [];
   }
 
+  const path = `/admin/khoa-hoc/${slug}/chuong/${moduleId}`;
+
   return (
     <div className="space-y-7">
       <Link href={`/admin/khoa-hoc/${slug}`} className="link text-sm">
@@ -57,35 +56,24 @@ export default async function LessonEditor({
       </Link>
 
       <section>
-        <Eyebrow>Sửa bài học</Eyebrow>
-        <h1 className="font-serif text-3xl mt-1">{l.title}</h1>
+        <Eyebrow>Kiểm tra chương</Eyebrow>
+        <h1 className="font-serif text-3xl mt-1">{mod.title}</h1>
+        <p className="text-ink/60 mt-2">
+          Học viên phải ĐẠT bài kiểm tra này mới học được chương kế tiếp.
+        </p>
       </section>
 
-      {/* Nội dung bài */}
-      <LessonEditForm
-        lesson={l}
-        courseId={courseId}
-        courseSlug={slug}
-        modules={mods}
-      />
-
-      {/* Quiz */}
       <section>
         <h2 className="font-serif text-2xl mb-3">
           Quiz {quiz && <Badge accent="slate">{questions.length} câu</Badge>}
         </h2>
 
         <Card className="p-6 space-y-5">
-          {/* Cấu hình quiz */}
           <QuizConfigForm
             quiz={quiz}
-            action={upsertQuiz}
-            hidden={{
-              lesson_id: l.id,
-              course_id: courseId,
-              course_slug: slug,
-              lesson_slug: l.slug,
-            }}
+            action={upsertModuleQuiz}
+            hidden={{ module_id: moduleId, path }}
+            defaultTitle="Kiểm tra chương"
           />
 
           {quiz && (
@@ -94,7 +82,7 @@ export default async function LessonEditor({
               <QuizQuestionsEditor
                 quizId={quiz.id}
                 questions={questions}
-                path={`/admin/khoa-hoc/${slug}/bai/${l.slug}`}
+                path={path}
               />
             </>
           )}
