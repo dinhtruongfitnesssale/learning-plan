@@ -296,6 +296,55 @@ export async function addQuestion(formData: FormData) {
   revalidatePath(quizBackPath(formData));
 }
 
+// Nhập hàng loạt câu hỏi từ file Excel (.xlsx) theo mẫu.
+// Nếu file có bất kỳ dòng nào sai → không nhập gì cả, trả về danh sách lỗi để coach sửa.
+export type ImportState = {
+  ok: boolean;
+  count?: number;
+  errors?: string[];
+};
+
+export async function importQuestions(
+  _prev: ImportState,
+  formData: FormData,
+): Promise<ImportState> {
+  const supabase = await guard();
+  const quizId = String(formData.get("quiz_id"));
+  const path = quizBackPath(formData);
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, errors: ["Chưa chọn file Excel."] };
+  }
+
+  const { parseQuizWorkbook } = await import("@/lib/quiz-import");
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { rows, errors } = parseQuizWorkbook(buffer);
+  if (errors.length > 0) return { ok: false, errors };
+
+  // Thêm tiếp vào sau các câu hỏi hiện có.
+  const { count } = await supabase
+    .from("quiz_questions")
+    .select("id", { count: "exact", head: true })
+    .eq("quiz_id", quizId);
+  const base = count ?? 0;
+
+  const { error } = await supabase.from("quiz_questions").insert(
+    rows.map((r, i) => ({
+      quiz_id: quizId,
+      prompt: r.prompt,
+      options: r.options,
+      correct_index: r.correct_index,
+      explanation: r.explanation,
+      sort_order: base + i,
+    })),
+  );
+  if (error) return { ok: false, errors: ["Lưu lỗi: " + error.message] };
+
+  revalidatePath(path);
+  return { ok: true, count: rows.length };
+}
+
 export async function editQuestion(formData: FormData) {
   const supabase = await guard();
   const options = [

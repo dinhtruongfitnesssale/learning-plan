@@ -1,5 +1,6 @@
 import { buttonClass } from "@/components/ui";
 import { addQuestion, editQuestion, deleteQuestion } from "@/app/admin/actions";
+import { QuizImportForm } from "@/components/admin/QuizImportForm";
 import type { QuizQuestion } from "@/lib/supabase/types";
 
 const inputCls =
@@ -119,6 +120,9 @@ export function QuizQuestionsEditor({
           ))}
         </ol>
       )}
+
+      {/* Nhập hàng loạt từ Excel */}
+      <QuizImportForm hidden={{ quiz_id: quizId, path }} />
 
       {/* Thêm câu hỏi */}
       <form
