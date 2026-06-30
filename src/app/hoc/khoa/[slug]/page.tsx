@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getCourseDetail } from "@/lib/data";
+import { getCourseDetail, getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
-import { CATEGORIES } from "@/lib/brand";
 import { requestEnroll, requestRelearn } from "../../khoa-hoc/actions";
 import type { Lesson } from "@/lib/supabase/types";
 
@@ -23,6 +22,8 @@ export default async function CoursePage({
   const percent = total ? done / total : 0;
   const grouped = groupByModule(data.modules, lessons);
   const modInfo = new Map(data.moduleInfo.map((mi) => [mi.id, mi]));
+  const categories = await getCategories();
+  const ct = categories.find((c) => c.slug === course.category);
 
   return (
     <div className="space-y-8">
@@ -36,8 +37,8 @@ export default async function CoursePage({
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{course.cover_emoji}</span>
-            <Badge accent={course.category === "tap_luyen" ? "herb" : "amber"}>
-              {CATEGORIES[course.category]?.label ?? "Khóa học"}
+            <Badge accent={ct?.accent ?? "amber"}>
+              {ct?.label ?? "Khóa học"}
             </Badge>
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl mt-1">{course.title}</h1>

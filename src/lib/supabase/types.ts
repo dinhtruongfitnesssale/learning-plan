@@ -27,9 +27,19 @@ export interface Course {
   summary: string;
   cover_emoji: string;
   accent: Accent;
-  category: "dinh_duong" | "tap_luyen";
+  category: string;
   sort_order: number;
   published: boolean;
+  created_at: string;
+}
+
+export interface CourseCategory {
+  id: string;
+  slug: string;
+  label: string;
+  emoji: string;
+  accent: Accent;
+  sort_order: number;
   created_at: string;
 }
 

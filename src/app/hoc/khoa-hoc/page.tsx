@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getCatalog } from "@/lib/data";
+import { getCatalog, getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { CourseFilter } from "@/components/CourseFilter";
 import { Pagination } from "@/components/Pagination";
-import { CATEGORIES } from "@/lib/brand";
 import { requestEnroll, requestRelearn } from "./actions";
 
 export default async function Catalog({
@@ -17,11 +16,9 @@ export default async function Catalog({
   const q = sp.q ?? "";
   const cat = sp.cat ?? "";
   const page = Number(sp.page) || 1;
-  const { items, page: cur, totalPages, total } = await getCatalog(user.id, {
-    q,
-    cat,
-    page,
-  });
+  const [{ items, page: cur, totalPages, total }, categories] =
+    await Promise.all([getCatalog(user.id, { q, cat, page }), getCategories()]);
+  const catMap = new Map(categories.map((c) => [c.slug, c]));
 
   return (
     <div className="space-y-6">
@@ -35,7 +32,12 @@ export default async function Catalog({
         </p>
       </section>
 
-      <CourseFilter basePath="/hoc/khoa-hoc" q={q} cat={cat} />
+      <CourseFilter
+        basePath="/hoc/khoa-hoc"
+        q={q}
+        cat={cat}
+        categories={categories}
+      />
 
       {items.length === 0 ? (
         <Card className="p-8 text-center text-ink/60">
@@ -43,12 +45,14 @@ export default async function Catalog({
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map(({ course, status }) => (
+          {items.map(({ course, status }) => {
+            const ct = catMap.get(course.category);
+            return (
             <Card key={course.id} className="p-6 flex flex-col">
               <div className="flex items-start justify-between">
                 <div className="text-3xl">{course.cover_emoji}</div>
-                <Badge accent={course.category === "tap_luyen" ? "herb" : "amber"}>
-                  {CATEGORIES[course.category]?.label ?? "Khóa học"}
+                <Badge accent={ct?.accent ?? "amber"}>
+                  {ct?.label ?? "Khóa học"}
                 </Badge>
               </div>
               <h3 className="font-serif text-xl mt-3">{course.title}</h3>
@@ -90,7 +94,8 @@ export default async function Catalog({
                 )}
               </div>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -1,18 +1,19 @@
-import { CATEGORIES } from "@/lib/brand";
 import { buttonClass } from "@/components/ui";
 
 const inputCls =
   "rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
 
-// Bộ lọc khóa học: ô tìm kiếm + loại (Dinh dưỡng / Tập luyện). Form GET, không cần JS.
+// Bộ lọc khóa học: ô tìm kiếm + loại (danh sách loại truyền vào). Form GET, không cần JS.
 export function CourseFilter({
   basePath,
   q,
   cat,
+  categories,
 }: {
   basePath: string;
   q: string;
   cat: string;
+  categories: { slug: string; label: string; emoji: string }[];
 }) {
   return (
     <form action={basePath} method="get" className="flex flex-wrap items-center gap-2">
@@ -24,8 +25,8 @@ export function CourseFilter({
       />
       <select name="cat" defaultValue={cat} className={inputCls}>
         <option value="">Tất cả loại</option>
-        {Object.entries(CATEGORIES).map(([key, c]) => (
-          <option key={key} value={key}>
+        {categories.map((c) => (
+          <option key={c.slug} value={c.slug}>
             {c.emoji} {c.label}
           </option>
         ))}

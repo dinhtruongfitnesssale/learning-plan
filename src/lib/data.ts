@@ -3,6 +3,7 @@ import { createClient } from "./supabase/server";
 import { levelForXp } from "./brand";
 import type {
   Course,
+  CourseCategory,
   Lesson,
   Module,
   Profile,
@@ -72,6 +73,17 @@ export async function getLearnerDashboard(userId: string) {
       };
     }),
   };
+}
+
+// Danh sách loại khóa học (do coach quản lý).
+export async function getCategories() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("course_categories")
+    .select("*")
+    .order("sort_order")
+    .order("label");
+  return (data as CourseCategory[]) ?? [];
 }
 
 export const PAGE_SIZE = 6;

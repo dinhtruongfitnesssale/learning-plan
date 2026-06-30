@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCoach } from "@/lib/auth";
-import { getLearnerDetail } from "@/lib/data";
+import { getLearnerDetail, getCategories } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge, Stat, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
@@ -37,6 +37,8 @@ export default async function LearnerDetail({
   );
   const courseList = (allCourses as Course[]) ?? [];
   const unassigned = courseList.filter((c) => !statusByCourse.has(c.id));
+  const categories = await getCategories();
+  const catLabel = new Map(categories.map((c) => [c.slug, c.label]));
 
   return (
     <div className="space-y-8">
@@ -139,7 +141,7 @@ export default async function LearnerDetail({
               id: c.id,
               title: c.title,
               cover_emoji: c.cover_emoji,
-              category: c.category,
+              categoryLabel: catLabel.get(c.category) ?? c.category,
             }))}
           />
 

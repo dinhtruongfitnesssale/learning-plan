@@ -30,7 +30,7 @@ export async function createCourse(formData: FormData) {
         | "herb"
         | "slate"
         | "clay",
-      category: (String(formData.get("category")) || "dinh_duong") as never,
+      category: String(formData.get("category")) || "dinh_duong",
     })
     .select("id, slug")
     .single();
@@ -48,11 +48,62 @@ export async function updateCourse(formData: FormData) {
       title: String(formData.get("title")),
       summary: String(formData.get("summary") ?? ""),
       cover_emoji: String(formData.get("cover_emoji") || "🍲"),
-      accent: String(formData.get("accent")) as never,
-      category: String(formData.get("category")) as never,
+      accent: String(formData.get("accent")) as
+        | "amber"
+        | "herb"
+        | "slate"
+        | "clay",
+      category: String(formData.get("category")),
     })
     .eq("id", id);
   revalidatePath(`/admin/khoa-hoc/${slug}`);
+}
+
+// ── Loại khóa học ─────────────────────────────────────────────
+export async function createCategory(formData: FormData) {
+  const supabase = await guard();
+  const label = String(formData.get("label") ?? "").trim();
+  if (!label) return;
+  const emoji = String(formData.get("emoji") ?? "").trim();
+  const accent = (String(formData.get("accent")) || "amber") as
+    | "amber"
+    | "herb"
+    | "slate"
+    | "clay";
+
+  // Slug duy nhất từ tên loại.
+  const base = slugify(label) || `loai-${Date.now()}`;
+  let slug = base;
+  for (let i = 2; ; i++) {
+    const { data: dup } = await supabase
+      .from("course_categories")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (!dup) break;
+    slug = `${base}-${i}`;
+  }
+
+  const { count } = await supabase
+    .from("course_categories")
+    .select("id", { count: "exact", head: true });
+  await supabase
+    .from("course_categories")
+    .insert({ slug, label, emoji, accent, sort_order: count ?? 0 });
+  revalidatePath("/admin/khoa-hoc");
+}
+
+export async function deleteCategory(formData: FormData) {
+  const supabase = await guard();
+  const slug = String(formData.get("slug"));
+  // Không xóa nếu còn khóa đang dùng loại này.
+  const { count } = await supabase
+    .from("courses")
+    .select("id", { count: "exact", head: true })
+    .eq("category", slug);
+  if ((count ?? 0) > 0) return;
+  await supabase.from("course_categories").delete().eq("slug", slug);
+  revalidatePath("/admin/khoa-hoc");
 }
 
 export async function toggleCoursePublish(formData: FormData) {

@@ -3,13 +3,12 @@
 import { useState } from "react";
 import { assignCourse } from "../../actions";
 import { buttonClass } from "@/components/ui";
-import { CATEGORIES } from "@/lib/brand";
 
 type C = {
   id: string;
   title: string;
   cover_emoji: string;
-  category: "dinh_duong" | "tap_luyen";
+  categoryLabel: string;
 };
 
 const inputCls =
@@ -70,7 +69,7 @@ export function AssignCourse({
                   {c.title}
                   <span className="text-ink/45">
                     {" "}
-                    · {CATEGORIES[c.category]?.label}
+                    · {c.categoryLabel}
                   </span>
                 </span>
                 <button className={buttonClass("primary", "!px-3 !py-1.5 text-xs shrink-0")}>

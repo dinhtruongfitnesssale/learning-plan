@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import {
   updateCourse,
@@ -35,6 +36,7 @@ export default async function CourseEditor({
   ]);
   const mods = (modules as Module[]) ?? [];
   const lessonList = (lessons as Lesson[]) ?? [];
+  const categories = await getCategories();
 
   return (
     <div className="space-y-8">
@@ -151,8 +153,15 @@ export default async function CourseEditor({
               <label className="block">
                 <span className="text-sm text-ink/70">Loại khóa</span>
                 <select name="category" defaultValue={c.category} className={inputCls}>
-                  <option value="dinh_duong">🍲 Dinh dưỡng</option>
-                  <option value="tap_luyen">🏃 Tập luyện</option>
+                  {categories.map((cat) => (
+                    <option key={cat.slug} value={cat.slug}>
+                      {cat.emoji} {cat.label}
+                    </option>
+                  ))}
+                  {/* Loại cũ đã bị xóa khỏi danh sách vẫn giữ được giá trị hiện tại */}
+                  {!categories.some((cat) => cat.slug === c.category) && (
+                    <option value={c.category}>{c.category}</option>
+                  )}
                 </select>
               </label>
               <div className="grid grid-cols-2 gap-3">
