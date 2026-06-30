@@ -22,6 +22,7 @@ export function Quiz({
   const [result, setResult] = useState<SubmitQuizResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showReview, setShowReview] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -64,6 +65,7 @@ export function Quiz({
     setCur(0);
     setStarted(true);
     setError(null);
+    setShowReview(false);
   }
 
   return (
@@ -116,14 +118,80 @@ export function Quiz({
         />
       )}
 
-      {/* (3) Kết quả + xem lại toàn bộ */}
+      {/* (3) Kết quả — chỉ hiện điểm + nút xem lại */}
       {result && (
-        <>
-          <ResultBanner result={result} onRetry={start} />
+        <ResultBanner
+          result={result}
+          onRetry={start}
+          onReview={() => setShowReview(true)}
+        />
+      )}
+
+      {/* Modal xem lại bài làm */}
+      {result && showReview && (
+        <ReviewModal onClose={() => setShowReview(false)}>
           <Review quiz={quiz} answers={answers} result={result} />
-        </>
+          {!result.locked && (
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowReview(false);
+                  start();
+                }}
+                className={buttonClass("primary")}
+              >
+                Làm lại bài thi
+              </button>
+            </div>
+          )}
+        </ReviewModal>
       )}
     </section>
+  );
+}
+
+function ReviewModal({
+  onClose,
+  children,
+}: {
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-paper rounded-[var(--radius-card)] w-full max-w-2xl max-h-[85vh] flex flex-col shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-ink/10 shrink-0">
+          <h4 className="font-serif text-lg">Xem lại bài làm</h4>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Đóng"
+            className="text-2xl leading-none text-ink/45 hover:text-ink"
+          >
+            ×
+          </button>
+        </div>
+        <div className="overflow-y-auto px-5 py-4">{children}</div>
+      </div>
+    </div>
   );
 }
 
@@ -331,9 +399,11 @@ function Review({
 function ResultBanner({
   result,
   onRetry,
+  onReview,
 }: {
   result: SubmitQuizResult;
   onRetry: () => void;
+  onReview: () => void;
 }) {
   return (
     <div
@@ -368,11 +438,16 @@ function ResultBanner({
             </p>
           ))}
       </div>
-      {!result.locked && (
-        <button onClick={onRetry} className={buttonClass("outline")}>
-          Làm lại
+      <div className="flex items-center gap-2 shrink-0">
+        <button onClick={onReview} className={buttonClass("outline")}>
+          Xem lại bài
         </button>
-      )}
+        {!result.locked && (
+          <button onClick={onRetry} className={buttonClass("primary")}>
+            Làm lại bài thi
+          </button>
+        )}
+      </div>
     </div>
   );
 }
