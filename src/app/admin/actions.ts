@@ -439,9 +439,21 @@ export async function unassignCourse(formData: FormData) {
 // Tạo tài khoản học viên bằng service role (trigger tự tạo profile + streak).
 // Trả về mật khẩu tạm để coach gửi tay cho học viên (chưa có email/domain).
 export async function createLearner(
-  _prev: { ok: boolean; message: string; password?: string; email?: string } | null,
+  _prev: {
+    ok: boolean;
+    message: string;
+    password?: string;
+    email?: string;
+    fullName?: string;
+  } | null,
   formData: FormData,
-): Promise<{ ok: boolean; message: string; password?: string; email?: string }> {
+): Promise<{
+  ok: boolean;
+  message: string;
+  password?: string;
+  email?: string;
+  fullName?: string;
+}> {
   await requireCoach();
   const email = String(formData.get("email")).trim().toLowerCase();
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -467,7 +479,31 @@ export async function createLearner(
     message: "Đã tạo tài khoản. Gửi thông tin sau cho học viên:",
     password,
     email,
+    fullName,
   };
+}
+
+// Gửi email chào mừng (link đăng nhập + email + mật khẩu + hướng dẫn) cho học viên.
+// Dùng ngay sau khi tạo tài khoản / đặt lại mật khẩu — lúc còn mật khẩu tạm.
+export async function sendLearnerEmail(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
+  await requireCoach();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  if (!email || !password)
+    return { ok: false, message: "Thiếu email hoặc mật khẩu để gửi." };
+
+  try {
+    const { sendWelcomeEmail } = await import("@/lib/mailer");
+    await sendWelcomeEmail({ to: email, fullName, password });
+    return { ok: true, message: `Đã gửi email hướng dẫn tới ${email}.` };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Lỗi không xác định.";
+    return { ok: false, message: `Gửi email thất bại: ${msg}` };
+  }
 }
 
 type LearnerState = {

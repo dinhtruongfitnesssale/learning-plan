@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createLearner } from "../actions";
 import { buttonClass } from "@/components/ui";
+import { SendEmailButton } from "./SendEmailButton";
 
 const inputCls =
   "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
@@ -74,9 +75,16 @@ export function CreateLearnerForm() {
             </div>
           </div>
           <p className="text-xs text-ink/55 mt-2">
-            Chép gửi cho học viên. Họ đăng nhập rồi đổi mật khẩu sau (khi bạn có
-            tên miền + email tự động).
+            Bấm nút dưới để gửi thẳng link đăng nhập + hướng dẫn tới email học
+            viên, hoặc chép tay thông tin trên.
           </p>
+          <div className="mt-3">
+            <SendEmailButton
+              email={state.email ?? ""}
+              password={state.password ?? ""}
+              fullName={state.fullName ?? ""}
+            />
+          </div>
         </div>
       )}
     </div>

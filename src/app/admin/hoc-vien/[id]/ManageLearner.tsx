@@ -7,6 +7,7 @@ import {
   deleteLearner,
 } from "../../actions";
 import { Card, buttonClass } from "@/components/ui";
+import { SendEmailButton } from "../SendEmailButton";
 
 const inputCls =
   "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
@@ -81,6 +82,14 @@ export function ManageLearner({
           <span className="text-clay text-sm">{pwState.message}</span>
         )}
       </div>
+
+      {pwState?.ok && pwState.password && (
+        <SendEmailButton
+          email={email}
+          password={pwState.password}
+          fullName={fullName}
+        />
+      )}
 
       <hr className="rule" />
 

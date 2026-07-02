@@ -29,6 +29,26 @@ deploy trên Vercel. Thiết kế theo brand "mâm cơm Việt": paper + ink, qu
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
    SUPABASE_SERVICE_ROLE_KEY=...
    ```
+
+## Gửi email cho học viên (nút "Gửi email")
+
+Sau khi tạo tài khoản (hoặc đặt lại mật khẩu), coach bấm **"✉️ Gửi email cho
+học viên"** để gửi thẳng tới email họ: link đăng nhập, email + mật khẩu tạm,
+kèm hướng dẫn đổi mật khẩu, cách học và cách yêu cầu khóa mới.
+
+Gửi qua **Gmail SMTP** bằng App Password của coach. Thêm 3 biến vào `.env.local`
+(và cả **Environment Variables** trên Vercel):
+
+```
+GMAIL_USER=ladysfit.mastertrainer@gmail.com
+GMAIL_APP_PASSWORD=chuoi-16-ky-tu        # tạo ở myaccount.google.com/apppasswords
+NEXT_PUBLIC_APP_URL=https://ten-mien.vercel.app   # dùng để tạo link trong email
+```
+
+- Bật **xác thực 2 bước** cho Gmail trước, rồi vào
+  <https://myaccount.google.com/apppasswords> tạo App Password loại *Mail*
+  (Google cho 1 chuỗi 16 ký tự — dán vào `GMAIL_APP_PASSWORD`, bỏ khoảng trắng).
+- `NEXT_PUBLIC_APP_URL` local là `http://localhost:3000`.
 4. **Tài khoản coach**: trigger tự gán quyền `coach` cho email
    `ladysfit.mastertrainer@gmail.com`. Tạo user này trong
    **Authentication → Users → Add user** (đặt mật khẩu, tick *Auto Confirm*),

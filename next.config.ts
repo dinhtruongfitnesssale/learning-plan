@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // nodemailer dùng API Node thuần → không bundle, require thẳng ở server.
+  serverExternalPackages: ["nodemailer"],
 };
 
 export default nextConfig;
