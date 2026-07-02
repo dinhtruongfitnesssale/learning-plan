@@ -437,30 +437,28 @@ export async function getLessonView(
     }
   }
 
-  const [{ data: doneRow }, { data: quiz }, { data: attempts }] =
-    await Promise.all([
-      supabase
-        .from("lesson_progress")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("lesson_id", lesson.id)
-        .maybeSingle(),
-      supabase.from("quizzes").select("id").eq("lesson_id", lesson.id).maybeSingle(),
-      supabase
-        .from("quiz_attempts")
-        .select("percent, passed")
-        .eq("user_id", userId),
-    ]);
+  const [{ data: doneRow }, { data: quiz }] = await Promise.all([
+    supabase
+      .from("lesson_progress")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("lesson_id", lesson.id)
+      .maybeSingle(),
+    supabase.from("quizzes").select("id").eq("lesson_id", lesson.id).maybeSingle(),
+  ]);
 
   let bestPercent: number | null = null;
-  if (quiz && attempts) {
-    // best attempt cho quiz này (lọc theo quiz_id cần thêm) — đơn giản: lấy theo lesson qua quiz.id
+  let quizPassed = false;
+  if (quiz) {
     const { data: a2 } = await supabase
       .from("quiz_attempts")
-      .select("percent")
+      .select("percent, passed")
       .eq("user_id", userId)
       .eq("quiz_id", quiz.id);
-    if (a2 && a2.length) bestPercent = Math.max(...a2.map((x) => x.percent));
+    if (a2 && a2.length) {
+      bestPercent = Math.max(...a2.map((x) => x.percent));
+      quizPassed = a2.some((x) => x.passed);
+    }
   }
 
   return {
@@ -469,6 +467,7 @@ export async function getLessonView(
     lesson,
     done: !!doneRow,
     hasQuiz: !!quiz,
+    quizPassed,
     bestPercent,
     prev: idx > 0 ? list[idx - 1] : null,
     next: idx < list.length - 1 ? list[idx + 1] : null,

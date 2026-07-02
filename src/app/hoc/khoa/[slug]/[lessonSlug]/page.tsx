@@ -20,7 +20,8 @@ export default async function LessonPage({
   // Chưa được duyệt → quay về trang khóa (hiện trạng thái chờ duyệt).
   if (data.locked) redirect(`/hoc/khoa/${slug}`);
 
-  const { course, lesson, done, hasQuiz, bestPercent, prev, next } = data;
+  const { course, lesson, done, hasQuiz, quizPassed, bestPercent, prev, next } =
+    data;
   const pdfEmbed = lesson.pdf_url ? pdfEmbedSrc(lesson.pdf_url) : "";
   const pdfIsDrive = pdfEmbed.includes("drive.google.com");
 
@@ -106,6 +107,8 @@ export default async function LessonPage({
         courseSlug={course.slug}
         nextSlug={next?.slug ?? null}
         initialDone={done}
+        hasQuiz={hasQuiz}
+        quizPassed={quizPassed}
       />
 
       {/* Điều hướng trước/sau */}

@@ -12,11 +12,15 @@ export function LessonComplete({
   courseSlug,
   nextSlug,
   initialDone,
+  hasQuiz = false,
+  quizPassed = false,
 }: {
   lessonId: string;
   courseSlug: string;
   nextSlug: string | null;
   initialDone: boolean;
+  hasQuiz?: boolean;
+  quizPassed?: boolean;
 }) {
   const router = useRouter();
   const [done, setDone] = useState(initialDone);
@@ -32,7 +36,7 @@ export function LessonComplete({
       p_lesson_id: lessonId,
     });
     if (error) {
-      setError("Có lỗi khi lưu. Thử lại nhé.");
+      setError(error.message || "Có lỗi khi lưu. Thử lại nhé.");
       setLoading(false);
       return;
     }
@@ -80,6 +84,19 @@ export function LessonComplete({
           <Link href={nextHref} className={buttonClass("outline")}>
             {nextSlug ? "Bài tiếp theo →" : "Về trang khóa học"}
           </Link>
+        </div>
+      ) : hasQuiz && !quizPassed ? (
+        <div className="text-center">
+          <p className="text-ink/70">
+            Hãy làm và <span className="font-medium">đạt bài quiz</span> phía trên
+            trước, rồi mới đánh dấu hoàn thành được nhé.
+          </p>
+          <button
+            disabled
+            className={`${buttonClass("primary")} mt-4 opacity-40 cursor-not-allowed`}
+          >
+            Cần đạt quiz trước 🔒
+          </button>
         </div>
       ) : (
         <div className="text-center">
