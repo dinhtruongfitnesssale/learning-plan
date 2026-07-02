@@ -71,7 +71,7 @@ export default async function AdminLearners({
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
         {/* Danh sách */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <form action="/admin/hoc-vien" method="get" className="flex gap-2">
             <input
               name="q"
@@ -92,7 +92,7 @@ export default async function AdminLearners({
               const lv = levelForXp(totalXp);
               return (
                 <Link key={p.id} href={`/admin/hoc-vien/${p.id}`}>
-                  <Card className="p-5 flex items-center gap-4 hover:border-ink/25 transition-colors">
+                  <Card className="p-4 flex items-center gap-4 hover:border-ink/25 transition-colors">
                     <div className="grid place-items-center w-10 h-10 rounded-full bg-paper-2 font-serif text-lg shrink-0">
                       {(p.full_name || "?").charAt(0).toUpperCase()}
                     </div>
