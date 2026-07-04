@@ -11,6 +11,7 @@ export function LessonComplete({
   lessonId,
   courseSlug,
   nextSlug,
+  nextLocked = false,
   initialDone,
   hasQuiz = false,
   quizPassed = false,
@@ -18,6 +19,7 @@ export function LessonComplete({
   lessonId: string;
   courseSlug: string;
   nextSlug: string | null;
+  nextLocked?: boolean;
   initialDone: boolean;
   hasQuiz?: boolean;
   quizPassed?: boolean;
@@ -47,9 +49,12 @@ export function LessonComplete({
     router.refresh();
   }
 
-  const nextHref = nextSlug
+  // Chỉ mở bài kế khi có bài kế VÀ nó không bị khóa; ngược lại về trang khóa.
+  const canGoNext = !!nextSlug && !nextLocked;
+  const nextHref = canGoNext
     ? `/hoc/khoa/${courseSlug}/${nextSlug}`
     : `/hoc/khoa/${courseSlug}`;
+  const nextLabel = canGoNext ? "Bài tiếp theo →" : "Về trang khóa học";
 
   return (
     <div className="rounded-[var(--radius-card)] border border-ink/10 bg-paper-2 p-6">
@@ -74,7 +79,7 @@ export function LessonComplete({
           ) : null}
           <div className="mt-5">
             <Link href={nextHref} className={buttonClass("primary")}>
-              {nextSlug ? "Bài tiếp theo →" : "Về trang khóa học"}
+              {nextLabel}
             </Link>
           </div>
         </div>
@@ -82,7 +87,7 @@ export function LessonComplete({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-herb font-medium">✓ Bạn đã hoàn thành bài này</p>
           <Link href={nextHref} className={buttonClass("outline")}>
-            {nextSlug ? "Bài tiếp theo →" : "Về trang khóa học"}
+            {nextLabel}
           </Link>
         </div>
       ) : hasQuiz && !quizPassed ? (

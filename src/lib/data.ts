@@ -239,6 +239,12 @@ export async function getCourseDetail(slug: string, userId: string) {
   // Khóa chương + quiz chương.
   const modList = (modules as Module[]) ?? [];
   const gating = await moduleGating(supabase, userId, modList);
+
+  // Học tuần tự: mọi bài sau bài chưa hoàn thành ĐẦU TIÊN đều bị khóa.
+  // (Bài có quiz chỉ được đánh dấu hoàn thành sau khi ĐẠT quiz, nên khóa
+  //  theo "done" cũng chính là bắt phải làm và đạt quiz mới qua bài sau.)
+  const fiCourse = lessonList.findIndex((l) => !doneSet.has(l.id));
+  const firstIncomplete = fiCourse === -1 ? lessonList.length : fiCourse;
   const moduleInfo = modList.map((m) => {
     const mLessons = lessonList.filter((l) => l.module_id === m.id);
     const lessonsTotal = mLessons.length;
@@ -263,11 +269,13 @@ export async function getCourseDetail(slug: string, userId: string) {
     course: course as Course,
     modules: modList,
     moduleInfo,
-    lessons: lessonList.map((l) => ({
+    lessons: lessonList.map((l, idx) => ({
       lesson: l,
       done: doneSet.has(l.id),
       hasQuiz: quizLessonIds.has(l.id),
-      locked: l.module_id ? gating.lockedModules.has(l.module_id) : false,
+      locked:
+        (l.module_id ? gating.lockedModules.has(l.module_id) : false) ||
+        idx > firstIncomplete,
     })),
     enrollStatus,
     approved: enrollStatus === "approved",
@@ -420,32 +428,35 @@ export async function getLessonView(
   if (idx === -1) return null;
   const lesson = list[idx];
 
-  // Chặn nếu chương của bài đang bị khóa (chưa đạt quiz của chương trước).
-  if (lesson.module_id) {
-    const { data: modules } = await supabase
+  // Khóa chương (chưa đạt quiz chương trước) + tiến độ (để khóa tuần tự).
+  const [{ data: modules }, { data: prog }, { data: quiz }] = await Promise.all([
+    supabase
       .from("modules")
       .select("*")
       .eq("course_id", course.id)
-      .order("sort_order");
-    const { lockedModules } = await moduleGating(
-      supabase,
-      userId,
-      (modules as Module[]) ?? [],
-    );
-    if (lockedModules.has(lesson.module_id)) {
-      return { locked: true as const, course: course as Course };
-    }
-  }
-
-  const [{ data: doneRow }, { data: quiz }] = await Promise.all([
-    supabase
-      .from("lesson_progress")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("lesson_id", lesson.id)
-      .maybeSingle(),
+      .order("sort_order"),
+    supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
     supabase.from("quizzes").select("id").eq("lesson_id", lesson.id).maybeSingle(),
   ]);
+  const { lockedModules } = await moduleGating(
+    supabase,
+    userId,
+    (modules as Module[]) ?? [],
+  );
+  const doneSet = new Set((prog ?? []).map((p) => p.lesson_id));
+
+  // Học tuần tự: mọi bài sau bài chưa hoàn thành đầu tiên đều bị khóa.
+  const fi = list.findIndex((l) => !doneSet.has(l.id));
+  const firstIncomplete = fi === -1 ? list.length : fi;
+  const isLocked = (i: number) => {
+    const m = list[i].module_id;
+    return (m ? lockedModules.has(m) : false) || i > firstIncomplete;
+  };
+
+  // Bài đang xem bị khóa (chưa hoàn thành bài trước) → quay về trang khóa.
+  if (isLocked(idx)) {
+    return { locked: true as const, course: course as Course };
+  }
 
   let bestPercent: number | null = null;
   let quizPassed = false;
@@ -461,16 +472,19 @@ export async function getLessonView(
     }
   }
 
+  const hasNext = idx < list.length - 1;
   return {
     locked: false as const,
     course: course as Course,
     lesson,
-    done: !!doneRow,
+    done: doneSet.has(lesson.id),
     hasQuiz: !!quiz,
     quizPassed,
     bestPercent,
     prev: idx > 0 ? list[idx - 1] : null,
-    next: idx < list.length - 1 ? list[idx + 1] : null,
+    next: hasNext ? list[idx + 1] : null,
+    // Bài kế bị khóa cho tới khi hoàn thành bài hiện tại (đạt quiz nếu có).
+    nextLocked: hasNext ? isLocked(idx + 1) : false,
   };
 }
 

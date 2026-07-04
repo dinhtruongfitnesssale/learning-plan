@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { Pagination } from "@/components/Pagination";
+import { Chapter } from "@/components/Chapter";
 import {
   updateCourse,
   toggleCoursePublish,
@@ -131,24 +132,27 @@ export default async function CourseEditor({
 
                 {/* Các chương — gấp lại, ấn để mở */}
                 {pageGroups.map((g, gi) => (
-                  <details
+                  <Chapter
                     key={g.module.id}
+                    storageKey={`admin-chapter:${c.slug}:${g.module.id}`}
                     className="group rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] overflow-hidden"
+                    summary={
+                      <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
+                        <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0">
+                          ▸
+                        </span>
+                        <span className="eyebrow shrink-0">
+                          Chương {from + gi + 1}
+                        </span>
+                        <span className="font-medium flex-1 min-w-0 truncate">
+                          {g.module.title}
+                        </span>
+                        <span className="font-mono text-xs text-ink/40 tnum shrink-0">
+                          {g.lessons.length} bài
+                        </span>
+                      </summary>
+                    }
                   >
-                    <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
-                      <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0">
-                        ▸
-                      </span>
-                      <span className="eyebrow shrink-0">
-                        Chương {from + gi + 1}
-                      </span>
-                      <span className="font-medium flex-1 min-w-0 truncate">
-                        {g.module.title}
-                      </span>
-                      <span className="font-mono text-xs text-ink/40 tnum shrink-0">
-                        {g.lessons.length} bài
-                      </span>
-                    </summary>
                     <div className="px-4 pb-4 pt-1 border-t border-ink/10">
                       {g.lessons.length === 0 ? (
                         <p className="text-sm text-ink/50 py-2">
@@ -160,7 +164,7 @@ export default async function CourseEditor({
                         </ol>
                       )}
                     </div>
-                  </details>
+                  </Chapter>
                 ))}
 
                 <Pagination

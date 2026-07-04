@@ -20,13 +20,23 @@ export default async function LessonPage({
   // Chưa được duyệt → quay về trang khóa (hiện trạng thái chờ duyệt).
   if (data.locked) redirect(`/hoc/khoa/${slug}`);
 
-  const { course, lesson, done, hasQuiz, quizPassed, bestPercent, prev, next } =
-    data;
+  const {
+    course,
+    lesson,
+    done,
+    hasQuiz,
+    quizPassed,
+    bestPercent,
+    prev,
+    next,
+    nextLocked,
+  } = data;
   const pdfEmbed = lesson.pdf_url ? pdfEmbedSrc(lesson.pdf_url) : "";
   const pdfIsDrive = pdfEmbed.includes("drive.google.com");
 
   return (
-    <article className="max-w-2xl mx-auto space-y-7">
+    // select-none: không cho học viên bôi đen / copy nội dung bài học.
+    <article className="max-w-2xl mx-auto space-y-7 select-none">
       <Link href={`/hoc/khoa/${course.slug}`} className="link text-sm">
         ← {course.title}
       </Link>
@@ -106,12 +116,13 @@ export default async function LessonPage({
         lessonId={lesson.id}
         courseSlug={course.slug}
         nextSlug={next?.slug ?? null}
+        nextLocked={nextLocked}
         initialDone={done}
         hasQuiz={hasQuiz}
         quizPassed={quizPassed}
       />
 
-      {/* Điều hướng trước/sau */}
+      {/* Điều hướng trước/sau — bài kế khóa cho tới khi hoàn thành bài này */}
       <nav className="flex items-center justify-between pt-2 text-sm">
         {prev ? (
           <Link href={`/hoc/khoa/${course.slug}/${prev.slug}`} className="link">
@@ -120,10 +131,17 @@ export default async function LessonPage({
         ) : (
           <span />
         )}
-        {next ? (
+        {next && !nextLocked ? (
           <Link href={`/hoc/khoa/${course.slug}/${next.slug}`} className="link">
             {next.title} →
           </Link>
+        ) : next ? (
+          <span
+            className="flex items-center gap-1 text-ink/35"
+            title="Hoàn thành bài này (và đạt quiz nếu có) để mở bài tiếp theo"
+          >
+            🔒 {next.title}
+          </span>
         ) : (
           <span />
         )}

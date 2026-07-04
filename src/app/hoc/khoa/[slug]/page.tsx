@@ -5,6 +5,7 @@ import { getCourseDetail, getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
 import { Pagination } from "@/components/Pagination";
+import { Chapter } from "@/components/Chapter";
 import { requestEnroll, requestRelearn } from "../../khoa-hoc/actions";
 import type { Lesson } from "@/lib/supabase/types";
 
@@ -177,24 +178,28 @@ export default async function CoursePage({
             const number = from + gi + 1;
             const lessonsDone = g.lessons.filter((it) => it.done).length;
             return (
-              <details
+              <Chapter
                 key={g.module.id}
+                storageKey={`chapter:${course.slug}:${g.module.id}`}
                 className="group rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] overflow-hidden"
+                summary={
+                  <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
+                    <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0">
+                      ▸
+                    </span>
+                    <span className="eyebrow shrink-0">Chương {number}</span>
+                    <span className="font-medium flex-1 min-w-0 truncate">
+                      {g.module.title}
+                    </span>
+                    {approved && chapterLocked && (
+                      <span title="Đang khóa">🔒</span>
+                    )}
+                    <span className="font-mono text-xs text-ink/40 tnum shrink-0">
+                      {lessonsDone}/{g.lessons.length} bài
+                    </span>
+                  </summary>
+                }
               >
-                <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
-                  <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0">
-                    ▸
-                  </span>
-                  <span className="eyebrow shrink-0">Chương {number}</span>
-                  <span className="font-medium flex-1 min-w-0 truncate">
-                    {g.module.title}
-                  </span>
-                  {approved && chapterLocked && <span title="Đang khóa">🔒</span>}
-                  <span className="font-mono text-xs text-ink/40 tnum shrink-0">
-                    {lessonsDone}/{g.lessons.length} bài
-                  </span>
-                </summary>
-
                 <div className="px-4 pb-4 pt-1 border-t border-ink/10">
                   <ol className="space-y-2.5">
                     {g.lessons.map((item, i) => renderLesson(item, i))}
@@ -246,7 +251,7 @@ export default async function CoursePage({
                     </div>
                   )}
                 </div>
-              </details>
+              </Chapter>
             );
           })}
 
