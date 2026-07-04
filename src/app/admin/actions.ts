@@ -140,6 +140,26 @@ export async function createModule(formData: FormData) {
   revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
 }
 
+export async function updateModule(formData: FormData) {
+  const supabase = await guard();
+  const courseSlug = String(formData.get("course_slug"));
+  const title = String(formData.get("title")).trim();
+  if (!title) return;
+  await supabase
+    .from("modules")
+    .update({ title })
+    .eq("id", String(formData.get("id")));
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
+}
+
+export async function deleteModule(formData: FormData) {
+  const supabase = await guard();
+  const courseSlug = String(formData.get("course_slug"));
+  // Bài học trong chương tự chuyển về "Chưa xếp chương" (FK on delete set null).
+  await supabase.from("modules").delete().eq("id", String(formData.get("id")));
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
+}
+
 // ── Bài học ───────────────────────────────────────────────────
 export async function createLesson(formData: FormData) {
   const supabase = await guard();

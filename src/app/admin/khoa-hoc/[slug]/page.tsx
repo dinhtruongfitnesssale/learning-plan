@@ -10,6 +10,8 @@ import {
   toggleCoursePublish,
   deleteCourse,
   createModule,
+  updateModule,
+  deleteModule,
   createLesson,
 } from "../../actions";
 import type { Course, Lesson, Module } from "@/lib/supabase/types";
@@ -261,21 +263,58 @@ export default async function CourseEditor({
           <Card className="p-5" as="section">
             <h3 className="font-serif text-lg mb-3">Chương</h3>
             {mods.length > 0 && (
-              <ul className="text-sm space-y-1 mb-3">
+              <ul className="text-sm space-y-2 mb-3">
                 {mods.map((m, i) => (
                   <li
                     key={m.id}
-                    className="flex items-center justify-between gap-2"
+                    className="rounded-lg border border-ink/10 px-3 py-2"
                   >
-                    <span className="font-mono text-ink/70 truncate">
-                      {i + 1}. {m.title}
-                    </span>
-                    <Link
-                      href={`/admin/khoa-hoc/${c.slug}/chuong/${m.id}`}
-                      className="link text-xs shrink-0"
-                    >
-                      Quiz chương →
-                    </Link>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-ink/70 truncate">
+                        {i + 1}. {m.title}
+                      </span>
+                      <Link
+                        href={`/admin/khoa-hoc/${c.slug}/chuong/${m.id}`}
+                        className="link text-xs shrink-0"
+                      >
+                        Quiz chương →
+                      </Link>
+                    </div>
+                    <details className="group mt-1">
+                      <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer text-xs text-ink/50 hover:text-ink">
+                        Sửa / Xóa chương
+                      </summary>
+                      <div className="mt-2 flex flex-col gap-2">
+                        <form action={updateModule} className="flex gap-2">
+                          <input type="hidden" name="id" value={m.id} />
+                          <input
+                            type="hidden"
+                            name="course_slug"
+                            value={c.slug}
+                          />
+                          <input
+                            name="title"
+                            required
+                            defaultValue={m.title}
+                            className={inputCls}
+                          />
+                          <button className={buttonClass("outline", "shrink-0")}>
+                            Lưu
+                          </button>
+                        </form>
+                        <form action={deleteModule}>
+                          <input type="hidden" name="id" value={m.id} />
+                          <input
+                            type="hidden"
+                            name="course_slug"
+                            value={c.slug}
+                          />
+                          <button className="text-xs text-clay hover:underline">
+                            Xóa chương (bài học sẽ chuyển về “Chưa xếp chương”)
+                          </button>
+                        </form>
+                      </div>
+                    </details>
                   </li>
                 ))}
               </ul>
