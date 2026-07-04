@@ -164,6 +164,147 @@ export async function sendWelcomeEmail(opts: {
   });
 }
 
+// ── Email báo được phân khóa học ──────────────────────────────
+function stepRow(n: number, title: string, body: string) {
+  return `
+    <tr>
+      <td style="vertical-align:top;padding:0 12px 0 0;">
+        <div style="width:26px;height:26px;border-radius:50%;background:${COLORS.amber};color:${COLORS.paper};font-weight:700;font-size:13px;text-align:center;line-height:26px;">${n}</div>
+      </td>
+      <td style="padding-bottom:16px;">
+        <div style="font-weight:600;color:${COLORS.ink};font-size:15px;">${title}</div>
+        <div style="color:#4a463f;font-size:14px;line-height:1.6;margin-top:2px;">${body}</div>
+      </td>
+    </tr>`;
+}
+
+function courseAssignedHtml({
+  fullName,
+  courseTitle,
+  courseEmoji,
+  courseSlug,
+}: {
+  fullName: string;
+  courseTitle: string;
+  courseEmoji: string;
+  courseSlug: string;
+}) {
+  const base = appUrl();
+  const loginUrl = `${base}/login`;
+  const courseUrl = `${base}/hoc/khoa/${courseSlug}`;
+  const hi = fullName ? `Chào ${fullName},` : "Chào bạn,";
+
+  return `<!doctype html>
+<html lang="vi">
+<body style="margin:0;padding:0;background:${COLORS.paper2};font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.paper2};padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${COLORS.paper};border:1px solid #e2dccf;border-radius:16px;overflow:hidden;">
+        <!-- Header -->
+        <tr><td style="background:${COLORS.ink};padding:28px 32px;">
+          <div style="color:${COLORS.paper};font-size:20px;font-weight:700;">${APP_NAME}</div>
+          <div style="color:#b9b3a6;font-size:13px;margin-top:2px;">${APP_TAGLINE}</div>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:28px 32px;">
+          <p style="color:${COLORS.ink};font-size:16px;margin:0 0 6px;">${hi}</p>
+          <p style="color:#4a463f;font-size:14px;line-height:1.6;margin:0 0 20px;">
+            Coach vừa mở cho bạn một khóa học mới. Vào học ngay nhé!
+          </p>
+
+          <!-- Thẻ khóa học -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.paper2};border:1px solid #e2dccf;border-radius:12px;margin-bottom:20px;">
+            <tr><td style="padding:18px 20px;">
+              <div style="font-size:12px;color:#8a8578;text-transform:uppercase;letter-spacing:.5px;">Khóa học của bạn</div>
+              <div style="font-size:18px;color:${COLORS.ink};font-weight:700;margin-top:4px;">${courseEmoji} ${courseTitle}</div>
+            </td></tr>
+          </table>
+
+          <!-- Nút vào học -->
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="border-radius:999px;background:${COLORS.ink};">
+              <a href="${courseUrl}" style="display:inline-block;padding:12px 28px;color:${COLORS.paper};font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Vào học ngay</a>
+            </td></tr>
+          </table>
+
+          <div style="font-size:15px;font-weight:700;color:${COLORS.ink};margin-bottom:14px;">Cách học khóa này</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${stepRow(1, "Đăng nhập", `Mở <a href="${loginUrl}" style="color:${COLORS.amber};">trang đăng nhập</a> bằng email và mật khẩu của bạn.`)}
+            ${stepRow(2, "Học theo thứ tự", `Vào <a href="${courseUrl}" style="color:${COLORS.amber};">khóa học</a> và học lần lượt từng bài. Phải <b>hoàn thành bài trước</b> mới mở được bài kế tiếp.`)}
+            ${stepRow(3, "Làm bài kiểm tra", `Mỗi bài có thể kèm quiz — cần <b>đạt điểm qua ngưỡng</b> mới được tính hoàn thành và sang bài sau.`)}
+            ${stepRow(4, "Kiểm tra chương", `Học hết một chương thì làm <b>bài kiểm tra chương</b>; đạt là mở khóa chương tiếp theo.`)}
+            ${stepRow(5, "Theo dõi tiến bộ", `Mỗi bài đạt được sẽ cộng điểm XP và giữ chuỗi ngày học của bạn.`)}
+          </table>
+
+          <p style="color:#8a8578;font-size:13px;line-height:1.6;margin:20px 0 0;border-top:1px solid #e2dccf;padding-top:16px;">
+            Cần hỗ trợ, chỉ cần trả lời email này.
+          </p>
+        </td></tr>
+
+        <tr><td style="background:${COLORS.paper2};padding:16px 32px;color:#8a8578;font-size:12px;">
+          ${APP_NAME} • ${APP_TAGLINE}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function courseAssignedText({
+  fullName,
+  courseTitle,
+  courseSlug,
+}: {
+  fullName: string;
+  courseTitle: string;
+  courseSlug: string;
+}) {
+  const base = appUrl();
+  const hi = fullName ? `Chào ${fullName},` : "Chào bạn,";
+  return `${hi}
+
+Coach vừa mở cho bạn một khóa học mới: ${courseTitle}
+
+  Vào học ngay: ${base}/hoc/khoa/${courseSlug}
+  Đăng nhập:    ${base}/login
+
+Cách học khóa này:
+  1. Đăng nhập bằng email và mật khẩu của bạn.
+  2. Học lần lượt từng bài — phải hoàn thành bài trước mới mở được bài kế.
+  3. Làm quiz của bài: cần đạt điểm qua ngưỡng mới được tính hoàn thành.
+  4. Hết một chương thì làm bài kiểm tra chương để mở chương tiếp theo.
+  5. Mỗi bài đạt được cộng XP và giữ chuỗi ngày học.
+
+Cần hỗ trợ, chỉ cần trả lời email này.
+
+${APP_NAME} • ${APP_TAGLINE}`;
+}
+
+// Gửi email báo học viên vừa được phân (mở) một khóa học.
+export async function sendCourseAssignedEmail(opts: {
+  to: string;
+  fullName: string;
+  courseTitle: string;
+  courseSlug: string;
+  courseEmoji: string;
+}) {
+  if (!mailerReady()) {
+    throw new Error(
+      "Chưa cấu hình gửi email. Điền GMAIL_USER và GMAIL_APP_PASSWORD trong .env.local.",
+    );
+  }
+  const { to, fullName, courseTitle, courseSlug, courseEmoji } = opts;
+  await transport().sendMail({
+    from: `"${APP_NAME}" <${GMAIL_USER}>`,
+    to,
+    subject: `Bạn được mở khóa học “${courseTitle}” tại ${APP_NAME}`,
+    text: courseAssignedText({ fullName, courseTitle, courseSlug }),
+    html: courseAssignedHtml({ fullName, courseTitle, courseEmoji, courseSlug }),
+  });
+}
+
 // ── Email tự soạn (coach gửi nội dung riêng) ──────────────────
 function escapeHtml(s: string) {
   return s

@@ -407,7 +407,7 @@ export async function assignCourse(formData: FormData) {
   if (!courseId) return;
   const { data: existing } = await supabase
     .from("enrollments")
-    .select("id")
+    .select("id, status")
     .eq("user_id", userId)
     .eq("course_id", courseId)
     .maybeSingle();
@@ -421,6 +421,38 @@ export async function assignCourse(formData: FormData) {
       .from("enrollments")
       .insert({ user_id: userId, course_id: courseId, status: "approved" });
   }
+
+  // Báo email cho học viên khi vừa MỞ quyền học (bỏ qua nếu đã đang học sẵn).
+  // Best-effort: gửi lỗi không làm hỏng việc phân khóa.
+  if (!existing || existing.status !== "approved") {
+    try {
+      const [{ data: prof }, { data: course }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase
+          .from("courses")
+          .select("title, slug, cover_emoji")
+          .eq("id", courseId)
+          .maybeSingle(),
+      ]);
+      if (prof?.email && course) {
+        const { sendCourseAssignedEmail } = await import("@/lib/mailer");
+        await sendCourseAssignedEmail({
+          to: prof.email,
+          fullName: prof.full_name ?? "",
+          courseTitle: course.title,
+          courseSlug: course.slug,
+          courseEmoji: course.cover_emoji ?? "📘",
+        });
+      }
+    } catch (e) {
+      console.error("Gửi email phân khóa thất bại:", e);
+    }
+  }
+
   revalidatePath(`/admin/hoc-vien/${userId}`);
 }
 
