@@ -65,7 +65,10 @@ export function CreateLearnerForm() {
 
       {state && state.ok && (
         <div className="mt-3 rounded-lg border border-herb/40 bg-herb-soft/50 p-3 text-sm">
-          <p className="text-ink/80 mb-2">{state.message}</p>
+          <p className="text-ink/80 mb-2">
+            {state.emailSent && "✅ "}
+            {state.message}
+          </p>
           <div className="font-mono text-ink space-y-1">
             <div>
               📧 <span className="select-all">{state.email}</span>
@@ -74,9 +77,15 @@ export function CreateLearnerForm() {
               🔑 <span className="select-all font-semibold">{state.password}</span>
             </div>
           </div>
+          {state.emailError && (
+            <p className="text-xs text-clay mt-2">
+              Lý do chưa gửi được: {state.emailError}
+            </p>
+          )}
           <p className="text-xs text-ink/55 mt-2">
-            Bấm nút dưới để gửi thẳng link đăng nhập + hướng dẫn tới email học
-            viên, hoặc chép tay thông tin trên.
+            {state.emailSent
+              ? "Email đã tự động gửi. Cần gửi lại thì bấm nút dưới."
+              : "Bấm nút dưới để gửi lại, hoặc chép tay thông tin trên."}
           </p>
           <div className="mt-3">
             <SendEmailButton

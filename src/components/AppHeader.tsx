@@ -40,6 +40,7 @@ export function AppHeader({
               <NavLink href="/admin">Tổng quan</NavLink>
               <NavLink href="/admin/khoa-hoc">Khóa học</NavLink>
               <NavLink href="/admin/hoc-vien">Học viên</NavLink>
+              <NavLink href="/admin/gui-mail">Gửi mail</NavLink>
               <NavLink href="/admin/theo-doi">Theo dõi</NavLink>
               <Link
                 href="/admin/yeu-cau"

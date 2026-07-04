@@ -437,7 +437,8 @@ export async function unassignCourse(formData: FormData) {
 
 // ── Học viên ──────────────────────────────────────────────────
 // Tạo tài khoản học viên bằng service role (trigger tự tạo profile + streak).
-// Trả về mật khẩu tạm để coach gửi tay cho học viên (chưa có email/domain).
+// Tự động gửi email chào mừng (link đăng nhập + mật khẩu tạm + hướng dẫn) cho
+// học viên. Vẫn trả về mật khẩu tạm để coach chép tay / gửi lại nếu cần.
 export async function createLearner(
   _prev: {
     ok: boolean;
@@ -445,6 +446,8 @@ export async function createLearner(
     password?: string;
     email?: string;
     fullName?: string;
+    emailSent?: boolean;
+    emailError?: string;
   } | null,
   formData: FormData,
 ): Promise<{
@@ -453,6 +456,8 @@ export async function createLearner(
   password?: string;
   email?: string;
   fullName?: string;
+  emailSent?: boolean;
+  emailError?: string;
 }> {
   await requireCoach();
   const email = String(formData.get("email")).trim().toLowerCase();
@@ -474,12 +479,126 @@ export async function createLearner(
     return { ok: false, message: `Không tạo được: ${error.message}` };
   }
   revalidatePath("/admin/hoc-vien");
+
+  // Tự động gửi email chào mừng. Nếu gửi lỗi vẫn coi như tạo thành công —
+  // coach thấy cảnh báo và có thể chép tay hoặc bấm gửi lại.
+  let emailSent = false;
+  let emailError: string | undefined;
+  try {
+    const { sendWelcomeEmail } = await import("@/lib/mailer");
+    await sendWelcomeEmail({ to: email, fullName, password });
+    emailSent = true;
+  } catch (e) {
+    emailError = e instanceof Error ? e.message : "Lỗi không xác định.";
+  }
+
   return {
     ok: true,
-    message: "Đã tạo tài khoản. Gửi thông tin sau cho học viên:",
+    message: emailSent
+      ? "Đã tạo tài khoản và gửi email hướng dẫn cho học viên."
+      : "Đã tạo tài khoản (chưa gửi được email — chép tay hoặc bấm gửi lại):",
     password,
     email,
     fullName,
+    emailSent,
+    emailError,
+  };
+}
+
+// Gửi email nội dung tự soạn hàng loạt cho học viên.
+// Người nhận: tất cả học viên / học viên một khóa / danh sách chọn tay.
+// Dùng {ten} trong tiêu đề hoặc nội dung để tự chèn tên từng học viên.
+export async function sendBroadcastEmail(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
+  await requireCoach();
+  const supabase = await createClient();
+
+  const subject = String(formData.get("subject") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const mode = String(formData.get("mode") ?? "all");
+  if (!subject) return { ok: false, message: "Cần nhập tiêu đề email." };
+  if (!body) return { ok: false, message: "Cần nhập nội dung email." };
+
+  // Gom danh sách người nhận theo chế độ.
+  let ids: string[] | null = null; // null = tất cả học viên
+  if (mode === "course") {
+    const courseId = String(formData.get("course_id") ?? "");
+    if (!courseId) return { ok: false, message: "Hãy chọn một khóa học." };
+    const { data: enr } = await supabase
+      .from("enrollments")
+      .select("user_id")
+      .eq("course_id", courseId)
+      .eq("status", "approved");
+    ids = [...new Set((enr ?? []).map((e) => e.user_id))];
+    if (ids.length === 0)
+      return { ok: false, message: "Khóa này chưa có học viên nào." };
+  } else if (mode === "selected") {
+    ids = String(formData.get("ids") ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (ids.length === 0)
+      return { ok: false, message: "Hãy chọn ít nhất một học viên." };
+  }
+
+  let pq = supabase
+    .from("profiles")
+    .select("email, full_name")
+    .eq("role", "learner");
+  if (ids) pq = pq.in("id", ids);
+  const { data: rows } = await pq;
+
+  // Lọc email hợp lệ, bỏ trùng.
+  const seen = new Set<string>();
+  const recipients = (rows ?? [])
+    .map((r) => ({ email: (r.email ?? "").trim(), name: r.full_name ?? "" }))
+    .filter((r) => {
+      if (!r.email || seen.has(r.email)) return false;
+      seen.add(r.email);
+      return true;
+    });
+  if (recipients.length === 0)
+    return { ok: false, message: "Không có địa chỉ email hợp lệ để gửi." };
+
+  const { mailerReady, sendCustomEmail } = await import("@/lib/mailer");
+  if (!mailerReady())
+    return {
+      ok: false,
+      message:
+        "Chưa cấu hình gửi email. Điền GMAIL_USER và GMAIL_APP_PASSWORD trong .env.local.",
+    };
+
+  const fill = (s: string, name: string) =>
+    s.replaceAll("{ten}", name || "bạn");
+
+  // Gửi theo lô nhỏ để nhanh hơn nhưng không quá tải SMTP.
+  let sent = 0;
+  const failed: string[] = [];
+  const BATCH = 5;
+  for (let i = 0; i < recipients.length; i += BATCH) {
+    const batch = recipients.slice(i, i + BATCH);
+    const results = await Promise.allSettled(
+      batch.map((r) =>
+        sendCustomEmail({
+          to: r.email,
+          subject: fill(subject, r.name),
+          body: fill(body, r.name),
+        }),
+      ),
+    );
+    results.forEach((res, idx) => {
+      if (res.status === "fulfilled") sent++;
+      else failed.push(batch[idx].email);
+    });
+  }
+
+  if (failed.length === 0)
+    return { ok: true, message: `Đã gửi thành công tới ${sent} học viên.` };
+  return {
+    ok: sent > 0,
+    message: `Đã gửi ${sent}/${recipients.length}. Lỗi với: ${failed.join(", ")}`,
   };
 }
 

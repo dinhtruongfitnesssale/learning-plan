@@ -163,3 +163,79 @@ export async function sendWelcomeEmail(opts: {
     html: welcomeHtml({ fullName, email: to, password }),
   });
 }
+
+// ── Email tự soạn (coach gửi nội dung riêng) ──────────────────
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Chuyển văn bản coach nhập → HTML an toàn: mỗi dòng trống ngắt đoạn,
+// mỗi xuống dòng đơn thành <br>. Không cho HTML thô lọt qua (chống chèn mã).
+function textToParagraphs(text: string) {
+  return text
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map(
+      (block) =>
+        `<p style="color:#4a463f;font-size:15px;line-height:1.7;margin:0 0 16px;">${escapeHtml(
+          block,
+        ).replace(/\n/g, "<br>")}</p>`,
+    )
+    .join("");
+}
+
+// Khung email thương hiệu (header + nội dung + footer) cho email tự soạn.
+function customHtml({ bodyHtml }: { bodyHtml: string }) {
+  return `<!doctype html>
+<html lang="vi">
+<body style="margin:0;padding:0;background:${COLORS.paper2};font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.paper2};padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${COLORS.paper};border:1px solid #e2dccf;border-radius:16px;overflow:hidden;">
+        <!-- Header -->
+        <tr><td style="background:${COLORS.ink};padding:28px 32px;">
+          <div style="color:${COLORS.paper};font-size:20px;font-weight:700;">${APP_NAME}</div>
+          <div style="color:#b9b3a6;font-size:13px;margin-top:2px;">${APP_TAGLINE}</div>
+        </td></tr>
+
+        <!-- Nội dung -->
+        <tr><td style="padding:28px 32px;">
+          ${bodyHtml}
+        </td></tr>
+
+        <tr><td style="background:${COLORS.paper2};padding:16px 32px;color:#8a8578;font-size:12px;">
+          ${APP_NAME} • ${APP_TAGLINE}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+// Gửi một email nội dung tự soạn tới một người nhận.
+// `body` là văn bản thô của coach; hàm tự bọc vào khung thương hiệu.
+export async function sendCustomEmail(opts: {
+  to: string;
+  subject: string;
+  body: string;
+}) {
+  if (!mailerReady()) {
+    throw new Error(
+      "Chưa cấu hình gửi email. Điền GMAIL_USER và GMAIL_APP_PASSWORD trong .env.local.",
+    );
+  }
+  const { to, subject, body } = opts;
+  await transport().sendMail({
+    from: `"${APP_NAME}" <${GMAIL_USER}>`,
+    to,
+    subject,
+    text: body,
+    html: customHtml({ bodyHtml: textToParagraphs(body) }),
+  });
+}
