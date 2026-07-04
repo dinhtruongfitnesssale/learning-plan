@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
+import { Pagination } from "@/components/Pagination";
 import {
   updateCourse,
   toggleCoursePublish,
@@ -15,12 +16,17 @@ import type { Course, Lesson, Module } from "@/lib/supabase/types";
 const inputCls =
   "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
 
+const MODULES_PER_PAGE = 4;
+
 export default async function CourseEditor({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
   const { data: course } = await supabase
     .from("courses")
@@ -37,6 +43,38 @@ export default async function CourseEditor({
   const mods = (modules as Module[]) ?? [];
   const lessonList = (lessons as Lesson[]) ?? [];
   const categories = await getCategories();
+
+  // Gộp bài theo chương (giữ cả chương chưa có bài để coach thấy).
+  const moduleGroups = mods.map((m) => ({
+    module: m,
+    lessons: lessonList.filter((l) => l.module_id === m.id),
+  }));
+  // Bài chưa xếp chương — hiện thẳng, không gấp.
+  const ungrouped = lessonList.filter((l) => !l.module_id);
+
+  // Phân trang: mỗi trang tối đa 4 chương. Bài chưa xếp chương chỉ hiện ở trang 1.
+  const totalPages = Math.max(
+    1,
+    Math.ceil(moduleGroups.length / MODULES_PER_PAGE),
+  );
+  const page = Math.min(totalPages, Math.max(1, Number(sp.page) || 1));
+  const from = (page - 1) * MODULES_PER_PAGE;
+  const pageGroups = moduleGroups.slice(from, from + MODULES_PER_PAGE);
+
+  const lessonRow = (l: Lesson, i: number) => (
+    <li key={l.id}>
+      <Link href={`/admin/khoa-hoc/${c.slug}/bai/${l.slug}`}>
+        <Card className="px-4 py-3 flex items-center gap-3 hover:border-ink/25 transition-colors">
+          <span className="font-mono text-sm text-ink/40 w-5 tnum">{i + 1}</span>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium truncate">{l.title}</div>
+            <div className="text-xs text-ink/45 font-mono">{l.xp_reward} XP</div>
+          </div>
+          {!l.published && <Badge accent="ink">ẩn</Badge>}
+        </Card>
+      </Link>
+    </li>
+  );
 
   return (
     <div className="space-y-8">
@@ -73,35 +111,64 @@ export default async function CourseEditor({
       <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
         {/* Bài học */}
         <div className="space-y-6">
-          <div>
-            <h2 className="font-serif text-2xl mb-3">Bài học</h2>
+          <div className="space-y-4">
+            <h2 className="font-serif text-2xl">Bài học</h2>
             {lessonList.length === 0 ? (
               <Card className="p-5 text-ink/60 text-sm">
                 Chưa có bài học. Thêm bài ở khung bên phải.
               </Card>
             ) : (
-              <ol className="space-y-2">
-                {lessonList.map((l, i) => (
-                  <li key={l.id}>
-                    <Link href={`/admin/khoa-hoc/${c.slug}/bai/${l.slug}`}>
-                      <Card className="px-4 py-3 flex items-center gap-3 hover:border-ink/25 transition-colors">
-                        <span className="font-mono text-sm text-ink/40 w-5 tnum">
-                          {i + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{l.title}</div>
-                          <div className="text-xs text-ink/45 font-mono">
-                            {mods.find((m) => m.id === l.module_id)?.title ??
-                              "Chưa xếp chương"}{" "}
-                            · {l.xp_reward} XP
-                          </div>
-                        </div>
-                        {!l.published && <Badge accent="ink">ẩn</Badge>}
-                      </Card>
-                    </Link>
-                  </li>
+              <>
+                {/* Bài chưa xếp chương — hiện thẳng, chỉ ở trang 1 */}
+                {page === 1 && ungrouped.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="eyebrow">Chưa xếp chương</p>
+                    <ol className="space-y-2">
+                      {ungrouped.map((l, i) => lessonRow(l, i))}
+                    </ol>
+                  </div>
+                )}
+
+                {/* Các chương — gấp lại, ấn để mở */}
+                {pageGroups.map((g, gi) => (
+                  <details
+                    key={g.module.id}
+                    className="group rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] overflow-hidden"
+                  >
+                    <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
+                      <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0">
+                        ▸
+                      </span>
+                      <span className="eyebrow shrink-0">
+                        Chương {from + gi + 1}
+                      </span>
+                      <span className="font-medium flex-1 min-w-0 truncate">
+                        {g.module.title}
+                      </span>
+                      <span className="font-mono text-xs text-ink/40 tnum shrink-0">
+                        {g.lessons.length} bài
+                      </span>
+                    </summary>
+                    <div className="px-4 pb-4 pt-1 border-t border-ink/10">
+                      {g.lessons.length === 0 ? (
+                        <p className="text-sm text-ink/50 py-2">
+                          Chưa có bài trong chương này.
+                        </p>
+                      ) : (
+                        <ol className="space-y-2">
+                          {g.lessons.map((l, i) => lessonRow(l, i))}
+                        </ol>
+                      )}
+                    </div>
+                  </details>
                 ))}
-              </ol>
+
+                <Pagination
+                  basePath={`/admin/khoa-hoc/${c.slug}`}
+                  page={page}
+                  totalPages={totalPages}
+                />
+              </>
             )}
           </div>
 
