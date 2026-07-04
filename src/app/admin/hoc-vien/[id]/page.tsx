@@ -3,11 +3,10 @@ import { notFound } from "next/navigation";
 import { requireCoach } from "@/lib/auth";
 import { getLearnerDetail, getCategories } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Eyebrow, Badge, Stat, buttonClass } from "@/components/ui";
+import { Card, Eyebrow, Badge, Stat } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
-import { assignCourse, unassignCourse } from "../../actions";
 import { ManageLearner } from "./ManageLearner";
-import { AssignCourse } from "./AssignCourse";
+import { CourseAssignment } from "./CourseAssignment";
 import { QuizResults } from "./QuizResults";
 import type { Course } from "@/lib/supabase/types";
 
@@ -134,52 +133,23 @@ export default async function LearnerDetail({
       <section>
         <h2 className="font-serif text-2xl mb-3">Phân khóa học</h2>
         <Card className="p-5 space-y-4">
-          {/* Gán khóa mới (có tìm kiếm) */}
-          <AssignCourse
+          <CourseAssignment
             userId={id}
-            courses={unassigned.map((c) => ({
+            unassigned={unassigned.map((c) => ({
               id: c.id,
               title: c.title,
               cover_emoji: c.cover_emoji,
               categoryLabel: catLabel.get(c.category) ?? c.category,
             }))}
+            enrolled={courseList
+              .filter((c) => statusByCourse.has(c.id))
+              .map((c) => ({
+                id: c.id,
+                title: c.title,
+                cover_emoji: c.cover_emoji,
+                status: statusByCourse.get(c.id)!,
+              }))}
           />
-
-          {/* Khóa đang ghi danh */}
-          {statusByCourse.size > 0 && (
-            <div className="divide-y divide-ink/10 border-t border-ink/10 pt-1">
-              {courseList
-                .filter((c) => statusByCourse.has(c.id))
-                .map((c) => {
-                  const st = statusByCourse.get(c.id);
-                  return (
-                    <div key={c.id} className="flex items-center gap-3 py-2.5">
-                      <span className="text-xl shrink-0">{c.cover_emoji}</span>
-                      <span className="flex-1 min-w-0 truncate">{c.title}</span>
-                      <Badge accent={st === "approved" ? "herb" : "slate"}>
-                        {st === "approved" ? "Đang học" : "Chờ duyệt"}
-                      </Badge>
-                      {st === "pending" && (
-                        <form action={assignCourse}>
-                          <input type="hidden" name="user_id" value={id} />
-                          <input type="hidden" name="course_id" value={c.id} />
-                          <button className={buttonClass("ghost", "!px-3 !py-1.5 text-xs")}>
-                            Duyệt
-                          </button>
-                        </form>
-                      )}
-                      <form action={unassignCourse}>
-                        <input type="hidden" name="user_id" value={id} />
-                        <input type="hidden" name="course_id" value={c.id} />
-                        <button className="text-xs text-clay hover:underline shrink-0">
-                          Gỡ
-                        </button>
-                      </form>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
         </Card>
       </section>
     </div>

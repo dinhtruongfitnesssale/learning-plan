@@ -400,11 +400,14 @@ export async function denyEnrollment(formData: FormData) {
 }
 
 // Admin phân khóa trực tiếp cho học viên (duyệt luôn).
-export async function assignCourse(formData: FormData) {
+// Trả về kết quả kèm trạng thái gửi email để hiện xác nhận cho coach.
+export async function assignCourse(
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
   const supabase = await guard();
   const userId = String(formData.get("user_id"));
   const courseId = String(formData.get("course_id"));
-  if (!courseId) return;
+  if (!courseId) return { ok: false, message: "Thiếu khóa học." };
   const { data: existing } = await supabase
     .from("enrollments")
     .select("id, status")
@@ -424,6 +427,7 @@ export async function assignCourse(formData: FormData) {
 
   // Báo email cho học viên khi vừa MỞ quyền học (bỏ qua nếu đã đang học sẵn).
   // Best-effort: gửi lỗi không làm hỏng việc phân khóa.
+  let emailNote = "";
   if (!existing || existing.status !== "approved") {
     try {
       const [{ data: prof }, { data: course }] = await Promise.all([
@@ -447,13 +451,18 @@ export async function assignCourse(formData: FormData) {
           courseSlug: course.slug,
           courseEmoji: course.cover_emoji ?? "📘",
         });
+        emailNote = " và đã gửi email thông báo cho học viên";
+      } else if (!prof?.email) {
+        emailNote = " (học viên chưa có email nên chưa gửi thông báo)";
       }
     } catch (e) {
       console.error("Gửi email phân khóa thất bại:", e);
+      emailNote = " nhưng gửi email thông báo thất bại";
     }
   }
 
   revalidatePath(`/admin/hoc-vien/${userId}`);
+  return { ok: true, message: `Đã mở khóa cho học viên${emailNote}.` };
 }
 
 export async function unassignCourse(formData: FormData) {
