@@ -6,6 +6,7 @@ import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
 import { Pagination } from "@/components/Pagination";
 import { Chapter } from "@/components/Chapter";
+import { CourseReview } from "@/components/CourseReview";
 import { requestEnroll, requestRelearn } from "../../khoa-hoc/actions";
 import type { Lesson } from "@/lib/supabase/types";
 
@@ -34,6 +35,8 @@ export default async function CoursePage({
   const { course, lessons, enrollStatus, approved, done, total, leaderboard } =
     data;
   const percent = total ? done / total : 0;
+  // Học xong toàn bộ khóa → mời đánh giá.
+  const courseCompleted = approved && total > 0 && done === total;
   const modInfo = new Map(data.moduleInfo.map((mi) => [mi.id, mi]));
   const categories = await getCategories();
   const ct = categories.find((c) => c.slug === course.category);
@@ -155,6 +158,23 @@ export default async function CoursePage({
                 : "🔒 Bạn chưa được ghi danh. Bấm “Yêu cầu học” để coach duyệt."}
           </p>
         </Card>
+      )}
+
+      {/* Học xong khóa → xin ý kiến đánh giá */}
+      {courseCompleted && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 text-herb">
+            <span className="text-xl">🎉</span>
+            <p className="font-medium">
+              Bạn đã hoàn thành toàn bộ khóa học — tuyệt vời!
+            </p>
+          </div>
+          <CourseReview
+            courseId={course.id}
+            courseSlug={course.slug}
+            initial={data.myReview}
+          />
+        </section>
       )}
 
       <div className="grid lg:grid-cols-[1fr_280px] gap-8 items-start">

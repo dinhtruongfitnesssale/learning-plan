@@ -42,6 +42,7 @@ export function AppHeader({
               <NavLink href="/admin/hoc-vien">Học viên</NavLink>
               <NavLink href="/admin/gui-mail">Gửi mail</NavLink>
               <NavLink href="/admin/theo-doi">Theo dõi</NavLink>
+              <NavLink href="/admin/danh-gia">Đánh giá</NavLink>
               <Link
                 href="/admin/yeu-cau"
                 className="relative rounded-full px-3 py-1.5 text-sm text-ink/70 hover:bg-paper-2 hover:text-ink transition-colors"

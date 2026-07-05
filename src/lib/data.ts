@@ -4,6 +4,7 @@ import { levelForXp } from "./brand";
 import type {
   Course,
   CourseCategory,
+  CourseReview,
   Lesson,
   Module,
   Profile,
@@ -232,9 +233,15 @@ export async function getCourseDetail(slug: string, userId: string) {
   }
 
   const doneSet = new Set((prog ?? []).map((p) => p.lesson_id));
-  const { data: lb } = await supabase.rpc("course_leaderboard", {
-    p_course_id: course.id,
-  });
+  const [{ data: lb }, { data: myReview }] = await Promise.all([
+    supabase.rpc("course_leaderboard", { p_course_id: course.id }),
+    supabase
+      .from("course_reviews")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("course_id", course.id)
+      .maybeSingle(),
+  ]);
 
   // Khóa chương + quiz chương.
   const modList = (modules as Module[]) ?? [];
@@ -282,6 +289,7 @@ export async function getCourseDetail(slug: string, userId: string) {
     done: lessonList.filter((l) => doneSet.has(l.id)).length,
     total: lessonList.length,
     leaderboard: (lb as LeaderboardRow[]) ?? [],
+    myReview: (myReview as CourseReview | null) ?? null,
   };
 }
 
@@ -668,4 +676,51 @@ export async function getPendingCount() {
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
   return count ?? 0;
+}
+
+// ── Admin: đánh giá khóa học của học viên ─────────────────────
+export interface ReviewRow {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  ratings: {
+    r_content: number;
+    r_coach: number;
+    r_difficulty: number;
+    r_applicability: number;
+    r_overall: number;
+  };
+  comment: string;
+  learner: { full_name: string; email: string };
+  course: { title: string; cover_emoji: string; slug: string };
+}
+
+export async function getCourseReviews() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("course_reviews")
+    .select(
+      "id, created_at, updated_at, r_content, r_coach, r_difficulty, r_applicability, r_overall, comment, profiles(full_name, email), courses(title, cover_emoji, slug)",
+    )
+    .order("created_at", { ascending: false });
+
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    createdAt: r.created_at as string,
+    updatedAt: r.updated_at as string,
+    ratings: {
+      r_content: r.r_content as number,
+      r_coach: r.r_coach as number,
+      r_difficulty: r.r_difficulty as number,
+      r_applicability: r.r_applicability as number,
+      r_overall: r.r_overall as number,
+    },
+    comment: r.comment as string,
+    learner: r.profiles as unknown as { full_name: string; email: string },
+    course: r.courses as unknown as {
+      title: string;
+      cover_emoji: string;
+      slug: string;
+    },
+  })) as ReviewRow[];
 }

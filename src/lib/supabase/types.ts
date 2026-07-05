@@ -132,6 +132,20 @@ export interface Streak {
   freezes: number;
 }
 
+export interface CourseReview {
+  id: string;
+  user_id: string;
+  course_id: string;
+  r_content: number;
+  r_coach: number;
+  r_difficulty: number;
+  r_applicability: number;
+  r_overall: number;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Kết quả các RPC
 export interface CompleteLessonResult {
   already: boolean;
@@ -188,6 +202,7 @@ export type Database = {
       quiz_attempts: { Row: QuizAttempt; Insert: Partial<QuizAttempt>; Update: Partial<QuizAttempt>; Relationships: [] };
       xp_events: { Row: XpEvent; Insert: Partial<XpEvent>; Update: Partial<XpEvent>; Relationships: [] };
       streaks: { Row: Streak; Insert: Partial<Streak>; Update: Partial<Streak>; Relationships: [] };
+      course_reviews: { Row: CourseReview; Insert: Partial<CourseReview>; Update: Partial<CourseReview>; Relationships: [] };
     };
     Views: Record<string, never>;
     Functions: {
