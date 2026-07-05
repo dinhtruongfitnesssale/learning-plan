@@ -60,9 +60,10 @@ export function AppHeader({
           { href: "/hoc", label: "Xem như học viên" },
         ];
 
-  // Ngưỡng hiện nav ngang: coach nhiều mục nên chỉ mở ở màn hình rất rộng.
-  const inlineNavCls = variant === "coach" ? "hidden xl:flex" : "hidden md:flex";
-  const menuBtnCls = variant === "coach" ? "xl:hidden" : "md:hidden";
+  // Ngưỡng hiện nav ngang: coach nhiều mục + tên app dài nên chỉ mở ở màn
+  // hình rất rộng (2xl); dưới mức đó dùng menu ☰ để không đè logo.
+  const inlineNavCls = variant === "coach" ? "hidden 2xl:flex" : "hidden md:flex";
+  const menuBtnCls = variant === "coach" ? "2xl:hidden" : "md:hidden";
 
   return (
     <header className="border-b border-ink/10 bg-paper/80 backdrop-blur sticky top-0 z-30">
