@@ -582,6 +582,26 @@ export async function sendBroadcastEmail(
   if (!subject) return { ok: false, message: "Cần nhập tiêu đề email." };
   if (!body) return { ok: false, message: "Cần nhập nội dung email." };
 
+  // Đọc ảnh đính kèm (nếu có). Chỉ nhận file ảnh; tổng dung lượng ≤ 10MB.
+  const MAX_TOTAL = 10 * 1024 * 1024;
+  const files = formData
+    .getAll("attachments")
+    .filter((f): f is File => f instanceof File && f.size > 0);
+  let totalBytes = 0;
+  const images: { filename: string; content: Buffer; contentType: string }[] = [];
+  for (const f of files) {
+    if (!f.type.startsWith("image/"))
+      return { ok: false, message: `Tệp "${f.name}" không phải ảnh.` };
+    totalBytes += f.size;
+    if (totalBytes > MAX_TOTAL)
+      return { ok: false, message: "Tổng dung lượng ảnh vượt quá 10MB." };
+    images.push({
+      filename: f.name,
+      content: Buffer.from(await f.arrayBuffer()),
+      contentType: f.type,
+    });
+  }
+
   // Gom danh sách người nhận theo chế độ.
   let ids: string[] | null = null; // null = tất cả học viên
   if (mode === "course") {
@@ -646,6 +666,7 @@ export async function sendBroadcastEmail(
           to: r.email,
           subject: fill(subject, r.name),
           body: fill(body, r.name),
+          images,
         }),
       ),
     );

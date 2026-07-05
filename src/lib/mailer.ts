@@ -359,24 +359,59 @@ function customHtml({ bodyHtml }: { bodyHtml: string }) {
 </html>`;
 }
 
+// Ảnh đính kèm coach chọn khi soạn mail. `content` là dữ liệu nhị phân của ảnh.
+export type MailImage = {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+};
+
+// Khối ảnh hiển thị ngay trong nội dung email (inline qua cid), xếp dọc.
+function imagesHtml(images: MailImage[]) {
+  if (images.length === 0) return "";
+  const items = images
+    .map(
+      (img, i) =>
+        `<tr><td style="padding-top:${i === 0 ? 4 : 12}px;">
+          <img src="cid:${cidOf(i)}" alt="${escapeHtml(img.filename)}" style="display:block;width:100%;max-width:100%;height:auto;border-radius:12px;border:1px solid #e2dccf;" />
+        </td></tr>`,
+    )
+    .join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">${items}</table>`;
+}
+
+// Content-ID ổn định cho từng ảnh đính kèm.
+function cidOf(i: number) {
+  return `img${i}@lms`;
+}
+
 // Gửi một email nội dung tự soạn tới một người nhận.
 // `body` là văn bản thô của coach; hàm tự bọc vào khung thương hiệu.
+// `images` (tùy chọn) hiển thị inline dưới nội dung và đính kèm vào email.
 export async function sendCustomEmail(opts: {
   to: string;
   subject: string;
   body: string;
+  images?: MailImage[];
 }) {
   if (!mailerReady()) {
     throw new Error(
       "Chưa cấu hình gửi email. Điền GMAIL_USER và GMAIL_APP_PASSWORD trong .env.local.",
     );
   }
-  const { to, subject, body } = opts;
+  const { to, subject, body, images = [] } = opts;
+  const attachments = images.map((img, i) => ({
+    filename: img.filename,
+    content: img.content,
+    contentType: img.contentType,
+    cid: cidOf(i),
+  }));
   await transport().sendMail({
     from: `"${APP_NAME}" <${GMAIL_USER}>`,
     to,
     subject,
     text: body,
-    html: customHtml({ bodyHtml: textToParagraphs(body) }),
+    html: customHtml({ bodyHtml: textToParagraphs(body) + imagesHtml(images) }),
+    attachments,
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { sendBroadcastEmail } from "../actions";
 import { Card, buttonClass } from "@/components/ui";
 
@@ -106,6 +106,8 @@ export function GuiMailForm({
               tự chèn tên từng học viên. Cách một dòng trống để ngắt đoạn.
             </span>
           </label>
+
+          <Attachments />
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button
@@ -238,6 +240,104 @@ export function GuiMailForm({
         </p>
       </Card>
     </form>
+  );
+}
+
+// Ô đính kèm ảnh. Dùng input file thật (name="attachments") để gửi kèm Server
+// Action; state chỉ để xem trước và xóa từng ảnh. Xóa = dựng lại DataTransfer.
+const MAX_TOTAL = 10 * 1024 * 1024; // 10MB — khớp giới hạn phía server
+
+function Attachments() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  // Tạo/thu hồi URL xem trước theo danh sách ảnh hiện tại.
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files]);
+
+  // Đồng bộ mảng `files` ngược lại vào input để Server Action nhận đúng tệp.
+  function syncInput(next: File[]) {
+    const dt = new DataTransfer();
+    next.forEach((f) => dt.items.add(f));
+    if (inputRef.current) inputRef.current.files = dt.files;
+    setFiles(next);
+  }
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? []).filter((f) =>
+      f.type.startsWith("image/"),
+    );
+    // Gộp với ảnh đã chọn, bỏ trùng theo tên+kích thước.
+    const merged = [...files];
+    for (const f of picked) {
+      if (!merged.some((m) => m.name === f.name && m.size === f.size))
+        merged.push(f);
+    }
+    syncInput(merged);
+  }
+
+  function remove(i: number) {
+    syncInput(files.filter((_, idx) => idx !== i));
+  }
+
+  const totalBytes = files.reduce((s, f) => s + f.size, 0);
+  const over = totalBytes > MAX_TOTAL;
+
+  return (
+    <div className="space-y-2">
+      <span className="text-sm text-ink/70">Ảnh đính kèm (tùy chọn)</span>
+
+      <input
+        ref={inputRef}
+        type="file"
+        name="attachments"
+        accept="image/*"
+        multiple
+        onChange={onPick}
+        className="block w-full text-sm text-ink/70 file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-4 file:py-2 file:text-sm file:font-medium file:text-paper hover:file:bg-ink/90 file:cursor-pointer cursor-pointer"
+      />
+
+      {files.length > 0 && (
+        <>
+          <div className="flex flex-wrap gap-3">
+            {files.map((f, i) => (
+              <div
+                key={`${f.name}-${f.size}-${i}`}
+                className="relative group w-24"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previews[i]}
+                  alt={f.name}
+                  className="h-24 w-24 rounded-lg object-cover border border-ink/10"
+                />
+                <button
+                  type="button"
+                  onClick={() => remove(i)}
+                  aria-label={`Xóa ${f.name}`}
+                  className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-ink text-paper text-xs leading-none shadow hover:bg-clay"
+                >
+                  ✕
+                </button>
+                <span className="mt-1 block truncate text-[11px] text-ink/50">
+                  {f.name}
+                </span>
+              </div>
+            ))}
+          </div>
+          <span
+            className={`block text-xs ${over ? "text-clay" : "text-ink/50"}`}
+          >
+            {files.length} ảnh · {(totalBytes / 1024 / 1024).toFixed(1)}MB
+            {over && " — vượt quá 10MB, hãy bớt ảnh"}
+          </span>
+        </>
+      )}
+    </div>
   );
 }
 
