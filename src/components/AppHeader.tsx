@@ -57,7 +57,7 @@ export function AppHeader({
           { href: "/admin/theo-doi", label: "Theo dõi" },
           { href: "/admin/danh-gia", label: "Đánh giá" },
           { href: "/admin/yeu-cau", label: "Yêu cầu", badge: pendingCount },
-          { href: "/hoc", label: "Xem như học viên" },
+          { href: "/hoc", label: "Xem trước" },
         ];
 
   // Ngưỡng hiện nav ngang: coach nhiều mục + tên app dài nên chỉ mở ở màn
