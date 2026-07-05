@@ -17,7 +17,15 @@ type LessonItem = {
   done: boolean;
   hasQuiz: boolean;
   locked: boolean;
+  availableOn: string | null; // ngày mở nếu đang khóa theo lịch
 };
+
+// YYYY-MM-DD → dd/mm/yyyy.
+function fmtDate(d: string | null): string {
+  if (!d) return "";
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
 
 export default async function CoursePage({
   params,
@@ -62,7 +70,7 @@ export default async function CoursePage({
 
   // Ô số thứ tự / trạng thái ở đầu mỗi dòng bài.
   const renderLesson = (item: LessonItem, i: number) => {
-    const { lesson, done: ldone, hasQuiz, locked } = item;
+    const { lesson, done: ldone, hasQuiz, locked, availableOn } = item;
     const lessonLocked = !approved || locked;
     const row = (
       <Card
@@ -79,7 +87,13 @@ export default async function CoursePage({
         </span>
         <div className="flex-1 min-w-0">
           <div className="font-medium truncate">{lesson.title}</div>
-          <div className="text-xs text-ink/50 mt-0.5">{lesson.summary}</div>
+          {availableOn ? (
+            <div className="text-xs text-amber mt-0.5">
+              🔒 Mở ngày {fmtDate(availableOn)}
+            </div>
+          ) : (
+            <div className="text-xs text-ink/50 mt-0.5">{lesson.summary}</div>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {lesson.video_url && <span title="Có video">🎥</span>}
@@ -194,7 +208,9 @@ export default async function CoursePage({
           {/* Các chương — gấp lại, ấn để mở */}
           {pageGroups.map((g, gi) => {
             const info = modInfo.get(g.module.id);
-            const chapterLocked = info?.locked ?? false;
+            const chapterDateLocked = info?.dateLocked ?? false;
+            const chapterLocked = (info?.locked ?? false) || chapterDateLocked;
+            const chapterUnlockOn = info?.availableOn ?? null;
             const number = from + gi + 1;
             const lessonsDone = g.lessons.filter((it) => it.done).length;
             return (
@@ -211,9 +227,15 @@ export default async function CoursePage({
                     <span className="font-medium flex-1 min-w-0 truncate">
                       {g.module.title}
                     </span>
-                    {approved && chapterLocked && (
-                      <span title="Đang khóa">🔒</span>
-                    )}
+                    {approved &&
+                      chapterLocked &&
+                      (chapterUnlockOn ? (
+                        <span className="text-xs text-amber shrink-0 whitespace-nowrap">
+                          🔒 Mở {fmtDate(chapterUnlockOn)}
+                        </span>
+                      ) : (
+                        <span title="Đang khóa">🔒</span>
+                      ))}
                     <span className="font-mono text-xs text-ink/40 tnum shrink-0">
                       {lessonsDone}/{g.lessons.length} bài
                     </span>
@@ -261,9 +283,11 @@ export default async function CoursePage({
                           <div className="flex-1 min-w-0">
                             <div className="font-medium">Bài kiểm tra chương</div>
                             <div className="text-xs text-ink/55">
-                              {chapterLocked
-                                ? "Hoàn thành chương trước để mở."
-                                : `Học hết các bài trong chương (${info.lessonsDone}/${info.lessonsTotal}) để mở.`}
+                              {chapterDateLocked
+                                ? `Mở ngày ${fmtDate(chapterUnlockOn)}.`
+                                : chapterLocked
+                                  ? "Hoàn thành chương trước để mở."
+                                  : `Học hết các bài trong chương (${info.lessonsDone}/${info.lessonsTotal}) để mở.`}
                             </div>
                           </div>
                         </Card>

@@ -22,6 +22,13 @@ const inputCls =
 
 const MODULES_PER_PAGE = 4;
 
+// YYYY-MM-DD → dd/mm/yyyy (để trống nếu chưa đặt lịch).
+function fmtDate(d: string | null): string {
+  if (!d) return "";
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+
 export default async function CourseEditor({
   params,
   searchParams,
@@ -98,7 +105,10 @@ export default async function CourseEditor({
           <span className="font-mono text-sm text-ink/40 w-5 tnum">{i + 1}</span>
           <div className="flex-1 min-w-0">
             <div className="font-medium truncate">{l.title}</div>
-            <div className="text-xs text-ink/45 font-mono">{l.xp_reward} XP</div>
+            <div className="text-xs text-ink/45 font-mono">
+              {l.xp_reward} XP
+              {l.available_on && <span> · 📅 mở {fmtDate(l.available_on)}</span>}
+            </div>
           </div>
           {!l.published && <Badge accent="ink">ẩn</Badge>}
         </Card>
@@ -313,12 +323,17 @@ export default async function CourseEditor({
                         Quiz chương →
                       </Link>
                     </div>
+                    {m.available_on && (
+                      <p className="text-xs text-ink/50 mt-0.5">
+                        📅 Mở {fmtDate(m.available_on)}
+                      </p>
+                    )}
                     <details className="group mt-1">
                       <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer text-xs text-ink/50 hover:text-ink">
                         Sửa / Xóa chương
                       </summary>
                       <div className="mt-2 flex flex-col gap-2">
-                        <form action={updateModule} className="flex gap-2">
+                        <form action={updateModule} className="flex flex-col gap-2">
                           <input type="hidden" name="id" value={m.id} />
                           <input
                             type="hidden"
@@ -331,7 +346,20 @@ export default async function CourseEditor({
                             defaultValue={m.title}
                             className={inputCls}
                           />
-                          <button className={buttonClass("outline", "shrink-0")}>
+                          <label className="block">
+                            <span className="text-xs text-ink/60">
+                              📅 Ngày mở chương (trống = mở ngay)
+                            </span>
+                            <input
+                              name="available_on"
+                              type="date"
+                              defaultValue={m.available_on ?? ""}
+                              className={inputCls}
+                            />
+                          </label>
+                          <button
+                            className={buttonClass("outline", "shrink-0 self-start")}
+                          >
                             Lưu
                           </button>
                         </form>

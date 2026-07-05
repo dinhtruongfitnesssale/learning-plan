@@ -247,6 +247,11 @@ export async function getCourseDetail(slug: string, userId: string) {
   const modList = (modules as Module[]) ?? [];
   const gating = await moduleGating(supabase, userId, modList);
 
+  // Lịch mở khóa theo ngày (chung cho mọi học viên). available_on trống = mở ngay.
+  const today = todayISO();
+  const isFuture = (d: string | null | undefined) => !!d && d > today;
+  const moduleAvail = new Map(modList.map((m) => [m.id, m.available_on ?? null]));
+
   // Học tuần tự: mọi bài sau bài chưa hoàn thành ĐẦU TIÊN đều bị khóa.
   // (Bài có quiz chỉ được đánh dấu hoàn thành sau khi ĐẠT quiz, nên khóa
   //  theo "done" cũng chính là bắt phải làm và đạt quiz mới qua bài sau.)
@@ -259,14 +264,19 @@ export async function getCourseDetail(slug: string, userId: string) {
     const q = gating.quizByModule.get(m.id) ?? null;
     const quizPassed = q ? gating.passedQuiz.has(q.id) : false;
     const locked = gating.lockedModules.has(m.id);
+    const dateLocked = isFuture(m.available_on);
     const allLessonsDone = lessonsTotal > 0 && lessonsDone === lessonsTotal;
     return {
       id: m.id,
       locked,
+      // Chương chưa tới ngày mở (theo lịch) + ngày mở để hiện cho học viên.
+      dateLocked,
+      availableOn: dateLocked ? m.available_on : null,
       hasQuiz: !!q,
       quizPassed,
-      // Quiz chương mở khi: chương không bị khóa, đã học hết bài, và chưa đạt.
-      quizAvailable: !!q && !locked && allLessonsDone && !quizPassed,
+      // Quiz chương mở khi: chương không bị khóa (quiz/lịch), đã học hết bài, chưa đạt.
+      quizAvailable:
+        !!q && !locked && !dateLocked && allLessonsDone && !quizPassed,
       lessonsDone,
       lessonsTotal,
     };
@@ -276,14 +286,26 @@ export async function getCourseDetail(slug: string, userId: string) {
     course: course as Course,
     modules: modList,
     moduleInfo,
-    lessons: lessonList.map((l, idx) => ({
-      lesson: l,
-      done: doneSet.has(l.id),
-      hasQuiz: quizLessonIds.has(l.id),
-      locked:
-        (l.module_id ? gating.lockedModules.has(l.module_id) : false) ||
-        idx > firstIncomplete,
-    })),
+    lessons: lessonList.map((l, idx) => {
+      // Ngày mở hiệu lực = trễ nhất giữa ngày mở của bài và của chương chứa bài
+      // (phải qua CẢ HAI mốc mới học được).
+      const modDate = l.module_id ? moduleAvail.get(l.module_id) ?? null : null;
+      const applicable = [l.available_on, modDate].filter(Boolean) as string[];
+      const unlockDate = applicable.length
+        ? applicable.reduce((a, b) => (a > b ? a : b))
+        : null;
+      const dateLocked = isFuture(unlockDate);
+      return {
+        lesson: l,
+        done: doneSet.has(l.id),
+        hasQuiz: quizLessonIds.has(l.id),
+        locked:
+          (l.module_id ? gating.lockedModules.has(l.module_id) : false) ||
+          idx > firstIncomplete ||
+          dateLocked,
+        availableOn: dateLocked ? unlockDate : null,
+      };
+    }),
     enrollStatus,
     approved: enrollStatus === "approved",
     done: lessonList.filter((l) => doneSet.has(l.id)).length,
@@ -446,19 +468,28 @@ export async function getLessonView(
     supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
     supabase.from("quizzes").select("id").eq("lesson_id", lesson.id).maybeSingle(),
   ]);
-  const { lockedModules } = await moduleGating(
-    supabase,
-    userId,
-    (modules as Module[]) ?? [],
-  );
+  const modList = (modules as Module[]) ?? [];
+  const { lockedModules } = await moduleGating(supabase, userId, modList);
   const doneSet = new Set((prog ?? []).map((p) => p.lesson_id));
+
+  // Lịch mở khóa theo ngày (chung cho mọi học viên).
+  const today = todayISO();
+  const isFuture = (d: string | null | undefined) => !!d && d > today;
+  const moduleAvail = new Map(modList.map((m) => [m.id, m.available_on ?? null]));
 
   // Học tuần tự: mọi bài sau bài chưa hoàn thành đầu tiên đều bị khóa.
   const fi = list.findIndex((l) => !doneSet.has(l.id));
   const firstIncomplete = fi === -1 ? list.length : fi;
   const isLocked = (i: number) => {
-    const m = list[i].module_id;
-    return (m ? lockedModules.has(m) : false) || i > firstIncomplete;
+    const les = list[i];
+    const m = les.module_id;
+    const modDate = m ? moduleAvail.get(m) ?? null : null;
+    return (
+      (m ? lockedModules.has(m) : false) ||
+      i > firstIncomplete ||
+      isFuture(les.available_on) ||
+      isFuture(modDate)
+    );
   };
 
   // Bài đang xem bị khóa (chưa hoàn thành bài trước) → quay về trang khóa.
@@ -549,7 +580,10 @@ export async function getModuleQuizView(
     userId,
     (modules as Module[]) ?? [],
   );
-  if (lockedModules.has(moduleId) || !quizRow) {
+  // Chương chưa tới ngày mở (theo lịch) → khóa quiz chương.
+  const modAvailableOn = (moduleRow as Module).available_on;
+  const dateLocked = !!modAvailableOn && modAvailableOn > todayISO();
+  if (lockedModules.has(moduleId) || dateLocked || !quizRow) {
     return { locked: true as const, course: course as Course };
   }
 

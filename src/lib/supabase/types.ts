@@ -48,6 +48,8 @@ export interface Module {
   course_id: string;
   title: string;
   sort_order: number;
+  /** Ngày mở chương (YYYY-MM-DD). NULL = mở ngay. */
+  available_on: string | null;
 }
 
 export interface Lesson {
@@ -66,6 +68,8 @@ export interface Lesson {
   xp_reward: number;
   sort_order: number;
   published: boolean;
+  /** Ngày mở bài (YYYY-MM-DD). NULL = mở ngay. */
+  available_on: string | null;
   created_at: string;
 }
 

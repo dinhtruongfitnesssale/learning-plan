@@ -80,6 +80,20 @@ export function LessonEditForm({
             Cho phép học viên tải tài liệu về (tắt = chỉ xem trong bài)
           </span>
         </label>
+        <label className="block rounded-lg bg-paper-2 px-3 py-2.5">
+          <span className="text-sm text-ink/80">
+            📅 Ngày mở bài cho học viên — để trống = mở ngay
+          </span>
+          <input
+            name="available_on"
+            type="date"
+            defaultValue={l.available_on ?? ""}
+            className={`${inputCls} mt-1 sm:w-56`}
+          />
+          <span className="block text-xs text-ink/50 mt-1">
+            Trước ngày này học viên thấy dấu khóa 🔒. Áp dụng cho mọi học viên.
+          </span>
+        </label>
         <label className="block">
           <span className="text-sm text-ink/70">
             Nội dung (Markdown — ## tiêu đề, - gạch đầu dòng, **đậm**, &gt; trích dẫn)

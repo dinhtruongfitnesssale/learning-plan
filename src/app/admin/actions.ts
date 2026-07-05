@@ -145,9 +145,11 @@ export async function updateModule(formData: FormData) {
   const courseSlug = String(formData.get("course_slug"));
   const title = String(formData.get("title")).trim();
   if (!title) return;
+  // Ngày mở chương (YYYY-MM-DD); trống = mở ngay (NULL).
+  const availableOn = String(formData.get("available_on") ?? "").trim() || null;
   await supabase
     .from("modules")
-    .update({ title })
+    .update({ title, available_on: availableOn })
     .eq("id", String(formData.get("id")));
   revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
 }
@@ -210,6 +212,8 @@ export async function updateLesson(
       module_id: String(formData.get("module_id") || "") || null,
       published: String(formData.get("published")) === "on",
       allow_download: String(formData.get("allow_download")) === "on",
+      // Ngày mở bài (YYYY-MM-DD); trống = mở ngay (NULL).
+      available_on: String(formData.get("available_on") ?? "").trim() || null,
     })
     .eq("id", id);
   if (error) return { ok: false, message: "Lưu lỗi: " + error.message };
