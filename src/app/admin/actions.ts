@@ -496,6 +496,143 @@ export async function unassignCourse(formData: FormData) {
   revalidatePath(`/admin/hoc-vien/${userId}`);
 }
 
+// Phân MỘT khóa cho NHIỀU học viên cùng lúc (mode "all" = mọi học viên,
+// "selected" = danh sách id truyền qua "ids"). Bỏ qua ai đã đang học sẵn,
+// duyệt luôn ai đang chờ, và gửi email thông báo cho người vừa được mở khóa.
+export async function assignCourseToLearners(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
+  const supabase = await guard();
+  const courseId = String(formData.get("course_id") ?? "");
+  const courseSlug = String(formData.get("course_slug") ?? "");
+  const mode = String(formData.get("mode") ?? "selected");
+  if (!courseId) return { ok: false, message: "Thiếu khóa học." };
+
+  // Danh sách học viên đích.
+  let targetIds: string[];
+  if (mode === "all") {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("role", "learner");
+    targetIds = (profs ?? []).map((p) => p.id);
+  } else {
+    targetIds = [
+      ...new Set(
+        String(formData.get("ids") ?? "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
+    ];
+  }
+  if (targetIds.length === 0)
+    return { ok: false, message: "Chưa chọn học viên nào." };
+
+  // Enrollment hiện có của khóa này trong nhóm đích.
+  const { data: existing } = await supabase
+    .from("enrollments")
+    .select("id, user_id, status")
+    .eq("course_id", courseId)
+    .in("user_id", targetIds);
+  const byUser = new Map((existing ?? []).map((e) => [e.user_id, e]));
+
+  const toInsert: string[] = []; // chưa ghi danh → thêm mới
+  const toApprove: string[] = []; // enrollment id đang chờ → duyệt
+  const newlyOpened: string[] = []; // user id vừa được mở khóa → gửi mail
+  for (const uid of targetIds) {
+    const e = byUser.get(uid);
+    if (!e) {
+      toInsert.push(uid);
+      newlyOpened.push(uid);
+    } else if (e.status !== "approved") {
+      toApprove.push(e.id);
+      newlyOpened.push(uid);
+    }
+    // đã approved → bỏ qua
+  }
+
+  if (toInsert.length > 0) {
+    await supabase.from("enrollments").insert(
+      toInsert.map((uid) => ({
+        user_id: uid,
+        course_id: courseId,
+        status: "approved" as const,
+      })),
+    );
+  }
+  if (toApprove.length > 0) {
+    await supabase
+      .from("enrollments")
+      .update({
+        status: "approved",
+        attempts_reset_at: new Date().toISOString(),
+      })
+      .in("id", toApprove);
+  }
+
+  // Gửi email thông báo (best-effort) cho học viên vừa được mở khóa.
+  let sentCount = 0;
+  if (newlyOpened.length > 0) {
+    try {
+      const [{ data: course }, { data: profs }] = await Promise.all([
+        supabase
+          .from("courses")
+          .select("title, slug, cover_emoji")
+          .eq("id", courseId)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("email, full_name")
+          .in("id", newlyOpened),
+      ]);
+      const recipients = (profs ?? [])
+        .map((p) => ({ email: (p.email ?? "").trim(), name: p.full_name ?? "" }))
+        .filter((p) => p.email);
+      if (course && recipients.length > 0) {
+        const { mailerReady, sendCourseAssignedEmail } = await import(
+          "@/lib/mailer"
+        );
+        if (mailerReady()) {
+          const BATCH = 5;
+          for (let i = 0; i < recipients.length; i += BATCH) {
+            const batch = recipients.slice(i, i + BATCH);
+            const results = await Promise.allSettled(
+              batch.map((p) =>
+                sendCourseAssignedEmail({
+                  to: p.email,
+                  fullName: p.name,
+                  courseTitle: course.title,
+                  courseSlug: course.slug,
+                  courseEmoji: course.cover_emoji ?? "📘",
+                }),
+              ),
+            );
+            results.forEach((r) => r.status === "fulfilled" && sentCount++);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Gửi email phân khóa hàng loạt thất bại:", e);
+    }
+  }
+
+  if (courseSlug) revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
+
+  const opened = toInsert.length + toApprove.length;
+  const already = targetIds.length - opened;
+  if (opened === 0)
+    return {
+      ok: true,
+      message: `Tất cả ${already} học viên đã học sẵn khóa này rồi.`,
+    };
+  const parts = [`Đã mở khóa cho ${opened} học viên`];
+  if (already > 0) parts.push(`${already} người đã có sẵn`);
+  if (sentCount > 0) parts.push(`đã gửi email cho ${sentCount} người`);
+  return { ok: true, message: parts.join(" · ") + "." };
+}
+
 // ── Học viên ──────────────────────────────────────────────────
 // Tạo tài khoản học viên bằng service role (trigger tự tạo profile + streak).
 // Tự động gửi email chào mừng (link đăng nhập + mật khẩu tạm + hướng dẫn) cho

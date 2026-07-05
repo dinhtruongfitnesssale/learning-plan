@@ -5,6 +5,7 @@ import { getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { Pagination } from "@/components/Pagination";
 import { Chapter } from "@/components/Chapter";
+import { BulkAssign } from "./BulkAssign";
 import {
   updateCourse,
   toggleCoursePublish,
@@ -45,7 +46,33 @@ export default async function CourseEditor({
   ]);
   const mods = (modules as Module[]) ?? [];
   const lessonList = (lessons as Lesson[]) ?? [];
-  const categories = await getCategories();
+
+  // Học viên + trạng thái ghi danh khóa này (để phân khóa hàng loạt).
+  const [categories, { data: profiles }, { data: courseEnr }] =
+    await Promise.all([
+      getCategories(),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("role", "learner")
+        .order("full_name", { ascending: true }),
+      supabase
+        .from("enrollments")
+        .select("user_id, status")
+        .eq("course_id", c.id),
+    ]);
+  const statusByUser = new Map(
+    (courseEnr ?? []).map((e) => [e.user_id, e.status as "pending" | "approved"]),
+  );
+  const learnersForAssign = (
+    (profiles as { id: string; full_name: string | null; email: string | null }[]) ??
+    []
+  ).map((p) => ({
+    id: p.id,
+    full_name: p.full_name ?? "",
+    email: p.email ?? "",
+    status: statusByUser.get(p.id) ?? ("none" as const),
+  }));
 
   // Gộp bài theo chương (giữ cả chương chưa có bài để coach thấy).
   const moduleGroups = mods.map((m) => ({
@@ -203,8 +230,14 @@ export default async function CourseEditor({
           </Card>
         </div>
 
-        {/* Cột phải: thông tin khóa + chương */}
+        {/* Cột phải: phân khóa + thông tin khóa + chương */}
         <div className="space-y-5">
+          <BulkAssign
+            courseId={c.id}
+            courseSlug={c.slug}
+            learners={learnersForAssign}
+          />
+
           <Card className="p-5" as="section">
             <h3 className="font-serif text-lg mb-3">Thông tin khóa</h3>
             <form action={updateCourse} className="space-y-3">
