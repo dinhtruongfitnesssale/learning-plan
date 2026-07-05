@@ -7,11 +7,14 @@ export function Pagination({
   page,
   totalPages,
   params = {},
+  pageParam = "page",
 }: {
   basePath: string;
   page: number;
   totalPages: number;
   params?: Record<string, string>;
+  // Tên tham số trang trên URL (đổi khi có nhiều danh sách phân trang cùng trang).
+  pageParam?: string;
 }) {
   if (totalPages <= 1) return null;
 
@@ -20,7 +23,7 @@ export function Pagination({
     Object.entries(params).forEach(([k, v]) => {
       if (v) sp.set(k, v);
     });
-    if (p > 1) sp.set("page", String(p));
+    if (p > 1) sp.set(pageParam, String(p));
     const qs = sp.toString();
     return qs ? `${basePath}?${qs}` : basePath;
   };

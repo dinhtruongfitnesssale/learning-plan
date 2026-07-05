@@ -12,7 +12,12 @@ const inputCls =
 export default async function AdminCourses({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; cat?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    cat?: string;
+    page?: string;
+    catPage?: string;
+  }>;
 }) {
   await requireCoach();
   const sp = await searchParams;
@@ -24,6 +29,21 @@ export default async function AdminCourses({
     getCategories(),
   ]);
   const catMap = new Map(categories.map((c) => [c.slug, c]));
+
+  // Phân trang danh sách loại khóa học: 2 loại/trang, mới thêm hiện trước.
+  const CAT_PER_PAGE = 2;
+  const catsByNewest = [...categories].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at),
+  );
+  const catTotalPages = Math.max(
+    1,
+    Math.ceil(catsByNewest.length / CAT_PER_PAGE),
+  );
+  const catCur = Math.min(Math.max(1, Number(sp.catPage) || 1), catTotalPages);
+  const pagedCats = catsByNewest.slice(
+    (catCur - 1) * CAT_PER_PAGE,
+    catCur * CAT_PER_PAGE,
+  );
 
   return (
     <div className="space-y-6">
@@ -74,7 +94,7 @@ export default async function AdminCourses({
             basePath="/admin/khoa-hoc"
             page={cur}
             totalPages={totalPages}
-            params={{ q, cat }}
+            params={{ q, cat, catPage: catCur > 1 ? String(catCur) : "" }}
           />
         </div>
 
@@ -137,28 +157,43 @@ export default async function AdminCourses({
               Thêm loại bất kỳ để gán cho khóa học.
             </p>
 
-            {categories.length > 0 && (
-              <ul className="space-y-1.5 mb-4">
-                {categories.map((c) => (
-                  <li
-                    key={c.slug}
-                    className="flex items-center gap-2 text-sm rounded-lg border border-ink/10 bg-paper px-3 py-2"
-                  >
-                    <span className="shrink-0">{c.emoji}</span>
-                    <span className="flex-1 min-w-0 truncate">{c.label}</span>
-                    <Badge accent={c.accent}>{c.accent}</Badge>
-                    <form action={deleteCategory}>
-                      <input type="hidden" name="slug" value={c.slug} />
-                      <button
-                        className="text-xs text-clay hover:underline shrink-0"
-                        title="Chỉ xóa được khi không còn khóa nào dùng loại này"
-                      >
-                        xóa
-                      </button>
-                    </form>
-                  </li>
-                ))}
-              </ul>
+            {pagedCats.length > 0 && (
+              <>
+                <ul className="space-y-1.5 mb-3">
+                  {pagedCats.map((c) => (
+                    <li
+                      key={c.slug}
+                      className="flex items-center gap-2 text-sm rounded-lg border border-ink/10 bg-paper px-3 py-2"
+                    >
+                      <span className="shrink-0">{c.emoji}</span>
+                      <span className="flex-1 min-w-0 truncate">{c.label}</span>
+                      <Badge accent={c.accent}>{c.accent}</Badge>
+                      <form action={deleteCategory}>
+                        <input type="hidden" name="slug" value={c.slug} />
+                        <button
+                          className="text-xs text-clay hover:underline shrink-0"
+                          title="Chỉ xóa được khi không còn khóa nào dùng loại này"
+                        >
+                          xóa
+                        </button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mb-4">
+                  <Pagination
+                    basePath="/admin/khoa-hoc"
+                    page={catCur}
+                    totalPages={catTotalPages}
+                    pageParam="catPage"
+                    params={{
+                      q,
+                      cat,
+                      page: cur > 1 ? String(cur) : "",
+                    }}
+                  />
+                </div>
+              </>
             )}
 
             <form action={createCategory} className="space-y-3">
