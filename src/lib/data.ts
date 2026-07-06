@@ -276,13 +276,19 @@ export async function getCourseDetail(slug: string, userId: string) {
 
   const [{ data: modules }, { data: lessons }, { data: prog }, { data: enr }] =
     await Promise.all([
-      supabase.from("modules").select("*").eq("course_id", course.id).order("sort_order"),
+      supabase
+        .from("modules")
+        .select("*")
+        .eq("course_id", course.id)
+        .order("sort_order")
+        .order("id"),
       supabase
         .from("lessons")
         .select("*")
         .eq("course_id", course.id)
         .eq("published", true)
-        .order("sort_order"),
+        .order("sort_order")
+        .order("id"),
       supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
       supabase
         .from("enrollments")
@@ -547,13 +553,15 @@ export async function getLearnerContentTree(
         .from("modules")
         .select("id, course_id, title, sort_order")
         .in("course_id", courseIds)
-        .order("sort_order"),
+        .order("sort_order")
+        .order("id"),
       supabase
         .from("lessons")
         .select("id, course_id, module_id, title, sort_order")
         .in("course_id", courseIds)
         .eq("published", true)
-        .order("sort_order"),
+        .order("sort_order")
+        .order("id"),
       supabase.from("module_assignments").select("module_id").eq("user_id", userId),
       supabase.from("lesson_assignments").select("lesson_id").eq("user_id", userId),
     ]);
@@ -631,7 +639,8 @@ export async function getLessonView(
     .select("*")
     .eq("course_id", course.id)
     .eq("published", true)
-    .order("sort_order");
+    .order("sort_order")
+    .order("id");
 
   const allList = (lessons as Lesson[]) ?? [];
   // Bài không tồn tại → 404. (Kiểm tra trên toàn bộ trước khi lọc phân công.)
@@ -643,7 +652,8 @@ export async function getLessonView(
       .from("modules")
       .select("*")
       .eq("course_id", course.id)
-      .order("sort_order"),
+      .order("sort_order")
+      .order("id"),
     supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
   ]);
   const allModules = (modules as Module[]) ?? [];
@@ -766,7 +776,8 @@ export async function getModuleQuizView(
         .from("modules")
         .select("*")
         .eq("course_id", course.id)
-        .order("sort_order"),
+        .order("sort_order")
+        .order("id"),
       supabase
         .from("lessons")
         .select("id, module_id")

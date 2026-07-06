@@ -128,14 +128,18 @@ export async function createModule(formData: FormData) {
   const supabase = await guard();
   const courseId = String(formData.get("course_id"));
   const courseSlug = String(formData.get("course_slug"));
-  const { count } = await supabase
+  // sort_order = lớn nhất hiện có + 1 (tránh trùng số sau khi xóa chương).
+  const { data: last } = await supabase
     .from("modules")
-    .select("id", { count: "exact", head: true })
-    .eq("course_id", courseId);
+    .select("sort_order")
+    .eq("course_id", courseId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   await supabase.from("modules").insert({
     course_id: courseId,
     title: String(formData.get("title")),
-    sort_order: count ?? 0,
+    sort_order: (last?.sort_order ?? -1) + 1,
   });
   revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
 }
@@ -169,10 +173,14 @@ export async function createLesson(formData: FormData) {
   const courseSlug = String(formData.get("course_slug"));
   const title = String(formData.get("title")).trim();
   if (!title) return;
-  const { count } = await supabase
+  // sort_order = lớn nhất hiện có + 1 (tránh trùng số sau khi xóa bài).
+  const { data: last } = await supabase
     .from("lessons")
-    .select("id", { count: "exact", head: true })
-    .eq("course_id", courseId);
+    .select("sort_order")
+    .eq("course_id", courseId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   const moduleId = String(formData.get("module_id") || "");
   const { data } = await supabase
     .from("lessons")
@@ -181,7 +189,7 @@ export async function createLesson(formData: FormData) {
       module_id: moduleId || null,
       title,
       slug: slugify(title) || `bai-${Date.now()}`,
-      sort_order: count ?? 0,
+      sort_order: (last?.sort_order ?? -1) + 1,
     })
     .select("slug")
     .single();

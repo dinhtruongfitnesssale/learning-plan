@@ -34,7 +34,12 @@ export default async function LessonEditor({
   const lessonId = l.id;
 
   const [{ data: modules }, { data: quizRow }] = await Promise.all([
-    supabase.from("modules").select("*").eq("course_id", courseId).order("sort_order"),
+    supabase
+      .from("modules")
+      .select("*")
+      .eq("course_id", courseId)
+      .order("sort_order")
+      .order("id"),
     supabase.from("quizzes").select("*").eq("lesson_id", lessonId).maybeSingle(),
   ]);
   const mods = (modules as Module[]) ?? [];

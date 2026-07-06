@@ -48,8 +48,18 @@ export default async function CourseEditor({
   const c = course as Course;
 
   const [{ data: modules }, { data: lessons }] = await Promise.all([
-    supabase.from("modules").select("*").eq("course_id", c.id).order("sort_order"),
-    supabase.from("lessons").select("*").eq("course_id", c.id).order("sort_order"),
+    supabase
+      .from("modules")
+      .select("*")
+      .eq("course_id", c.id)
+      .order("sort_order")
+      .order("id"),
+    supabase
+      .from("lessons")
+      .select("*")
+      .eq("course_id", c.id)
+      .order("sort_order")
+      .order("id"),
   ]);
   const mods = (modules as Module[]) ?? [];
   const lessonList = (lessons as Lesson[]) ?? [];

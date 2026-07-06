@@ -50,6 +50,7 @@ export interface Module {
   sort_order: number;
   /** Ngày mở chương (YYYY-MM-DD). NULL = mở ngay. */
   available_on: string | null;
+  created_at: string;
 }
 
 export interface Lesson {
