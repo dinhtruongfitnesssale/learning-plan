@@ -88,6 +88,19 @@ export interface LessonProgress {
   completed_at: string;
 }
 
+// Phân công nội dung theo từng học viên (0013).
+export interface ModuleAssignment {
+  user_id: string;
+  module_id: string;
+  created_at: string;
+}
+
+export interface LessonAssignment {
+  user_id: string;
+  lesson_id: string;
+  created_at: string;
+}
+
 export interface Quiz {
   id: string;
   lesson_id: string | null;
@@ -201,6 +214,8 @@ export type Database = {
       lessons: { Row: Lesson; Insert: Partial<Lesson>; Update: Partial<Lesson>; Relationships: [] };
       enrollments: { Row: Enrollment; Insert: Partial<Enrollment>; Update: Partial<Enrollment>; Relationships: [] };
       lesson_progress: { Row: LessonProgress; Insert: Partial<LessonProgress>; Update: Partial<LessonProgress>; Relationships: [] };
+      module_assignments: { Row: ModuleAssignment; Insert: Partial<ModuleAssignment>; Update: Partial<ModuleAssignment>; Relationships: [] };
+      lesson_assignments: { Row: LessonAssignment; Insert: Partial<LessonAssignment>; Update: Partial<LessonAssignment>; Relationships: [] };
       quizzes: { Row: Quiz; Insert: Partial<Quiz>; Update: Partial<Quiz>; Relationships: [] };
       quiz_questions: { Row: QuizQuestion; Insert: Partial<QuizQuestion>; Update: Partial<QuizQuestion>; Relationships: [] };
       quiz_attempts: { Row: QuizAttempt; Insert: Partial<QuizAttempt>; Update: Partial<QuizAttempt>; Relationships: [] };

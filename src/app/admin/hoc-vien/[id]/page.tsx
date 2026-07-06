@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCoach } from "@/lib/auth";
-import { getLearnerDetail, getCategories } from "@/lib/data";
+import {
+  getLearnerDetail,
+  getCategories,
+  getLearnerContentTree,
+} from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge, Stat } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
 import { ManageLearner } from "./ManageLearner";
 import { CourseAssignment } from "./CourseAssignment";
+import { ContentAssignment } from "./ContentAssignment";
 import { QuizResults } from "./QuizResults";
 import type { Course } from "@/lib/supabase/types";
 
@@ -38,6 +43,8 @@ export default async function LearnerDetail({
   const unassigned = courseList.filter((c) => !statusByCourse.has(c.id));
   const categories = await getCategories();
   const catLabel = new Map(categories.map((c) => [c.slug, c.label]));
+  // Cây chương/bài + phân công nội dung hiện tại của học viên này.
+  const contentCourses = await getLearnerContentTree(id);
 
   return (
     <div className="space-y-8">
@@ -150,6 +157,14 @@ export default async function LearnerDetail({
                 status: statusByCourse.get(c.id)!,
               }))}
           />
+        </Card>
+      </section>
+
+      {/* Phân chương / bài học riêng cho học viên */}
+      <section>
+        <h2 className="font-serif text-2xl mb-3">Phân chương / bài học</h2>
+        <Card className="p-5">
+          <ContentAssignment userId={id} courses={contentCourses} />
         </Card>
       </section>
     </div>

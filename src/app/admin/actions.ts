@@ -489,6 +489,76 @@ export async function assignCourse(
   return { ok: true, message: `Đã mở khóa cho học viên${emailNote}.` };
 }
 
+// Phân công NỘI DUNG cho một học viên trong một khóa: gán riêng từng chương
+// (cả chương) và/hoặc từng bài học. Ghi đè toàn bộ phân công của khóa này.
+//   mode "all"    → xóa hết phân công (học viên xem TẤT CẢ, mặc định).
+//   mode "custom" → chỉ mở các chương/bài được chọn.
+export async function setContentAssignments(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
+  const supabase = await guard();
+  const userId = String(formData.get("user_id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  const mode = String(formData.get("mode") ?? "custom");
+  if (!userId || !courseId)
+    return { ok: false, message: "Thiếu học viên hoặc khóa học." };
+
+  const parseIds = (name: string) =>
+    [
+      ...new Set(
+        String(formData.get(name) ?? "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
+    ];
+  const moduleIds = mode === "all" ? [] : parseIds("module_ids");
+  const lessonIds = mode === "all" ? [] : parseIds("lesson_ids");
+
+  // Phạm vi chương/bài thuộc khóa này (để xóa đúng phần cần ghi đè + chống
+  // gán nhầm id ngoài khóa).
+  const [{ data: mods }, { data: less }] = await Promise.all([
+    supabase.from("modules").select("id").eq("course_id", courseId),
+    supabase.from("lessons").select("id").eq("course_id", courseId),
+  ]);
+  const courseModuleIds = new Set((mods ?? []).map((m) => m.id as string));
+  const courseLessonIds = new Set((less ?? []).map((l) => l.id as string));
+  const okModules = moduleIds.filter((id) => courseModuleIds.has(id));
+  const okLessons = lessonIds.filter((id) => courseLessonIds.has(id));
+
+  // Ghi đè: xóa phân công cũ của khóa này rồi chèn lại theo lựa chọn mới.
+  if (courseModuleIds.size > 0)
+    await supabase
+      .from("module_assignments")
+      .delete()
+      .eq("user_id", userId)
+      .in("module_id", [...courseModuleIds]);
+  if (courseLessonIds.size > 0)
+    await supabase
+      .from("lesson_assignments")
+      .delete()
+      .eq("user_id", userId)
+      .in("lesson_id", [...courseLessonIds]);
+
+  if (okModules.length > 0)
+    await supabase
+      .from("module_assignments")
+      .insert(okModules.map((id) => ({ user_id: userId, module_id: id })));
+  if (okLessons.length > 0)
+    await supabase
+      .from("lesson_assignments")
+      .insert(okLessons.map((id) => ({ user_id: userId, lesson_id: id })));
+
+  revalidatePath(`/admin/hoc-vien/${userId}`);
+  if (okModules.length + okLessons.length === 0)
+    return { ok: true, message: "Đã mở toàn bộ nội dung khóa cho học viên." };
+  return {
+    ok: true,
+    message: `Đã lưu: mở ${okModules.length} chương và ${okLessons.length} bài lẻ cho học viên.`,
+  };
+}
+
 export async function unassignCourse(formData: FormData) {
   const supabase = await guard();
   const userId = String(formData.get("user_id"));

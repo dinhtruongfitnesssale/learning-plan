@@ -34,16 +34,38 @@ export async function getLearnerDashboard(userId: string) {
 
   let progressByCourse: Record<string, { done: number; total: number }> = {};
   if (courseIds.length) {
-    const [{ data: lessons }, { data: prog }] = await Promise.all([
-      supabase
-        .from("lessons")
-        .select("id, course_id")
-        .in("course_id", courseIds)
-        .eq("published", true),
-      supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
-    ]);
+    const [{ data: lessons }, { data: prog }, { data: ma }, { data: la }] =
+      await Promise.all([
+        supabase
+          .from("lessons")
+          .select("id, course_id, module_id")
+          .in("course_id", courseIds)
+          .eq("published", true),
+        supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
+        supabase.from("module_assignments").select("module_id").eq("user_id", userId),
+        supabase.from("lesson_assignments").select("lesson_id").eq("user_id", userId),
+      ]);
     const doneSet = new Set((prog ?? []).map((p) => p.lesson_id));
-    progressByCourse = (lessons ?? []).reduce(
+    const asgModules = new Set((ma ?? []).map((r) => r.module_id as string));
+    const asgLessons = new Set((la ?? []).map((r) => r.lesson_id as string));
+    const lessonRows = (lessons ?? []) as {
+      id: string;
+      course_id: string;
+      module_id: string | null;
+    }[];
+
+    // Phân công nội dung: khóa nào bị giới hạn thì chỉ tính bài được gán.
+    const restricted = new Set<string>();
+    for (const l of lessonRows) {
+      if (asgLessons.has(l.id) || (l.module_id && asgModules.has(l.module_id)))
+        restricted.add(l.course_id);
+    }
+    const counted = (l: (typeof lessonRows)[number]) =>
+      !restricted.has(l.course_id) ||
+      asgLessons.has(l.id) ||
+      (!!l.module_id && asgModules.has(l.module_id));
+
+    progressByCourse = lessonRows.filter(counted).reduce(
       (acc, l) => {
         const c = (acc[l.course_id] ??= { done: 0, total: 0 });
         c.total += 1;
@@ -151,6 +173,59 @@ export async function getAdminCourses(filters: CourseFilters = {}) {
 
 type DB = Awaited<ReturnType<typeof createClient>>;
 
+// Phân công nội dung (0013): lọc chương / bài theo từng học viên.
+// null = học viên KHÔNG bị giới hạn trong khóa này → xem tất cả (mặc định).
+// Ngược lại trả bộ id chương / bài mà học viên được xem.
+async function contentVisibility(
+  supabase: DB,
+  userId: string,
+  moduleIds: string[],
+  lessons: { id: string; module_id: string | null }[],
+): Promise<{
+  visibleModules: Set<string>;
+  visibleLessons: Set<string>;
+} | null> {
+  const [{ data: ma }, { data: la }] = await Promise.all([
+    supabase
+      .from("module_assignments")
+      .select("module_id")
+      .eq("user_id", userId),
+    supabase
+      .from("lesson_assignments")
+      .select("lesson_id")
+      .eq("user_id", userId),
+  ]);
+  const asgModules = new Set((ma ?? []).map((r) => r.module_id as string));
+  const asgLessons = new Set((la ?? []).map((r) => r.lesson_id as string));
+
+  // Có giới hạn cho KHÓA này không? (phân công trùng chương/bài của khóa)
+  const moduleIdSet = new Set(moduleIds);
+  const lessonIdSet = new Set(lessons.map((l) => l.id));
+  const restricted =
+    [...asgModules].some((id) => moduleIdSet.has(id)) ||
+    [...asgLessons].some((id) => lessonIdSet.has(id));
+  if (!restricted) return null;
+
+  // Bài được xem: gán trực tiếp HOẶC thuộc chương được gán cả.
+  const visibleLessons = new Set(
+    lessons
+      .filter(
+        (l) =>
+          asgLessons.has(l.id) || (l.module_id != null && asgModules.has(l.module_id)),
+      )
+      .map((l) => l.id),
+  );
+  // Chương được xem: gán cả chương HOẶC còn ít nhất một bài được xem.
+  const visibleModules = new Set(
+    moduleIds.filter(
+      (mid) =>
+        asgModules.has(mid) ||
+        lessons.some((l) => l.module_id === mid && visibleLessons.has(l.id)),
+    ),
+  );
+  return { visibleModules, visibleLessons };
+}
+
 // Tính khóa chương: chương bị khóa nếu có chương TRƯỚC (có quiz) chưa ĐẠT.
 async function moduleGating(supabase: DB, userId: string, modules: Module[]) {
   const moduleIds = modules.map((m) => m.id);
@@ -219,7 +294,18 @@ export async function getCourseDetail(slug: string, userId: string) {
   const enrollStatus =
     (enr?.status as "pending" | "approved" | "failed" | undefined) ?? null;
 
-  const lessonList = (lessons as Lesson[]) ?? [];
+  const allLessons = (lessons as Lesson[]) ?? [];
+  const allModules = (modules as Module[]) ?? [];
+  // Phân công nội dung: ẩn hẳn chương/bài không được gán cho học viên này.
+  const vis = await contentVisibility(
+    supabase,
+    userId,
+    allModules.map((m) => m.id),
+    allLessons,
+  );
+  const lessonList = vis
+    ? allLessons.filter((l) => vis.visibleLessons.has(l.id))
+    : allLessons;
   const quizLessonIds = new Set<string>();
   if (lessonList.length) {
     const { data: quizzes } = await supabase
@@ -243,8 +329,10 @@ export async function getCourseDetail(slug: string, userId: string) {
       .maybeSingle(),
   ]);
 
-  // Khóa chương + quiz chương.
-  const modList = (modules as Module[]) ?? [];
+  // Khóa chương + quiz chương (chỉ trên các chương học viên được xem).
+  const modList = vis
+    ? allModules.filter((m) => vis.visibleModules.has(m.id))
+    : allModules;
   const gating = await moduleGating(supabase, userId, modList);
 
   // Lịch mở khóa theo ngày (chung cho mọi học viên). available_on trống = mở ngay.
@@ -420,6 +508,98 @@ export async function getLearnerDetail(userId: string) {
   };
 }
 
+// ── Admin: cây nội dung (chương/bài) + phân công của một học viên ──
+export interface ContentCourse {
+  id: string;
+  title: string;
+  cover_emoji: string;
+  modules: {
+    id: string;
+    title: string;
+    lessons: { id: string; title: string }[];
+  }[];
+  ungrouped: { id: string; title: string }[];
+  assignedModuleIds: string[];
+  assignedLessonIds: string[];
+  restricted: boolean; // học viên đang bị giới hạn nội dung ở khóa này?
+}
+
+// Trả về từng khóa học viên đã được ghi danh kèm cây chương/bài và trạng thái
+// phân công hiện tại — dùng cho khu "Phân chương / bài học" của coach.
+export async function getLearnerContentTree(
+  userId: string,
+): Promise<ContentCourse[]> {
+  const supabase = await createClient();
+  const { data: enr } = await supabase
+    .from("enrollments")
+    .select("course_id, courses(id, title, cover_emoji, sort_order)")
+    .eq("user_id", userId);
+  const courses = (enr ?? [])
+    .map((e) => e.courses as unknown as Course)
+    .filter(Boolean)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const courseIds = courses.map((c) => c.id);
+  if (courseIds.length === 0) return [];
+
+  const [{ data: modules }, { data: lessons }, { data: ma }, { data: la }] =
+    await Promise.all([
+      supabase
+        .from("modules")
+        .select("id, course_id, title, sort_order")
+        .in("course_id", courseIds)
+        .order("sort_order"),
+      supabase
+        .from("lessons")
+        .select("id, course_id, module_id, title, sort_order")
+        .in("course_id", courseIds)
+        .eq("published", true)
+        .order("sort_order"),
+      supabase.from("module_assignments").select("module_id").eq("user_id", userId),
+      supabase.from("lesson_assignments").select("lesson_id").eq("user_id", userId),
+    ]);
+
+  const modRows = (modules ?? []) as {
+    id: string;
+    course_id: string;
+    title: string;
+  }[];
+  const lesRows = (lessons ?? []) as {
+    id: string;
+    course_id: string;
+    module_id: string | null;
+    title: string;
+  }[];
+  const asgModules = new Set((ma ?? []).map((r) => r.module_id as string));
+  const asgLessons = new Set((la ?? []).map((r) => r.lesson_id as string));
+
+  return courses.map((c) => {
+    const cMods = modRows.filter((m) => m.course_id === c.id);
+    const cLessons = lesRows.filter((l) => l.course_id === c.id);
+    const modIdSet = new Set(cMods.map((m) => m.id));
+    const lesIdSet = new Set(cLessons.map((l) => l.id));
+    const assignedModuleIds = [...asgModules].filter((id) => modIdSet.has(id));
+    const assignedLessonIds = [...asgLessons].filter((id) => lesIdSet.has(id));
+    return {
+      id: c.id,
+      title: c.title,
+      cover_emoji: c.cover_emoji,
+      modules: cMods.map((m) => ({
+        id: m.id,
+        title: m.title,
+        lessons: cLessons
+          .filter((l) => l.module_id === m.id)
+          .map((l) => ({ id: l.id, title: l.title })),
+      })),
+      ungrouped: cLessons
+        .filter((l) => !l.module_id)
+        .map((l) => ({ id: l.id, title: l.title })),
+      assignedModuleIds,
+      assignedLessonIds,
+      restricted: assignedModuleIds.length + assignedLessonIds.length > 0,
+    };
+  });
+}
+
 // Một bài học + bài kế tiếp.
 export async function getLessonView(
   courseSlug: string,
@@ -453,22 +633,43 @@ export async function getLessonView(
     .eq("published", true)
     .order("sort_order");
 
-  const list = (lessons as Lesson[]) ?? [];
-  const idx = list.findIndex((l) => l.slug === lessonSlug);
-  if (idx === -1) return null;
-  const lesson = list[idx];
+  const allList = (lessons as Lesson[]) ?? [];
+  // Bài không tồn tại → 404. (Kiểm tra trên toàn bộ trước khi lọc phân công.)
+  if (!allList.some((l) => l.slug === lessonSlug)) return null;
 
   // Khóa chương (chưa đạt quiz chương trước) + tiến độ (để khóa tuần tự).
-  const [{ data: modules }, { data: prog }, { data: quiz }] = await Promise.all([
+  const [{ data: modules }, { data: prog }] = await Promise.all([
     supabase
       .from("modules")
       .select("*")
       .eq("course_id", course.id)
       .order("sort_order"),
     supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
-    supabase.from("quizzes").select("id").eq("lesson_id", lesson.id).maybeSingle(),
   ]);
-  const modList = (modules as Module[]) ?? [];
+  const allModules = (modules as Module[]) ?? [];
+
+  // Phân công nội dung: chỉ giữ chương/bài học viên được xem.
+  const vis = await contentVisibility(
+    supabase,
+    userId,
+    allModules.map((m) => m.id),
+    allList,
+  );
+  const list = vis ? allList.filter((l) => vis.visibleLessons.has(l.id)) : allList;
+  const modList = vis
+    ? allModules.filter((m) => vis.visibleModules.has(m.id))
+    : allModules;
+
+  const idx = list.findIndex((l) => l.slug === lessonSlug);
+  // Bài bị ẩn khỏi học viên (chưa được gán) → coi như khóa.
+  if (idx === -1) return { locked: true as const, course: course as Course };
+  const lesson = list[idx];
+
+  const { data: quiz } = await supabase
+    .from("quizzes")
+    .select("id")
+    .eq("lesson_id", lesson.id)
+    .maybeSingle();
   const { lockedModules } = await moduleGating(supabase, userId, modList);
   const doneSet = new Set((prog ?? []).map((p) => p.lesson_id));
 
@@ -575,11 +776,25 @@ export async function getModuleQuizView(
       supabase.from("quizzes").select("id").eq("module_id", moduleId).maybeSingle(),
     ]);
 
-  const { lockedModules } = await moduleGating(
+  const allModules = (modules as Module[]) ?? [];
+  const allLessons =
+    (lessons as { id: string; module_id: string | null }[]) ?? [];
+
+  // Phân công nội dung: chương bị ẩn khỏi học viên → khóa quiz chương.
+  const vis = await contentVisibility(
     supabase,
     userId,
-    (modules as Module[]) ?? [],
+    allModules.map((m) => m.id),
+    allLessons,
   );
+  if (vis && !vis.visibleModules.has(moduleId)) {
+    return { locked: true as const, course: course as Course };
+  }
+  const modList = vis
+    ? allModules.filter((m) => vis.visibleModules.has(m.id))
+    : allModules;
+
+  const { lockedModules } = await moduleGating(supabase, userId, modList);
   // Chương chưa tới ngày mở (theo lịch) → khóa quiz chương.
   const modAvailableOn = (moduleRow as Module).available_on;
   const dateLocked = !!modAvailableOn && modAvailableOn > todayISO();
@@ -587,11 +802,13 @@ export async function getModuleQuizView(
     return { locked: true as const, course: course as Course };
   }
 
-  // Phải học hết bài trong chương mới được làm quiz chương.
+  // Phải học hết bài (được xem) trong chương mới được làm quiz chương.
   const doneSet = new Set((prog ?? []).map((p) => p.lesson_id));
-  const mLessons = (
-    (lessons as { id: string; module_id: string | null }[]) ?? []
-  ).filter((l) => l.module_id === moduleId);
+  const mLessons = allLessons.filter(
+    (l) =>
+      l.module_id === moduleId &&
+      (!vis || vis.visibleLessons.has(l.id)),
+  );
   const allDone = mLessons.length > 0 && mLessons.every((l) => doneSet.has(l.id));
   if (!allDone) {
     return { locked: true as const, course: course as Course };
