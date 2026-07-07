@@ -67,6 +67,13 @@ function CourseRow({
   const total = allLessonIds.length;
   const chosen = allLessonIds.filter((id) => selected.has(id)).length;
   const allSelected = total > 0 && chosen === total;
+  // Chọn một phần (chưa hết, chưa bỏ hết) → lưu xong học viên bị GIỚI HẠN:
+  // những chương/bài không được tick sẽ bị ẩn khỏi giao diện học viên.
+  const partial = chosen > 0 && chosen < total;
+  const hiddenLessonCount = total - chosen;
+  const hiddenModuleCount = course.modules.filter(
+    (m) => m.lessons.length > 0 && m.lessons.every((l) => !selected.has(l.id)),
+  ).length;
 
   function setMany(ids: string[], on: boolean) {
     setSelected((prev) => {
@@ -124,6 +131,14 @@ function CourseRow({
         <span className="flex-1 min-w-0 truncate font-medium">
           {course.title}
         </span>
+        {partial && (
+          <span
+            title="Học viên đang bị giới hạn — có chương/bài chưa được mở"
+            className="shrink-0"
+          >
+            ⚠️
+          </span>
+        )}
         {allSelected ? (
           <Badge accent="herb">Toàn bộ</Badge>
         ) : (
@@ -140,6 +155,20 @@ function CourseRow({
           </p>
         ) : (
           <>
+            {partial && (
+              <Card className="p-3 bg-amber-soft flex items-start gap-2.5 mt-2">
+                <span className="text-base shrink-0">⚠️</span>
+                <p className="text-xs text-ink/70 leading-relaxed">
+                  Học viên đang bị <b>giới hạn nội dung</b>: hiện{" "}
+                  <b>không thấy</b>
+                  {hiddenModuleCount > 0 && <> {hiddenModuleCount} chương và</>}{" "}
+                  <b>{hiddenLessonCount} bài</b> của khóa. Nếu bạn vừa thêm nội
+                  dung mới muốn mở cho học viên, hãy tick thêm rồi bấm{" "}
+                  <b>Lưu phân công</b> — hoặc bấm <b>“Chọn hết”</b> để mở toàn bộ
+                  (nội dung thêm sau này cũng tự động mở).
+                </p>
+              </Card>
+            )}
             <div className="flex gap-3 text-xs text-ink/55 pt-2">
               <button
                 type="button"

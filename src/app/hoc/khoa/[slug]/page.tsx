@@ -36,9 +36,10 @@ export default async function CoursePage({
 }) {
   const { slug } = await params;
   const sp = await searchParams;
-  const { user } = await requireUser();
+  const { user, profile } = await requireUser();
   const data = await getCourseDetail(slug, user.id);
   if (!data) notFound();
+  const isCoach = profile?.role === "coach";
 
   const { course, lessons, enrollStatus, approved, done, total, leaderboard } =
     data;
@@ -156,6 +157,36 @@ export default async function CoursePage({
           </form>
         ) : null}
       </header>
+
+      {/* Bản xem trước của coach — giải thích vì sao coach thấy toàn bộ */}
+      {isCoach && (
+        <Card className="p-4 bg-slate-soft flex items-start gap-3">
+          <span className="text-lg shrink-0">🔍</span>
+          <p className="text-sm text-ink/70">
+            <span className="font-medium">Bản xem trước (coach).</span> Bạn đang
+            thấy <b>toàn bộ</b> nội dung khóa. Học viên được phân công riêng sẽ
+            chỉ thấy những chương/bài bạn mở cho họ ở mục{" "}
+            <b>“Phân chương / bài học”</b> trong trang học viên.
+          </p>
+        </Card>
+      )}
+
+      {/* Học viên đang bị giới hạn nội dung — giải thích vì sao thấy ít chương */}
+      {!isCoach && data.restricted && data.totalChapters > 0 && (
+        <Card className="p-4 bg-amber-soft flex items-start gap-3">
+          <span className="text-lg shrink-0">📌</span>
+          <p className="text-sm text-ink/70">
+            Coach đang mở riêng một phần khóa cho bạn — bạn thấy{" "}
+            <b>
+              {data.visibleChapters}/{data.totalChapters} chương
+            </b>
+            {data.hiddenLessonCount > 0 && (
+              <> ({data.hiddenLessonCount} bài chưa mở)</>
+            )}
+            . Các phần còn lại sẽ hiện khi coach phân công thêm.
+          </p>
+        </Card>
+      )}
 
       {/* Banner trạng thái khi chưa được học */}
       {!approved && (

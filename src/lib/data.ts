@@ -341,6 +341,17 @@ export async function getCourseDetail(slug: string, userId: string) {
     : allModules;
   const gating = await moduleGating(supabase, userId, modList);
 
+  // Thống kê giới hạn nội dung — để giao diện học viên / bản xem trước giải
+  // thích được vì sao chỉ thấy một phần khóa. Chỉ tính chương CÓ bài.
+  const hasLessonIn = (mid: string, ls: Lesson[]) =>
+    ls.some((l) => l.module_id === mid);
+  const totalChapters = allModules.filter((m) =>
+    hasLessonIn(m.id, allLessons),
+  ).length;
+  const visibleChapters = modList.filter((m) =>
+    hasLessonIn(m.id, lessonList),
+  ).length;
+
   // Lịch mở khóa theo ngày (chung cho mọi học viên). available_on trống = mở ngay.
   const today = todayISO();
   const isFuture = (d: string | null | undefined) => !!d && d > today;
@@ -404,6 +415,11 @@ export async function getCourseDetail(slug: string, userId: string) {
     approved: enrollStatus === "approved",
     done: lessonList.filter((l) => doneSet.has(l.id)).length,
     total: lessonList.length,
+    // Giới hạn nội dung: học viên này chỉ được mở một phần khóa.
+    restricted: !!vis,
+    totalChapters,
+    visibleChapters,
+    hiddenLessonCount: allLessons.length - lessonList.length,
     leaderboard: (lb as LeaderboardRow[]) ?? [],
     myReview: (myReview as CourseReview | null) ?? null,
   };
