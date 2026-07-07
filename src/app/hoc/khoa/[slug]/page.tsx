@@ -50,13 +50,14 @@ export default async function CoursePage({
   const categories = await getCategories();
   const ct = categories.find((c) => c.slug === course.category);
 
-  // Gộp bài theo chương (giữ thứ tự chương), chỉ giữ chương có bài.
+  // Gộp bài theo chương (giữ thứ tự chương). Học viên chỉ thấy chương có bài;
+  // riêng coach ở bản Xem trước thấy cả chương rỗng để soi khung nội dung.
   const moduleGroups = data.modules
     .map((m) => ({
       module: m,
       lessons: lessons.filter((it) => it.lesson.module_id === m.id),
     }))
-    .filter((g) => g.lessons.length > 0);
+    .filter((g) => isCoach || g.lessons.length > 0);
   // Bài không thuộc chương nào — hiện thẳng, không gấp trong accordion.
   const ungrouped = lessons.filter((it) => !it.lesson.module_id);
 
@@ -244,6 +245,8 @@ export default async function CoursePage({
             const chapterUnlockOn = info?.availableOn ?? null;
             const number = from + gi + 1;
             const lessonsDone = g.lessons.filter((it) => it.done).length;
+            // Chương rỗng: chỉ coach thấy (bản Xem trước) để soi khung nội dung.
+            const isEmpty = g.lessons.length === 0;
             return (
               <Chapter
                 key={g.module.id}
@@ -267,16 +270,28 @@ export default async function CoursePage({
                       ) : (
                         <span title="Đang khóa">🔒</span>
                       ))}
-                    <span className="font-mono text-xs text-ink/40 tnum shrink-0">
-                      {lessonsDone}/{g.lessons.length} bài
-                    </span>
+                    {isEmpty ? (
+                      <Badge accent="slate">Chưa có bài · xem trước</Badge>
+                    ) : (
+                      <span className="font-mono text-xs text-ink/40 tnum shrink-0">
+                        {lessonsDone}/{g.lessons.length} bài
+                      </span>
+                    )}
                   </summary>
                 }
               >
                 <div className="px-4 pb-4 pt-1 border-t border-ink/10">
-                  <ol className="space-y-2.5">
-                    {g.lessons.map((item, i) => renderLesson(item, i))}
-                  </ol>
+                  {isEmpty ? (
+                    <p className="text-sm text-ink/50 py-2">
+                      Chương này chưa có bài học nào — học viên sẽ không thấy
+                      chương cho tới khi bạn thêm bài (ở trang sửa khóa). Chỉ coach
+                      thấy chương này trong bản xem trước.
+                    </p>
+                  ) : (
+                    <ol className="space-y-2.5">
+                      {g.lessons.map((item, i) => renderLesson(item, i))}
+                    </ol>
+                  )}
 
                   {/* Bài kiểm tra chương */}
                   {approved && info?.hasQuiz && (
