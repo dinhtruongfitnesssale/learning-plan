@@ -789,9 +789,9 @@ export async function createLearner(
 // Người nhận: tất cả học viên / học viên một khóa / danh sách chọn tay.
 // Dùng {ten} trong tiêu đề hoặc nội dung để tự chèn tên từng học viên.
 export async function sendBroadcastEmail(
-  _prev: { ok: boolean; message: string } | null,
+  _prev: { ok: boolean; message: string; count?: number; done?: boolean } | null,
   formData: FormData,
-): Promise<{ ok: boolean; message: string }> {
+): Promise<{ ok: boolean; message: string; count?: number; done?: boolean }> {
   await requireCoach();
   const supabase = await createClient();
 
@@ -896,10 +896,16 @@ export async function sendBroadcastEmail(
   }
 
   if (failed.length === 0)
-    return { ok: true, message: `Đã gửi thành công tới ${sent} học viên.` };
+    return {
+      ok: true,
+      done: true,
+      message: `Đã gửi thành công tới ${sent} học viên.`,
+      count: sent,
+    };
   return {
     ok: sent > 0,
     message: `Đã gửi ${sent}/${recipients.length}. Lỗi với: ${failed.join(", ")}`,
+    count: sent,
   };
 }
 

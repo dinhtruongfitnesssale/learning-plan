@@ -29,6 +29,12 @@ export function GuiMailForm({
   const [courseId, setCourseId] = useState<string>("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
+  // Số người vừa gửi thành công — mở popup mừng khi có kết quả mới.
+  const [sentCount, setSentCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (state?.done) setSentCount(state.count ?? 0);
+  }, [state]);
 
   const withEmail = useMemo(
     () => learners.filter((l) => (l.email ?? "").trim()),
@@ -121,17 +127,21 @@ export function GuiMailForm({
                   ? `✉️ Gửi cho ${recipientCount} học viên`
                   : "✉️ Gửi"}
             </button>
-            {state?.ok && (
-              <span className="text-herb text-sm font-medium">
-                ✓ {state.message}
+            {state && !state.done && (
+              <span
+                className={`text-sm ${state.ok ? "text-herb font-medium" : "text-clay"}`}
+              >
+                {state.ok ? "✓ " : ""}
+                {state.message}
               </span>
-            )}
-            {state && !state.ok && (
-              <span className="text-clay text-sm">{state.message}</span>
             )}
           </div>
         </Card>
       </div>
+
+      {sentCount !== null && (
+        <SentPopup count={sentCount} onClose={() => setSentCount(null)} />
+      )}
 
       {/* Chọn người nhận */}
       <Card className="p-5 space-y-4 sticky top-20">
@@ -337,6 +347,74 @@ function Attachments() {
           </span>
         </>
       )}
+    </div>
+  );
+}
+
+// Popup mừng khi gửi xong: trang trí theo bảng màu brand (paper + herb + amber).
+// Đóng bằng nút, phím Esc, hoặc bấm ra nền ngoài.
+function SentPopup({ count, onClose }: { count: number; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Đã gửi email thành công"
+      onClick={onClose}
+      className="pop-overlay fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="pop-card relative w-full max-w-sm overflow-hidden rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)]"
+      >
+        {/* Dải amber trang trí ở đỉnh */}
+        <div className="h-1.5 w-full bg-amber" />
+
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Đóng"
+          className="absolute right-3 top-4 flex h-8 w-8 items-center justify-center rounded-full text-ink/40 transition-colors hover:bg-paper-2 hover:text-ink"
+        >
+          ✕
+        </button>
+
+        <div className="flex flex-col items-center px-8 pb-8 pt-7 text-center">
+          {/* Vòng tròn dấu check màu herb (success) */}
+          <div className="pop-check flex h-16 w-16 items-center justify-center rounded-full bg-herb-soft">
+            <span className="text-3xl leading-none text-herb">✓</span>
+          </div>
+
+          <p className="eyebrow mt-5">Đã gửi xong</p>
+          <h2 className="mt-1 font-serif text-2xl text-ink">
+            Gửi email đăng nhập thành công
+          </h2>
+
+          <p className="mt-3 text-sm leading-relaxed text-ink/60">
+            Email đã đến hộp thư của{" "}
+            <span className="font-mono font-semibold tnum text-herb">
+              {count}
+            </span>{" "}
+            học viên. Mỗi người nhận một email riêng — không lộ địa chỉ của
+            người khác.
+          </p>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className={buttonClass("primary", "mt-6 w-full")}
+          >
+            Tuyệt vời!
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
