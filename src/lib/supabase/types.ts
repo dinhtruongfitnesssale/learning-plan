@@ -18,6 +18,8 @@ export interface Profile {
   role: Role;
   avatar_url: string | null;
   created_at: string;
+  /** Mốc nhận email tự soạn (kèm ảnh) gần nhất. NULL = chưa nhận lần nào. */
+  last_custom_email_at: string | null;
 }
 
 export interface Course {

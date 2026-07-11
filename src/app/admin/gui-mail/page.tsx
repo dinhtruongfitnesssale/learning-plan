@@ -12,7 +12,7 @@ export default async function GuiMailPage() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name, email, last_custom_email_at")
         .eq("role", "learner")
         .order("full_name", { ascending: true }),
       supabase
@@ -22,7 +22,11 @@ export default async function GuiMailPage() {
       supabase.from("enrollments").select("course_id").eq("status", "approved"),
     ]);
 
-  const learners = (profiles as Pick<Profile, "id" | "full_name" | "email">[]) ?? [];
+  const learners =
+    (profiles as Pick<
+      Profile,
+      "id" | "full_name" | "email" | "last_custom_email_at"
+    >[]) ?? [];
 
   // Số học viên đã duyệt của từng khóa — để hiện gợi ý khi chọn khóa.
   const countByCourse = new Map<string, number>();

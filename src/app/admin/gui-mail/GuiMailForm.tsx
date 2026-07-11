@@ -4,7 +4,12 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { sendBroadcastEmail } from "../actions";
 import { Card, buttonClass } from "@/components/ui";
 
-type Learner = { id: string; full_name: string; email: string };
+type Learner = {
+  id: string;
+  full_name: string;
+  email: string;
+  last_custom_email_at: string | null;
+};
 type Course = {
   id: string;
   title: string;
@@ -14,6 +19,15 @@ type Course = {
 
 const inputCls =
   "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
+
+// Ngày nhận email tự soạn gần nhất, dạng ngắn dd/mm/yyyy.
+function shortDate(iso: string) {
+  return new Date(iso).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
 type Mode = "all" | "course" | "selected";
 
@@ -195,6 +209,24 @@ export function GuiMailForm({
               <div className="flex gap-3">
                 <button
                   type="button"
+                  className="font-medium text-amber hover:text-amber/80"
+                  title="Chọn những người chưa từng nhận email tự soạn"
+                  onClick={() =>
+                    setSelected(
+                      (prev) =>
+                        new Set([
+                          ...prev,
+                          ...filtered
+                            .filter((l) => !l.last_custom_email_at)
+                            .map((l) => l.id),
+                        ]),
+                    )
+                  }
+                >
+                  Chọn người chưa nhận
+                </button>
+                <button
+                  type="button"
                   className="hover:text-ink"
                   onClick={() =>
                     setSelected(
@@ -229,7 +261,7 @@ export function GuiMailForm({
                       onChange={() => toggle(l.id)}
                       className="accent-amber"
                     />
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block text-sm truncate">
                         {l.full_name || "(chưa đặt tên)"}
                       </span>
@@ -237,6 +269,18 @@ export function GuiMailForm({
                         {l.email}
                       </span>
                     </span>
+                    {l.last_custom_email_at ? (
+                      <span
+                        className="shrink-0 text-[11px] text-herb"
+                        title={`Đã gửi email tự soạn ngày ${shortDate(l.last_custom_email_at)}`}
+                      >
+                        ✓ {shortDate(l.last_custom_email_at)}
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-[11px] font-medium text-amber">
+                        Chưa gửi
+                      </span>
+                    )}
                   </label>
                 ))
               )}

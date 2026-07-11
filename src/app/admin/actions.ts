@@ -876,6 +876,7 @@ export async function sendBroadcastEmail(
   // Gửi theo lô nhỏ để nhanh hơn nhưng không quá tải SMTP.
   let sent = 0;
   const failed: string[] = [];
+  const sentEmails: string[] = []; // để đóng dấu "đã nhận email tự soạn"
   const BATCH = 5;
   for (let i = 0; i < recipients.length; i += BATCH) {
     const batch = recipients.slice(i, i + BATCH);
@@ -890,9 +891,25 @@ export async function sendBroadcastEmail(
       ),
     );
     results.forEach((res, idx) => {
-      if (res.status === "fulfilled") sent++;
-      else failed.push(batch[idx].email);
+      if (res.status === "fulfilled") {
+        sent++;
+        sentEmails.push(batch[idx].email);
+      } else failed.push(batch[idx].email);
     });
+  }
+
+  // Lưu vết: đóng dấu mốc nhận email tự soạn gần nhất cho người gửi thành công.
+  // Best-effort — lỗi ghi vết không làm hỏng kết quả gửi.
+  if (sentEmails.length > 0) {
+    try {
+      await createAdminClient()
+        .from("profiles")
+        .update({ last_custom_email_at: new Date().toISOString() })
+        .in("email", sentEmails);
+      revalidatePath("/admin/gui-mail");
+    } catch (e) {
+      console.error("Lưu vết gửi email tự soạn thất bại:", e);
+    }
   }
 
   if (failed.length === 0)
