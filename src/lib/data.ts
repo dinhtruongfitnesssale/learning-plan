@@ -366,7 +366,6 @@ export async function getCourseDetail(slug: string, userId: string) {
   // Lịch mở khóa theo ngày (chung cho mọi học viên). available_on trống = mở ngay.
   const today = todayISO();
   const isFuture = (d: string | null | undefined) => !!d && d > today;
-  const moduleAvail = new Map(modList.map((m) => [m.id, m.available_on ?? null]));
 
   // Học tuần tự: mọi bài sau bài chưa hoàn thành ĐẦU TIÊN đều bị khóa.
   // (Bài có quiz chỉ được đánh dấu hoàn thành sau khi ĐẠT quiz, nên khóa
@@ -403,14 +402,9 @@ export async function getCourseDetail(slug: string, userId: string) {
     modules: modList,
     moduleInfo,
     lessons: lessonList.map((l, idx) => {
-      // Ngày mở hiệu lực = trễ nhất giữa ngày mở của bài và của chương chứa bài
-      // (phải qua CẢ HAI mốc mới học được).
-      const modDate = l.module_id ? moduleAvail.get(l.module_id) ?? null : null;
-      const applicable = [l.available_on, modDate].filter(Boolean) as string[];
-      const unlockDate = applicable.length
-        ? applicable.reduce((a, b) => (a > b ? a : b))
-        : null;
-      const dateLocked = isFuture(unlockDate);
+      // Bài chỉ khóa theo NGÀY của riêng nó — bài không phân ngày thì mở ngay
+      // (không thừa kế lịch của chương).
+      const dateLocked = isFuture(l.available_on);
       return {
         lesson: l,
         done: doneSet.has(l.id),
@@ -419,7 +413,7 @@ export async function getCourseDetail(slug: string, userId: string) {
           (l.module_id ? gating.lockedModules.has(l.module_id) : false) ||
           idx > firstIncomplete ||
           dateLocked,
-        availableOn: dateLocked ? unlockDate : null,
+        availableOn: dateLocked ? l.available_on : null,
       };
     }),
     enrollStatus,
@@ -713,7 +707,6 @@ export async function getLessonView(
   // Lịch mở khóa theo ngày (chung cho mọi học viên).
   const today = todayISO();
   const isFuture = (d: string | null | undefined) => !!d && d > today;
-  const moduleAvail = new Map(modList.map((m) => [m.id, m.available_on ?? null]));
 
   // Học tuần tự: mọi bài sau bài chưa hoàn thành đầu tiên đều bị khóa.
   const fi = list.findIndex((l) => !doneSet.has(l.id));
@@ -721,12 +714,11 @@ export async function getLessonView(
   const isLocked = (i: number) => {
     const les = list[i];
     const m = les.module_id;
-    const modDate = m ? moduleAvail.get(m) ?? null : null;
+    // Bài chỉ khóa theo NGÀY của riêng nó (không thừa kế lịch của chương).
     return (
       (m ? lockedModules.has(m) : false) ||
       i > firstIncomplete ||
-      isFuture(les.available_on) ||
-      isFuture(modDate)
+      isFuture(les.available_on)
     );
   };
 
