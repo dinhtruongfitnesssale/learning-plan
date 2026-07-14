@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge } from "@/components/ui";
-import { upsertModuleQuiz } from "../../../../actions";
+import { upsertModuleQuiz, deleteQuiz } from "../../../../actions";
 import { QuizConfigForm } from "../../bai/[lessonSlug]/QuizConfigForm";
 import { QuizQuestionsEditor } from "@/components/admin/QuizQuestionsEditor";
+import { DeleteQuizButton } from "@/components/admin/DeleteQuizButton";
 import type { Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
 
 export default async function ModuleQuizEditor({
@@ -83,6 +84,11 @@ export default async function ModuleQuizEditor({
                 quizId={quiz.id}
                 questions={questions}
                 path={path}
+              />
+              <hr className="rule" />
+              <DeleteQuizButton
+                action={deleteQuiz}
+                hidden={{ quiz_id: quiz.id, path }}
               />
             </>
           )}

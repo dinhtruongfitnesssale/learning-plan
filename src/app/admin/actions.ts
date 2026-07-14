@@ -414,6 +414,18 @@ export async function deleteQuestion(formData: FormData) {
   revalidatePath(quizBackPath(formData));
 }
 
+// Xóa hẳn quiz của một bài học hoặc một chương. Câu hỏi & lượt làm của học
+// viên tự xóa theo (khóa ngoại on delete cascade). Bài học sẽ không còn yêu
+// cầu đạt quiz nữa nên hoàn thành lại bình thường.
+export async function deleteQuiz(formData: FormData) {
+  const supabase = await guard();
+  await supabase
+    .from("quizzes")
+    .delete()
+    .eq("id", String(formData.get("quiz_id")));
+  revalidatePath(quizBackPath(formData));
+}
+
 // ── Duyệt ghi danh / phân khóa ────────────────────────────────
 export async function approveEnrollment(formData: FormData) {
   const supabase = await guard();

@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge } from "@/components/ui";
-import { upsertQuiz } from "../../../../actions";
+import { upsertQuiz, deleteQuiz } from "../../../../actions";
 import { LessonEditForm } from "./LessonEditForm";
 import { QuizConfigForm } from "./QuizConfigForm";
 import { QuizQuestionsEditor } from "@/components/admin/QuizQuestionsEditor";
+import { DeleteQuizButton } from "@/components/admin/DeleteQuizButton";
 import type { Lesson, Module, Quiz, QuizQuestion } from "@/lib/supabase/types";
 
 export default async function LessonEditor({
@@ -100,6 +101,15 @@ export default async function LessonEditor({
                 quizId={quiz.id}
                 questions={questions}
                 path={`/admin/khoa-hoc/${slug}/bai/${l.slug}`}
+              />
+              <hr className="rule" />
+              <DeleteQuizButton
+                action={deleteQuiz}
+                hidden={{
+                  quiz_id: quiz.id,
+                  course_slug: slug,
+                  lesson_slug: l.slug,
+                }}
               />
             </>
           )}
