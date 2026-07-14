@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -90,6 +90,7 @@ export async function createCategory(formData: FormData) {
   await supabase
     .from("course_categories")
     .insert({ slug, label, emoji, accent, sort_order: count ?? 0 });
+  updateTag("categories"); // làm mới cache getCategories() ngay
   revalidatePath("/admin/khoa-hoc");
 }
 
@@ -103,6 +104,7 @@ export async function deleteCategory(formData: FormData) {
     .eq("category", slug);
   if ((count ?? 0) > 0) return;
   await supabase.from("course_categories").delete().eq("slug", slug);
+  updateTag("categories"); // làm mới cache getCategories() ngay
   revalidatePath("/admin/khoa-hoc");
 }
 

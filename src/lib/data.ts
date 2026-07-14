@@ -1,5 +1,7 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { createClient } from "./supabase/server";
+import { createAdminClient } from "./supabase/admin";
 import { levelForXp } from "./brand";
 import type {
   Course,
@@ -99,15 +101,24 @@ export async function getLearnerDashboard(userId: string) {
 }
 
 // Danh sách loại khóa học (do coach quản lý).
-export async function getCategories() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("course_categories")
-    .select("*")
-    .order("sort_order")
-    .order("label");
-  return (data as CourseCategory[]) ?? [];
-}
+// Đây là dữ liệu DÙNG CHUNG cho mọi người và hiếm khi đổi (chỉ khi coach thêm/
+// xóa loại) nên được cache: khỏi query lại Supabase ở mỗi trang danh mục / khóa
+// học. Làm mới chủ động qua tag "categories" (xem createCategory/deleteCategory),
+// kèm revalidate 1 giờ như lưới an toàn. Dùng client service-role (không đọc
+// cookie) vì unstable_cache không cho phép chạm request API như cookies().
+export const getCategories = unstable_cache(
+  async () => {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("course_categories")
+      .select("*")
+      .order("sort_order")
+      .order("label");
+    return (data as CourseCategory[]) ?? [];
+  },
+  ["course-categories"],
+  { tags: ["categories"], revalidate: 3600 },
+);
 
 export const PAGE_SIZE = 6;
 
