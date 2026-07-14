@@ -275,6 +275,23 @@ async function moduleGating(supabase: DB, userId: string, modules: Module[]) {
   return { quizByModule, passedQuiz, lockedModules };
 }
 
+// Thứ tự bài PHẲNG dùng cho "bài kế / bài trước" và khóa tuần tự: xếp theo
+// CHƯƠNG (đúng thứ tự chương) rồi tới thứ tự bài TRONG chương. KHÔNG dựa vào
+// sort_order phẳng của bài, vì bài của chương sau có thể mang sort_order chen
+// vào giữa các bài của chương trước → "bài kế" nhảy lộn chương và khóa tuần tự
+// sai. Bài không thuộc chương nào xếp lên đầu (khớp cách hiển thị).
+function orderLessonsByModule(lessons: Lesson[], modules: Module[]): Lesson[] {
+  const modRank = new Map(modules.map((m, i) => [m.id, i]));
+  const rank = (l: Lesson) =>
+    l.module_id ? modRank.get(l.module_id) ?? modules.length : -1;
+  return [...lessons].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      a.sort_order - b.sort_order ||
+      a.id.localeCompare(b.id),
+  );
+}
+
 // Chi tiết khóa học cho học viên.
 export async function getCourseDetail(slug: string, userId: string) {
   const supabase = await createClient();
@@ -320,9 +337,10 @@ export async function getCourseDetail(slug: string, userId: string) {
     allModules.map((m) => m.id),
     allLessons,
   );
-  const lessonList = vis
-    ? allLessons.filter((l) => vis.visibleLessons.has(l.id))
-    : allLessons;
+  const lessonList = orderLessonsByModule(
+    vis ? allLessons.filter((l) => vis.visibleLessons.has(l.id)) : allLessons,
+    allModules,
+  );
   const quizLessonIds = new Set<string>();
   if (lessonList.length) {
     const { data: quizzes } = await supabase
@@ -686,7 +704,10 @@ export async function getLessonView(
     allModules.map((m) => m.id),
     allList,
   );
-  const list = vis ? allList.filter((l) => vis.visibleLessons.has(l.id)) : allList;
+  const list = orderLessonsByModule(
+    vis ? allList.filter((l) => vis.visibleLessons.has(l.id)) : allList,
+    allModules,
+  );
   const modList = vis
     ? allModules.filter((m) => vis.visibleModules.has(m.id))
     : allModules;
