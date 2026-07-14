@@ -415,11 +415,50 @@ export async function deleteQuestion(formData: FormData) {
 // ── Duyệt ghi danh / phân khóa ────────────────────────────────
 export async function approveEnrollment(formData: FormData) {
   const supabase = await guard();
+  const enrollmentId = String(formData.get("id"));
+  // Cần user_id + course_id để gửi email báo học viên (lấy trước khi cập nhật).
+  const { data: enroll } = await supabase
+    .from("enrollments")
+    .select("user_id, course_id, status")
+    .eq("id", enrollmentId)
+    .maybeSingle();
   // Duyệt = cấp lại lượt làm quiz mới (quan trọng khi duyệt HỌC LẠI).
   await supabase
     .from("enrollments")
     .update({ status: "approved", attempts_reset_at: new Date().toISOString() })
-    .eq("id", String(formData.get("id")));
+    .eq("id", enrollmentId);
+
+  // Báo email cho học viên khi vừa MỞ quyền học (bỏ qua nếu đã đang học sẵn).
+  // Best-effort: gửi lỗi không làm hỏng việc duyệt.
+  if (enroll && enroll.status !== "approved") {
+    try {
+      const [{ data: prof }, { data: course }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("id", enroll.user_id)
+          .maybeSingle(),
+        supabase
+          .from("courses")
+          .select("title, slug, cover_emoji")
+          .eq("id", enroll.course_id)
+          .maybeSingle(),
+      ]);
+      if (prof?.email && course) {
+        const { sendCourseAssignedEmail } = await import("@/lib/mailer");
+        await sendCourseAssignedEmail({
+          to: prof.email,
+          fullName: prof.full_name ?? "",
+          courseTitle: course.title,
+          courseSlug: course.slug,
+          courseEmoji: course.cover_emoji ?? "📘",
+        });
+      }
+    } catch (e) {
+      console.error("Gửi email duyệt yêu cầu thất bại:", e);
+    }
+  }
+
   revalidatePath("/admin/yeu-cau");
   revalidatePath("/admin");
 }
