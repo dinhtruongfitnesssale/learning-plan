@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -29,6 +29,17 @@ export function LessonComplete({
   const [loading, setLoading] = useState(false);
   const [reward, setReward] = useState<CompleteLessonResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Đạt quiz của bài rồi thì tự đánh dấu hoàn thành luôn — khỏi phải bấm thêm
+  // nút (nhiều học viên đạt quiz nhưng quên bấm, khiến bài kế bị khóa mãi).
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (!done && hasQuiz && quizPassed && !autoRan.current) {
+      autoRan.current = true;
+      markComplete();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done, hasQuiz, quizPassed]);
 
   async function markComplete() {
     setLoading(true);
