@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCoach } from "@/lib/auth";
-import { slugify, tempPassword } from "@/lib/slug";
+import {
+  slugify,
+  tempPassword,
+  randomPassword,
+  nameFromEmail,
+  parseEmails,
+} from "@/lib/slug";
 
 // Mọi action đều kiểm tra coach (RLS cũng chặn, đây là lớp phòng vệ thứ hai).
 async function guard() {
@@ -1059,4 +1065,231 @@ export async function deleteLearner(formData: FormData) {
   await admin.auth.admin.deleteUser(id);
   revalidatePath("/admin/hoc-vien");
   redirect("/admin/hoc-vien");
+}
+
+// ── Tặng khóa cho khách mời (dán nhiều email cùng lúc) ────────
+// Coach dán một loạt email vào trang khóa học. Với mỗi email:
+//   • chưa có tài khoản → tạo mới (mật khẩu ngẫu nhiên, tên lấy từ email),
+//     đánh dấu là KHÁCH MỜI (không được tự yêu cầu học khóa khác);
+//   • đã có tài khoản   → giữ nguyên, chỉ mở thêm khóa này.
+// Sau đó mở khóa cho tất cả và gửi email hướng dẫn (kèm mật khẩu cho
+// người mới, chỉ link khóa học cho người đã có tài khoản).
+export type InviteGuestsState = {
+  ok: boolean;
+  message: string;
+  /** Tài khoản vừa tạo — hiện ra để coach chép tay nếu email gửi lỗi. */
+  created?: { email: string; password: string }[];
+  invalid?: string[];
+  failed?: string[];
+};
+
+export async function inviteGuestsToCourse(
+  _prev: InviteGuestsState | null,
+  formData: FormData,
+): Promise<InviteGuestsState> {
+  await requireCoach();
+  const courseId = String(formData.get("course_id") ?? "");
+  const courseSlug = String(formData.get("course_slug") ?? "");
+  if (!courseId) return { ok: false, message: "Thiếu khóa học." };
+
+  const { emails, invalid } = parseEmails(String(formData.get("emails") ?? ""));
+  if (emails.length === 0)
+    return {
+      ok: false,
+      message: invalid.length
+        ? "Không có email nào hợp lệ."
+        : "Hãy dán ít nhất một email.",
+      invalid,
+    };
+  const MAX = 200;
+  if (emails.length > MAX)
+    return {
+      ok: false,
+      message: `Mỗi lần tối đa ${MAX} email (bạn đang dán ${emails.length}).`,
+    };
+
+  const admin = createAdminClient();
+
+  // Ai đã có tài khoản rồi?
+  const { data: existingProfiles } = await admin
+    .from("profiles")
+    .select("id, email, full_name")
+    .in("email", emails);
+  const profileByEmail = new Map(
+    (existingProfiles ?? []).map((p) => [(p.email ?? "").toLowerCase(), p]),
+  );
+
+  // Tạo tài khoản cho email chưa có.
+  const created: { id: string; email: string; password: string; fullName: string }[] = [];
+  const failed: string[] = [];
+  for (const email of emails) {
+    if (profileByEmail.has(email)) continue;
+    const password = randomPassword();
+    const fullName = nameFromEmail(email);
+    const { data, error } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
+    });
+    if (error || !data?.user) {
+      failed.push(email);
+      continue;
+    }
+    created.push({ id: data.user.id, email, password, fullName });
+  }
+
+  // Đánh dấu khách mời (chỉ với tài khoản VỪA tạo — không hạ quyền
+  // học viên cũ đang có sẵn tài khoản).
+  if (created.length > 0) {
+    await admin
+      .from("profiles")
+      .update({ is_guest: true })
+      .in(
+        "id",
+        created.map((c) => c.id),
+      );
+  }
+
+  // Mở khóa cho tất cả (người mới + người đã có tài khoản).
+  const targets = [
+    ...created.map((c) => ({
+      id: c.id,
+      email: c.email,
+      fullName: c.fullName,
+      password: c.password as string | null,
+    })),
+    ...emails
+      .filter((e) => profileByEmail.has(e))
+      .map((e) => {
+        const p = profileByEmail.get(e)!;
+        return {
+          id: p.id as string,
+          email: e,
+          fullName: (p.full_name as string) || nameFromEmail(e),
+          password: null as string | null,
+        };
+      }),
+  ];
+
+  const { data: existingEnr } = await admin
+    .from("enrollments")
+    .select("id, user_id, status")
+    .eq("course_id", courseId)
+    .in(
+      "user_id",
+      targets.map((t) => t.id),
+    );
+  const enrByUser = new Map((existingEnr ?? []).map((e) => [e.user_id, e]));
+
+  const toInsert: string[] = [];
+  const toApprove: string[] = [];
+  const newlyOpened = new Set<string>();
+  for (const t of targets) {
+    const e = enrByUser.get(t.id);
+    if (!e) {
+      toInsert.push(t.id);
+      newlyOpened.add(t.id);
+    } else if (e.status !== "approved") {
+      toApprove.push(e.id);
+      newlyOpened.add(t.id);
+    }
+  }
+  if (toInsert.length > 0) {
+    await admin.from("enrollments").insert(
+      toInsert.map((uid) => ({
+        user_id: uid,
+        course_id: courseId,
+        status: "approved" as const,
+      })),
+    );
+  }
+  if (toApprove.length > 0) {
+    await admin
+      .from("enrollments")
+      .update({ status: "approved", attempts_reset_at: new Date().toISOString() })
+      .in("id", toApprove);
+  }
+
+  // Gửi email (best-effort, theo lô 5 để Gmail không chặn).
+  let sentCount = 0;
+  let mailError: string | null = null;
+  try {
+    const { data: course } = await admin
+      .from("courses")
+      .select("title, slug, cover_emoji")
+      .eq("id", courseId)
+      .maybeSingle();
+    const { mailerReady, sendGuestInviteEmail, sendCourseAssignedEmail } =
+      await import("@/lib/mailer");
+    if (!mailerReady()) {
+      mailError = "chưa cấu hình gửi email";
+    } else if (course) {
+      // Người mới luôn cần email (có mật khẩu). Người cũ chỉ báo khi
+      // khóa này thực sự vừa được mở.
+      const recipients = targets.filter(
+        (t) => t.password !== null || newlyOpened.has(t.id),
+      );
+      const BATCH = 5;
+      for (let i = 0; i < recipients.length; i += BATCH) {
+        const results = await Promise.allSettled(
+          recipients.slice(i, i + BATCH).map((t) =>
+            t.password
+              ? sendGuestInviteEmail({
+                  to: t.email,
+                  fullName: t.fullName,
+                  password: t.password,
+                  courseTitle: course.title,
+                  courseSlug: course.slug,
+                  courseEmoji: course.cover_emoji ?? "📘",
+                })
+              : sendCourseAssignedEmail({
+                  to: t.email,
+                  fullName: t.fullName,
+                  courseTitle: course.title,
+                  courseSlug: course.slug,
+                  courseEmoji: course.cover_emoji ?? "📘",
+                }),
+          ),
+        );
+        results.forEach((r) => r.status === "fulfilled" && sentCount++);
+      }
+    }
+  } catch (e) {
+    console.error("Gửi email mời khách thất bại:", e);
+    mailError = e instanceof Error ? e.message : "lỗi không xác định";
+  }
+
+  revalidatePath("/admin/hoc-vien");
+  if (courseSlug) revalidatePath(`/admin/khoa-hoc/${courseSlug}`);
+
+  const parts: string[] = [];
+  if (created.length > 0) parts.push(`tạo mới ${created.length} tài khoản`);
+  const reused = targets.length - created.length;
+  if (reused > 0) parts.push(`${reused} người đã có tài khoản sẵn`);
+  const opened = toInsert.length + toApprove.length;
+  parts.push(opened > 0 ? `mở khóa cho ${opened} người` : "không ai cần mở thêm");
+  if (sentCount > 0) parts.push(`gửi email cho ${sentCount} người`);
+  if (mailError) parts.push(`email chưa gửi được (${mailError})`);
+  if (failed.length > 0) parts.push(`${failed.length} email tạo lỗi`);
+
+  return {
+    ok: true,
+    message: "Đã xong: " + parts.join(" · ") + ".",
+    created: created.map((c) => ({ email: c.email, password: c.password })),
+    invalid,
+    failed,
+  };
+}
+
+// Bật/tắt chế độ khách mời cho một tài khoản. Tắt = trở thành học viên
+// bình thường, tự bấm "Yêu cầu học" được.
+export async function setLearnerGuest(formData: FormData) {
+  await requireCoach();
+  const id = String(formData.get("id"));
+  const isGuest = String(formData.get("is_guest")) === "true";
+  const admin = createAdminClient();
+  await admin.from("profiles").update({ is_guest: isGuest }).eq("id", id);
+  revalidatePath(`/admin/hoc-vien/${id}`);
+  revalidatePath("/admin/hoc-vien");
 }

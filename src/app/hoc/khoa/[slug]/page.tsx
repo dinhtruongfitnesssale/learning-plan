@@ -7,6 +7,7 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { Pagination } from "@/components/Pagination";
 import { Chapter } from "@/components/Chapter";
 import { CourseReview } from "@/components/CourseReview";
+import { LockedCourseButton } from "@/components/LockedCourse";
 import { requestEnroll, requestRelearn } from "../../khoa-hoc/actions";
 import type { Lesson } from "@/lib/supabase/types";
 
@@ -40,6 +41,8 @@ export default async function CoursePage({
   const data = await getCourseDetail(slug, user.id);
   if (!data) notFound();
   const isCoach = profile?.role === "coach";
+  // Khách mời không tự yêu cầu học — khóa nào chưa được mở thì hiện ổ khóa.
+  const isGuest = profile?.is_guest ?? false;
 
   const { course, lessons, enrollStatus, approved, done, total, leaderboard } =
     data;
@@ -142,7 +145,9 @@ export default async function CoursePage({
             </p>
           )}
         </div>
-        {enrollStatus === "pending" ? (
+        {isGuest && !approved ? (
+          <LockedCourseButton full={false} label="Chưa mở" />
+        ) : enrollStatus === "pending" ? (
           <Badge accent="slate">⏳ Đang chờ duyệt</Badge>
         ) : enrollStatus === "failed" ? (
           <form action={requestRelearn}>

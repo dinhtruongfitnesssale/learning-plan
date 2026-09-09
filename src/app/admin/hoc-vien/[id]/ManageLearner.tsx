@@ -5,6 +5,7 @@ import {
   updateLearner,
   resetLearnerPassword,
   deleteLearner,
+  setLearnerGuest,
 } from "../../actions";
 import { Card, buttonClass } from "@/components/ui";
 import { SendEmailButton } from "../SendEmailButton";
@@ -16,10 +17,12 @@ export function ManageLearner({
   id,
   fullName,
   email,
+  isGuest,
 }: {
   id: string;
   fullName: string;
   email: string;
+  isGuest: boolean;
 }) {
   const [editState, editAction, editPending] = useActionState(updateLearner, null);
   const [pwState, pwAction, pwPending] = useActionState(
@@ -58,6 +61,27 @@ export function ManageLearner({
             <span className="text-clay text-sm">{editState.message}</span>
           )}
         </div>
+      </form>
+
+      <hr className="rule" />
+
+      {/* Khách mời hay học viên đầy đủ */}
+      <form action={setLearnerGuest} className="flex flex-wrap items-center gap-3">
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="is_guest" value={isGuest ? "false" : "true"} />
+        <div className="flex-1 min-w-[16rem]">
+          <div className="text-sm font-medium">
+            {isGuest ? "Tài khoản khách mời" : "Học viên đầy đủ"}
+          </div>
+          <p className="text-xs text-ink/50 mt-0.5">
+            {isGuest
+              ? "Chỉ học được khóa bạn mở sẵn; các khóa khác hiện ổ khóa, không bấm “Yêu cầu học” được."
+              : "Tự bấm “Yêu cầu học” ở khóa bất kỳ, chờ bạn duyệt."}
+          </p>
+        </div>
+        <button className={buttonClass("outline", "shrink-0")}>
+          {isGuest ? "Nâng thành học viên đầy đủ" : "Chuyển thành khách mời"}
+        </button>
       </form>
 
       <hr className="rule" />

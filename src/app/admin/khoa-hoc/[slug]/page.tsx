@@ -6,6 +6,7 @@ import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { Pagination } from "@/components/Pagination";
 import { Chapter } from "@/components/Chapter";
 import { BulkAssign } from "./BulkAssign";
+import { InviteByEmail } from "./InviteByEmail";
 import {
   updateCourse,
   toggleCoursePublish,
@@ -257,6 +258,8 @@ export default async function CourseEditor({
             courseSlug={c.slug}
             learners={learnersForAssign}
           />
+
+          <InviteByEmail courseId={c.id} courseSlug={c.slug} />
 
           <Card className="p-5" as="section">
             <h3 className="font-serif text-lg mb-3">Thông tin khóa</h3>

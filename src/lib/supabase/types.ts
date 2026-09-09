@@ -20,6 +20,8 @@ export interface Profile {
   created_at: string;
   /** Mốc nhận email tự soạn (kèm ảnh) gần nhất. NULL = chưa nhận lần nào. */
   last_custom_email_at: string | null;
+  /** Tài khoản khách mời (được tặng khóa): không được tự yêu cầu học. */
+  is_guest: boolean;
 }
 
 export interface Course {

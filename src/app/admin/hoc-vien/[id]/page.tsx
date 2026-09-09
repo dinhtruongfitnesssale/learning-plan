@@ -133,6 +133,7 @@ export default async function LearnerDetail({
           id={profile.id}
           fullName={profile.full_name}
           email={profile.email}
+          isGuest={profile.is_guest}
         />
       </section>
 

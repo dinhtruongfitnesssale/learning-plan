@@ -97,8 +97,15 @@ export default async function AdminLearners({
                       {(p.full_name || "?").charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">
-                        {p.full_name || "(chưa đặt tên)"}
+                      <div className="font-medium truncate flex items-center gap-2">
+                        <span className="truncate">
+                          {p.full_name || "(chưa đặt tên)"}
+                        </span>
+                        {p.is_guest && (
+                          <Badge accent="slate" className="shrink-0">
+                            Khách mời
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-xs text-ink/50 truncate">{p.email}</div>
                       <div className="text-xs text-ink/40 font-mono tnum">

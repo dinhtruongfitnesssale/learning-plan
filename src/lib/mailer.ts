@@ -415,3 +415,159 @@ export async function sendCustomEmail(opts: {
     attachments,
   });
 }
+
+// ── Email mời khách (tặng khóa) ───────────────────────────────
+// Gộp làm MỘT email: thông tin đăng nhập (email + mật khẩu ngẫu nhiên)
+// và khóa học được tặng. Khách mời không tự yêu cầu học được nên email
+// này không nhắc bước "Yêu cầu khóa mới" như email chào mừng thường.
+function guestInviteHtml({
+  fullName,
+  email,
+  password,
+  courseTitle,
+  courseEmoji,
+  courseSlug,
+}: {
+  fullName: string;
+  email: string;
+  password: string;
+  courseTitle: string;
+  courseEmoji: string;
+  courseSlug: string;
+}) {
+  const base = appUrl();
+  const loginUrl = `${base}/login`;
+  const courseUrl = `${base}/hoc/khoa/${courseSlug}`;
+  const changePwUrl = `${base}/hoc/doi-mat-khau`;
+  const hi = fullName ? `Chào ${fullName},` : "Chào bạn,";
+
+  return `<!doctype html>
+<html lang="vi">
+<body style="margin:0;padding:0;background:${COLORS.paper2};font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.paper2};padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${COLORS.paper};border:1px solid #e2dccf;border-radius:16px;overflow:hidden;">
+        <tr><td style="background:${COLORS.ink};padding:28px 32px;">
+          <div style="color:${COLORS.paper};font-size:20px;font-weight:700;">${APP_NAME}</div>
+          <div style="color:#b9b3a6;font-size:13px;margin-top:2px;">${APP_TAGLINE}</div>
+        </td></tr>
+
+        <tr><td style="padding:28px 32px;">
+          <p style="color:${COLORS.ink};font-size:16px;margin:0 0 6px;">${hi}</p>
+          <p style="color:#4a463f;font-size:14px;line-height:1.6;margin:0 0 20px;">
+            Bạn được tặng một khóa học. Tài khoản đã tạo sẵn — chỉ cần đăng nhập là học được ngay.
+          </p>
+
+          <!-- Khóa được tặng -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.paper2};border:1px solid #e2dccf;border-radius:12px;margin-bottom:16px;">
+            <tr><td style="padding:16px 18px;">
+              <div style="font-size:12px;color:#8a8578;text-transform:uppercase;letter-spacing:.5px;">Khóa học của bạn</div>
+              <div style="font-size:17px;color:${COLORS.ink};font-weight:700;margin-top:4px;">${courseEmoji} ${courseTitle}</div>
+            </td></tr>
+          </table>
+
+          <!-- Thông tin đăng nhập -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.paper2};border:1px solid #e2dccf;border-radius:12px;margin-bottom:20px;">
+            <tr><td style="padding:16px 18px;">
+              <div style="font-size:12px;color:#8a8578;text-transform:uppercase;letter-spacing:.5px;">Email đăng nhập</div>
+              <div style="font-size:15px;color:${COLORS.ink};font-weight:600;margin:2px 0 12px;font-family:ui-monospace,Menlo,Consolas,monospace;">${email}</div>
+              <div style="font-size:12px;color:#8a8578;text-transform:uppercase;letter-spacing:.5px;">Mật khẩu</div>
+              <div style="font-size:15px;color:${COLORS.amber};font-weight:700;margin-top:2px;font-family:ui-monospace,Menlo,Consolas,monospace;">${password}</div>
+            </td></tr>
+          </table>
+
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="border-radius:999px;background:${COLORS.ink};">
+              <a href="${courseUrl}" style="display:inline-block;padding:12px 28px;color:${COLORS.paper};font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Vào học ngay</a>
+            </td></tr>
+          </table>
+
+          <div style="font-size:15px;font-weight:700;color:${COLORS.ink};margin-bottom:14px;">Các bước bắt đầu</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${stepRow(1, "Đăng nhập", `Mở <a href="${loginUrl}" style="color:${COLORS.amber};">trang đăng nhập</a> và nhập email cùng mật khẩu ở trên.`)}
+            ${stepRow(2, "Đổi mật khẩu", `Nên đổi sang mật khẩu riêng tại mục <a href="${changePwUrl}" style="color:${COLORS.amber};">Đổi mật khẩu</a> cho an toàn.`)}
+            ${stepRow(3, "Học từng bài", `Vào <a href="${courseUrl}" style="color:${COLORS.amber};">${courseTitle}</a>, học lần lượt và làm bài kiểm tra để hoàn thành bài, nhận điểm XP.`)}
+            ${stepRow(4, "Muốn học thêm khóa khác?", `Các khóa khác đang khóa với tài khoản của bạn — nhắn cho admin để được mở thêm.`)}
+          </table>
+
+          <p style="color:#8a8578;font-size:13px;line-height:1.6;margin:20px 0 0;border-top:1px solid #e2dccf;padding-top:16px;">
+            Nếu bạn không mong đợi email này, có thể bỏ qua. Cần hỗ trợ, chỉ cần trả lời email này.
+          </p>
+        </td></tr>
+
+        <tr><td style="background:${COLORS.paper2};padding:16px 32px;color:#8a8578;font-size:12px;">
+          ${APP_NAME} • ${APP_TAGLINE}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function guestInviteText({
+  fullName,
+  email,
+  password,
+  courseTitle,
+  courseSlug,
+}: {
+  fullName: string;
+  email: string;
+  password: string;
+  courseTitle: string;
+  courseSlug: string;
+}) {
+  const base = appUrl();
+  const hi = fullName ? `Chào ${fullName},` : "Chào bạn,";
+  return `${hi}
+
+Bạn được tặng khóa học "${courseTitle}". Tài khoản đã tạo sẵn:
+
+  Link đăng nhập: ${base}/login
+  Email:          ${email}
+  Mật khẩu:       ${password}
+
+Vào học ngay: ${base}/hoc/khoa/${courseSlug}
+
+Các bước bắt đầu:
+  1. Đăng nhập bằng email và mật khẩu ở trên.
+  2. Đổi mật khẩu riêng tại: ${base}/hoc/doi-mat-khau
+  3. Học từng bài trong khóa, làm bài kiểm tra để hoàn thành và nhận XP.
+  4. Muốn học thêm khóa khác? Các khóa còn lại đang khóa — nhắn admin để được mở.
+
+Cần hỗ trợ, chỉ cần trả lời email này.
+
+${APP_NAME} • ${APP_TAGLINE}`;
+}
+
+// Gửi email mời khách mời. Ném lỗi nếu chưa cấu hình hoặc gửi thất bại.
+export async function sendGuestInviteEmail(opts: {
+  to: string;
+  fullName: string;
+  password: string;
+  courseTitle: string;
+  courseSlug: string;
+  courseEmoji: string;
+}) {
+  if (!mailerReady()) {
+    throw new Error(
+      "Chưa cấu hình gửi email. Điền GMAIL_USER và GMAIL_APP_PASSWORD trong .env.local.",
+    );
+  }
+  const { to, fullName, password, courseTitle, courseSlug, courseEmoji } = opts;
+  await transport().sendMail({
+    from: `"${APP_NAME}" <${GMAIL_USER}>`,
+    to,
+    subject: `Bạn được tặng khóa học “${courseTitle}” tại ${APP_NAME}`,
+    text: guestInviteText({ fullName, email: to, password, courseTitle, courseSlug }),
+    html: guestInviteHtml({
+      fullName,
+      email: to,
+      password,
+      courseTitle,
+      courseEmoji,
+      courseSlug,
+    }),
+  });
+}

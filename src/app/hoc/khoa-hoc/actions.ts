@@ -3,6 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+// Tài khoản khách mời (được tặng khóa) không được tự xin học khóa khác —
+// phải liên hệ admin. RLS cũng chặn, đây là lớp phòng vệ phía app.
+async function isGuest(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("is_guest")
+    .eq("id", userId)
+    .maybeSingle();
+  return Boolean(data?.is_guest);
+}
 
 // Học viên GỬI YÊU CẦU học (chờ admin duyệt). Không vào học ngay.
 export async function requestEnroll(formData: FormData) {
@@ -13,6 +28,7 @@ export async function requestEnroll(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (await isGuest(supabase, user.id)) return;
 
   const { data: existing } = await supabase
     .from("enrollments")
@@ -41,6 +57,7 @@ export async function requestRelearn(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (await isGuest(supabase, user.id)) return;
 
   await supabase.rpc("request_relearn", { p_course_id: courseId });
 

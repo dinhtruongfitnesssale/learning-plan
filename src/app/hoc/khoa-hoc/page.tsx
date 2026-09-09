@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { getCatalog, getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { CourseFilter } from "@/components/CourseFilter";
+import { LockedCourseButton } from "@/components/LockedCourse";
 import { Pagination } from "@/components/Pagination";
 import { requestEnroll, requestRelearn } from "./actions";
 
@@ -11,7 +12,9 @@ export default async function Catalog({
 }: {
   searchParams: Promise<{ q?: string; cat?: string; page?: string }>;
 }) {
-  const { user } = await requireUser();
+  const { user, profile } = await requireUser();
+  // Khách mời (được tặng khóa): thấy đủ danh mục nhưng không tự yêu cầu học.
+  const isGuest = profile?.is_guest ?? false;
   const sp = await searchParams;
   const q = sp.q ?? "";
   const cat = sp.cat ?? "";
@@ -28,7 +31,9 @@ export default async function Catalog({
           Chọn khóa bạn muốn học
         </h1>
         <p className="text-ink/60 mt-2 max-w-lg">
-          Gửi yêu cầu học, coach duyệt là bạn vào học được ngay.
+          {isGuest
+            ? "Bạn học được những khóa admin đã mở cho bạn. Muốn học thêm khóa khác, nhắn admin để được mở."
+            : "Gửi yêu cầu học, coach duyệt là bạn vào học được ngay."}
         </p>
       </section>
 
@@ -67,6 +72,8 @@ export default async function Catalog({
                   >
                     Vào học
                   </Link>
+                ) : isGuest ? (
+                  <LockedCourseButton />
                 ) : status === "pending" ? (
                   <button
                     disabled
