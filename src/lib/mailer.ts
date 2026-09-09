@@ -14,8 +14,18 @@ export function mailerReady() {
   return Boolean(GMAIL_USER && GMAIL_APP_PASSWORD);
 }
 
+// Địa chỉ gốc dùng trong link của email. NEXT_PUBLIC_APP_URL bị "nướng" vào
+// bundle lúc build, nên nếu quên đặt nó trên Vercel thì link email sẽ trỏ về
+// localhost — người nhận bấm vào không mở được. Vì mailer chỉ chạy phía
+// server, ta đọc thêm biến Vercel tự cấp (đọc lúc chạy, không cần build lại)
+// làm lớp dự phòng; localhost chỉ còn là lựa chọn cuối khi chạy máy nhà.
 function appUrl() {
-  const raw = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (vercelHost ? `https://${vercelHost}` : "") ||
+    "http://localhost:3000";
   return raw.replace(/\/+$/, ""); // bỏ dấu "/" thừa ở cuối
 }
 
