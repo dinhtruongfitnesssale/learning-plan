@@ -427,6 +427,7 @@ function guestInviteHtml({
   courseTitle,
   courseEmoji,
   courseSlug,
+  isNewAccount,
 }: {
   fullName: string;
   email: string;
@@ -434,6 +435,7 @@ function guestInviteHtml({
   courseTitle: string;
   courseEmoji: string;
   courseSlug: string;
+  isNewAccount: boolean;
 }) {
   const base = appUrl();
   const loginUrl = `${base}/login`;
@@ -455,7 +457,11 @@ function guestInviteHtml({
         <tr><td style="padding:28px 32px;">
           <p style="color:${COLORS.ink};font-size:16px;margin:0 0 6px;">${hi}</p>
           <p style="color:#4a463f;font-size:14px;line-height:1.6;margin:0 0 20px;">
-            Bạn được tặng một khóa học. Tài khoản đã tạo sẵn — chỉ cần đăng nhập là học được ngay.
+            ${
+              isNewAccount
+                ? "Bạn được tặng một khóa học. Tài khoản đã tạo sẵn — chỉ cần đăng nhập là học được ngay."
+                : "Bạn được tặng một khóa học. Dưới đây là mật khẩu mới cho tài khoản của bạn — đăng nhập là học được ngay."
+            }
           </p>
 
           <!-- Khóa được tặng -->
@@ -487,7 +493,11 @@ function guestInviteHtml({
             ${stepRow(1, "Đăng nhập", `Mở <a href="${loginUrl}" style="color:${COLORS.amber};">trang đăng nhập</a> và nhập email cùng mật khẩu ở trên.`)}
             ${stepRow(2, "Đổi mật khẩu", `Nên đổi sang mật khẩu riêng tại mục <a href="${changePwUrl}" style="color:${COLORS.amber};">Đổi mật khẩu</a> cho an toàn.`)}
             ${stepRow(3, "Học từng bài", `Vào <a href="${courseUrl}" style="color:${COLORS.amber};">${courseTitle}</a>, học lần lượt và làm bài kiểm tra để hoàn thành bài, nhận điểm XP.`)}
-            ${stepRow(4, "Muốn học thêm khóa khác?", `Các khóa khác đang khóa với tài khoản của bạn — nhắn cho admin để được mở thêm.`)}
+            ${
+              isNewAccount
+                ? stepRow(4, "Muốn học thêm khóa khác?", `Các khóa khác đang khóa với tài khoản của bạn — nhắn cho admin để được mở thêm.`)
+                : ""
+            }
           </table>
 
           <p style="color:#8a8578;font-size:13px;line-height:1.6;margin:20px 0 0;border-top:1px solid #e2dccf;padding-top:16px;">
@@ -511,18 +521,25 @@ function guestInviteText({
   password,
   courseTitle,
   courseSlug,
+  isNewAccount,
 }: {
   fullName: string;
   email: string;
   password: string;
   courseTitle: string;
   courseSlug: string;
+  isNewAccount: boolean;
 }) {
   const base = appUrl();
   const hi = fullName ? `Chào ${fullName},` : "Chào bạn,";
+  const step4 = isNewAccount
+    ? `\n  4. Muốn học thêm khóa khác? Các khóa còn lại đang khóa — nhắn admin để được mở.`
+    : "";
   return `${hi}
 
-Bạn được tặng khóa học "${courseTitle}". Tài khoản đã tạo sẵn:
+Bạn được tặng khóa học "${courseTitle}". ${
+    isNewAccount ? "Tài khoản đã tạo sẵn:" : "Mật khẩu mới cho tài khoản của bạn:"
+  }
 
   Link đăng nhập: ${base}/login
   Email:          ${email}
@@ -533,8 +550,7 @@ Vào học ngay: ${base}/hoc/khoa/${courseSlug}
 Các bước bắt đầu:
   1. Đăng nhập bằng email và mật khẩu ở trên.
   2. Đổi mật khẩu riêng tại: ${base}/hoc/doi-mat-khau
-  3. Học từng bài trong khóa, làm bài kiểm tra để hoàn thành và nhận XP.
-  4. Muốn học thêm khóa khác? Các khóa còn lại đang khóa — nhắn admin để được mở.
+  3. Học từng bài trong khóa, làm bài kiểm tra để hoàn thành và nhận XP.${step4}
 
 Cần hỗ trợ, chỉ cần trả lời email này.
 
@@ -549,18 +565,35 @@ export async function sendGuestInviteEmail(opts: {
   courseTitle: string;
   courseSlug: string;
   courseEmoji: string;
+  /** false = tài khoản đã có sẵn, chỉ cấp lại mật khẩu mới. */
+  isNewAccount?: boolean;
 }) {
   if (!mailerReady()) {
     throw new Error(
       "Chưa cấu hình gửi email. Điền GMAIL_USER và GMAIL_APP_PASSWORD trong .env.local.",
     );
   }
-  const { to, fullName, password, courseTitle, courseSlug, courseEmoji } = opts;
+  const {
+    to,
+    fullName,
+    password,
+    courseTitle,
+    courseSlug,
+    courseEmoji,
+    isNewAccount = true,
+  } = opts;
   await transport().sendMail({
     from: `"${APP_NAME}" <${GMAIL_USER}>`,
     to,
     subject: `Bạn được tặng khóa học “${courseTitle}” tại ${APP_NAME}`,
-    text: guestInviteText({ fullName, email: to, password, courseTitle, courseSlug }),
+    text: guestInviteText({
+      fullName,
+      email: to,
+      password,
+      courseTitle,
+      courseSlug,
+      isNewAccount,
+    }),
     html: guestInviteHtml({
       fullName,
       email: to,
@@ -568,6 +601,7 @@ export async function sendGuestInviteEmail(opts: {
       courseTitle,
       courseEmoji,
       courseSlug,
+      isNewAccount,
     }),
   });
 }

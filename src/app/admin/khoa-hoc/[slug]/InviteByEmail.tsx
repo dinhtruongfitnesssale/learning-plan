@@ -43,8 +43,9 @@ export function InviteByEmail({
       <p className="text-xs text-ink/50 mb-4">
         Dán nhiều email cùng lúc (mỗi dòng một email, hoặc ngăn bằng dấu phẩy).
         Ai chưa có tài khoản sẽ được tạo tự động với mật khẩu ngẫu nhiên và nhận
-        email đăng nhập kèm link khóa học. Họ thấy các khóa khác nhưng không tự
-        yêu cầu học được.
+        email đăng nhập kèm link khóa học. Ai đã có tài khoản nhưng chưa từng
+        đăng nhập cũng được cấp mật khẩu mới gửi kèm. Khách mời thấy các khóa
+        khác nhưng không tự yêu cầu học được.
       </p>
 
       <form action={action} className="space-y-3">
@@ -58,6 +59,18 @@ export function InviteByEmail({
           placeholder={"an@gmail.com\nbinh@gmail.com\nchi@gmail.com"}
           className={`${inputCls} font-mono text-xs leading-relaxed`}
         />
+
+        <label className="flex items-start gap-2 text-xs text-ink/70">
+          <input
+            type="checkbox"
+            name="reset_password"
+            className="mt-0.5 accent-amber"
+          />
+          <span>
+            Cấp mật khẩu mới cho cả người đã từng đăng nhập (dùng khi họ quên
+            mật khẩu — mật khẩu cũ sẽ hết hiệu lực).
+          </span>
+        </label>
 
         <div className="flex items-center justify-between text-xs">
           <span className="text-ink/55 font-mono tnum">
@@ -104,7 +117,7 @@ export function InviteByEmail({
           <div className="rounded-lg border border-ink/10 bg-paper-2 p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-ink/60">
-                Tài khoản vừa tạo — chép lại phòng khi email không tới:
+                Email & mật khẩu vừa cấp — chép lại phòng khi email không tới:
               </span>
               <button
                 type="button"

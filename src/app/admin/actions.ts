@@ -1077,7 +1077,8 @@ export async function deleteLearner(formData: FormData) {
 export type InviteGuestsState = {
   ok: boolean;
   message: string;
-  /** Tài khoản vừa tạo — hiện ra để coach chép tay nếu email gửi lỗi. */
+  /** Tài khoản vừa tạo hoặc vừa được cấp mật khẩu mới — hiện ra để coach
+   *  chép tay nếu email gửi lỗi. */
   created?: { email: string; password: string }[];
   invalid?: string[];
   failed?: string[];
@@ -1113,7 +1114,7 @@ export async function inviteGuestsToCourse(
   // Ai đã có tài khoản rồi?
   const { data: existingProfiles } = await admin
     .from("profiles")
-    .select("id, email, full_name")
+    .select("id, email, full_name, role")
     .in("email", emails);
   const profileByEmail = new Map(
     (existingProfiles ?? []).map((p) => [(p.email ?? "").toLowerCase(), p]),
@@ -1151,6 +1152,49 @@ export async function inviteGuestsToCourse(
       );
   }
 
+  // Người đã có tài khoản: mật khẩu lưu dạng băm nên không đọc lại được.
+  // Ai CHƯA từng đăng nhập lần nào thì chắc chắn không biết mật khẩu của
+  // mình — cấp mật khẩu mới rồi gửi kèm để họ vào học được ngay. Ai từng
+  // đăng nhập rồi thì giữ nguyên mật khẩu đang dùng, trừ khi coach tick
+  // "cấp lại mật khẩu cho tất cả".
+  const resetAll = String(formData.get("reset_password") ?? "") === "on";
+  const existing = emails
+    .filter((e) => profileByEmail.has(e))
+    .map((e) => {
+      const p = profileByEmail.get(e)!;
+      return {
+        id: p.id as string,
+        email: e,
+        fullName: (p.full_name as string) || nameFromEmail(e),
+        isCoach: p.role === "coach",
+      };
+    });
+
+  const reset: { id: string; email: string; password: string; fullName: string }[] = [];
+  const kept: { id: string; email: string; fullName: string }[] = [];
+  const PW_BATCH = 5;
+  for (let i = 0; i < existing.length; i += PW_BATCH) {
+    await Promise.all(
+      existing.slice(i, i + PW_BATCH).map(async (t) => {
+        // Không bao giờ đặt lại mật khẩu của tài khoản coach.
+        let needsPassword = resetAll && !t.isCoach;
+        if (!needsPassword && !t.isCoach) {
+          const { data } = await admin.auth.admin.getUserById(t.id);
+          needsPassword = !data?.user?.last_sign_in_at;
+        }
+        if (needsPassword) {
+          const password = randomPassword();
+          const { error } = await admin.auth.admin.updateUserById(t.id, { password });
+          if (!error) {
+            reset.push({ ...t, password });
+            return;
+          }
+        }
+        kept.push(t);
+      }),
+    );
+  }
+
   // Mở khóa cho tất cả (người mới + người đã có tài khoản).
   const targets = [
     ...created.map((c) => ({
@@ -1158,18 +1202,22 @@ export async function inviteGuestsToCourse(
       email: c.email,
       fullName: c.fullName,
       password: c.password as string | null,
+      isNew: true,
     })),
-    ...emails
-      .filter((e) => profileByEmail.has(e))
-      .map((e) => {
-        const p = profileByEmail.get(e)!;
-        return {
-          id: p.id as string,
-          email: e,
-          fullName: (p.full_name as string) || nameFromEmail(e),
-          password: null as string | null,
-        };
-      }),
+    ...reset.map((r) => ({
+      id: r.id,
+      email: r.email,
+      fullName: r.fullName,
+      password: r.password as string | null,
+      isNew: false,
+    })),
+    ...kept.map((k) => ({
+      id: k.id,
+      email: k.email,
+      fullName: k.fullName,
+      password: null as string | null,
+      isNew: false,
+    })),
   ];
 
   const { data: existingEnr } = await admin
@@ -1242,6 +1290,7 @@ export async function inviteGuestsToCourse(
                   courseTitle: course.title,
                   courseSlug: course.slug,
                   courseEmoji: course.cover_emoji ?? "📘",
+                  isNewAccount: t.isNew,
                 })
               : sendCourseAssignedEmail({
                   to: t.email,
@@ -1265,8 +1314,8 @@ export async function inviteGuestsToCourse(
 
   const parts: string[] = [];
   if (created.length > 0) parts.push(`tạo mới ${created.length} tài khoản`);
-  const reused = targets.length - created.length;
-  if (reused > 0) parts.push(`${reused} người đã có tài khoản sẵn`);
+  if (reset.length > 0) parts.push(`cấp mật khẩu mới cho ${reset.length} người`);
+  if (kept.length > 0) parts.push(`${kept.length} người dùng mật khẩu sẵn có`);
   const opened = toInsert.length + toApprove.length;
   parts.push(opened > 0 ? `mở khóa cho ${opened} người` : "không ai cần mở thêm");
   if (sentCount > 0) parts.push(`gửi email cho ${sentCount} người`);
@@ -1276,7 +1325,10 @@ export async function inviteGuestsToCourse(
   return {
     ok: true,
     message: "Đã xong: " + parts.join(" · ") + ".",
-    created: created.map((c) => ({ email: c.email, password: c.password })),
+    created: [...created, ...reset].map((c) => ({
+      email: c.email,
+      password: c.password,
+    })),
     invalid,
     failed,
   };
