@@ -231,3 +231,26 @@ body {
 .safe-b {
   padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }
+
+/* Chừa chỗ cho thanh điều hướng dưới đáy (chỉ có trên điện thoại). */
+.pb-bottom-nav {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .pb-bottom-nav {
+    padding-bottom: 2rem;
+  }
+}
+
+/* Bảng "Thêm" trượt lên từ đáy. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.sheet-up {
+  animation: sheet-up 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

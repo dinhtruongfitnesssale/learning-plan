@@ -6,9 +6,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { APP_NAME } from "@/lib/brand";
 import type { Profile } from "@/lib/supabase/types";
+import { getNavItems } from "@/lib/nav";
 import { cn } from "@/lib/cn";
-
-type NavItem = { href: string; label: string; badge?: number };
 
 export function AppHeader({
   profile,
@@ -41,29 +40,15 @@ export function AppHeader({
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const items: NavItem[] =
-    variant === "learner"
-      ? [
-          { href: "/hoc", label: "Bảng học" },
-          { href: "/hoc/khoa-hoc", label: "Khóa học" },
-          { href: "/hoc/doi-mat-khau", label: "Đổi mật khẩu" },
-          ...(isCoach ? [{ href: "/admin", label: "Quản trị" }] : []),
-        ]
-      : [
-          { href: "/admin", label: "Tổng quan" },
-          { href: "/admin/khoa-hoc", label: "Khóa học" },
-          { href: "/admin/hoc-vien", label: "Học viên" },
-          { href: "/admin/gui-mail", label: "Gửi mail" },
-          { href: "/admin/theo-doi", label: "Theo dõi" },
-          { href: "/admin/danh-gia", label: "Đánh giá" },
-          { href: "/admin/yeu-cau", label: "Yêu cầu", badge: pendingCount },
-          { href: "/hoc", label: "Xem trước" },
-        ];
+  const items = getNavItems({ variant, isCoach, pendingCount });
 
   // Ngưỡng hiện nav ngang: coach nhiều mục + tên app dài nên chỉ mở ở màn
   // hình rất rộng (2xl); dưới mức đó dùng menu ☰ để không đè logo.
   const inlineNavCls = variant === "coach" ? "hidden 2xl:flex" : "hidden md:flex";
-  const menuBtnCls = variant === "coach" ? "2xl:hidden" : "md:hidden";
+  // Dưới 768px đã có thanh điều hướng dưới đáy nên không cần nút ☰ nữa;
+  // chỉ coach ở khoảng máy tính bảng → 2xl mới cần.
+  const menuBtnCls =
+    variant === "coach" ? "hidden md:block 2xl:hidden" : "hidden";
 
   return (
     <header className="border-b border-ink/10 bg-paper/80 backdrop-blur sticky top-0 z-30">
