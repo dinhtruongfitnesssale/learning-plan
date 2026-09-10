@@ -236,11 +236,13 @@ function QuizRunner({
   return (
     <div>
       {/* Tiến độ + nhảy nhanh giữa các câu (chỉ tới câu đã mở) */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <span className="font-mono text-sm text-ink/60 tnum">
+      {/* Điện thoại: số câu nằm riêng một dòng, dãy số câu ở dòng dưới —
+          để trên cùng một hàng thì chữ "Câu 3 / 20" bị bóp vỡ làm ba dòng. */}
+      <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <span className="font-mono text-sm text-ink/60 tnum whitespace-nowrap">
           Câu {cur + 1} / {total}
         </span>
-        <div className="flex flex-wrap gap-1.5 justify-end">
+        <div className="flex flex-wrap gap-1.5 sm:justify-end">
           {quiz.questions.map((qq, i) => {
             const answered = answers[qq.id] !== undefined;
             const reachable = i <= firstUnanswered;

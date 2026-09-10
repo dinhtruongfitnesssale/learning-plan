@@ -98,7 +98,7 @@ export default async function LearnerDetail({
             Chưa ghi danh khóa nào.
           </Card>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4 [&>*]:min-w-0">
             {courses.map(({ course, done, total, percent }) => (
               <Card key={course.id} className="p-5 flex items-center gap-4">
                 <ProgressRing

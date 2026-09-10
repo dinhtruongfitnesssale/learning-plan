@@ -52,7 +52,7 @@ export default async function AdminCourses({
         <h1 className="font-serif text-3xl mt-2">Khóa học</h1>
       </section>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
+      <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start [&>*]:min-w-0">
         {/* Danh sách */}
         <div className="space-y-4">
           <CourseFilter

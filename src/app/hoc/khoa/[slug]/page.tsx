@@ -250,7 +250,7 @@ export default async function CoursePage({
         </section>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_280px] gap-8 items-start">
+      <div className="grid lg:grid-cols-[1fr_280px] gap-8 items-start [&>*]:min-w-0">
         {/* Danh sách bài học */}
         <div className="space-y-5">
           {total === 0 && (
@@ -274,6 +274,26 @@ export default async function CoursePage({
             const lessonsDone = g.lessons.filter((it) => it.done).length;
             // Chương rỗng: chỉ coach thấy (bản Xem trước) để soi khung nội dung.
             const isEmpty = g.lessons.length === 0;
+            const chapterMeta = (
+              <>
+                {approved &&
+                  chapterLocked &&
+                  (chapterUnlockOn ? (
+                    <span className="text-xs text-amber whitespace-nowrap">
+                      🔒 Mở {fmtDate(chapterUnlockOn)}
+                    </span>
+                  ) : (
+                    <span title="Đang khóa">🔒</span>
+                  ))}
+                {isEmpty ? (
+                  <Badge accent="slate">Chưa có bài · xem trước</Badge>
+                ) : (
+                  <span className="font-mono text-xs text-ink/40 tnum whitespace-nowrap">
+                    {lessonsDone}/{g.lessons.length} bài
+                  </span>
+                )}
+              </>
+            );
             return (
               <Chapter
                 key={g.module.id}
@@ -291,23 +311,14 @@ export default async function CoursePage({
                       <span className="font-medium line-clamp-2 align-middle">
                         {g.module.title}
                       </span>
-                    </span>
-                    {approved &&
-                      chapterLocked &&
-                      (chapterUnlockOn ? (
-                        <span className="text-xs text-amber shrink-0 whitespace-nowrap">
-                          🔒 Mở {fmtDate(chapterUnlockOn)}
-                        </span>
-                      ) : (
-                        <span title="Đang khóa">🔒</span>
-                      ))}
-                    {isEmpty ? (
-                      <Badge accent="slate">Chưa có bài · xem trước</Badge>
-                    ) : (
-                      <span className="font-mono text-xs text-ink/40 tnum shrink-0">
-                        {lessonsDone}/{g.lessons.length} bài
+                      {/* Điện thoại: trạng thái chương nằm dưới tên chương */}
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:hidden">
+                        {chapterMeta}
                       </span>
-                    )}
+                    </span>
+                    <span className="hidden sm:flex items-center gap-3 shrink-0">
+                      {chapterMeta}
+                    </span>
                   </summary>
                 }
               >

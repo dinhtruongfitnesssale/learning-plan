@@ -179,7 +179,7 @@ export default async function CourseEditor({
         </Badge>
       </section>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
+      <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start [&>*]:min-w-0">
         {/* Bài học */}
         <div className="space-y-6">
           <div className="space-y-4">
@@ -218,8 +218,11 @@ export default async function CourseEditor({
                           <span className="font-medium line-clamp-2 align-middle">
                             {g.module.title}
                           </span>
+                          <span className="block font-mono text-xs text-ink/40 tnum mt-1 sm:hidden">
+                            {g.lessons.length} bài
+                          </span>
                         </span>
-                        <span className="font-mono text-xs text-ink/40 tnum shrink-0">
+                        <span className="hidden sm:block font-mono text-xs text-ink/40 tnum shrink-0">
                           {g.lessons.length} bài
                         </span>
                       </summary>

@@ -89,7 +89,7 @@ export function GuiMailForm({
     (mode !== "selected" || selected.size > 0);
 
   return (
-    <form action={action} className="grid lg:grid-cols-[1fr_340px] gap-8 items-start">
+    <form action={action} className="grid lg:grid-cols-[1fr_340px] gap-8 items-start [&>*]:min-w-0">
       {/* Soạn nội dung */}
       <div className="space-y-4">
         <input type="hidden" name="mode" value={mode} />

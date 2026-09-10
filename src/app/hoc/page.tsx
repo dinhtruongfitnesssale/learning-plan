@@ -79,7 +79,7 @@ export default async function Dashboard() {
             <ButtonLink href="/hoc/khoa-hoc">Khám phá khóa học</ButtonLink>
           </Card>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4 [&>*]:min-w-0">
             {data.courses.map(({ course, done, total, percent }) => (
               <Link
                 key={course.id}

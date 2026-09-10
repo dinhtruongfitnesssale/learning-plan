@@ -69,7 +69,7 @@ export default async function AdminLearners({
         </p>
       </section>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
+      <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start [&>*]:min-w-0">
         {/* Danh sách */}
         <div className="space-y-5">
           <form action="/admin/hoc-vien" method="get" className="flex gap-2">
