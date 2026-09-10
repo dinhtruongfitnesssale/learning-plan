@@ -31,7 +31,8 @@ export function Pagination({
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <nav className="flex items-center justify-center gap-1.5 pt-2">
+    // flex-wrap: nhiều trang thì xuống hàng, không đẩy tràn ngang màn hình.
+    <nav className="flex flex-wrap items-center justify-center gap-1.5 pt-2">
       {page > 1 && (
         <Link href={href(page - 1)} className={linkCls(false)}>
           ←

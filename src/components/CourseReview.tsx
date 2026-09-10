@@ -103,7 +103,7 @@ export function CourseReview({
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className={buttonClass("outline", "mt-5")}
+          className={buttonClass("outline", "mt-5 w-full sm:w-auto")}
         >
           Sửa đánh giá
         </button>
@@ -159,7 +159,7 @@ export function CourseReview({
           <p className="text-clay text-sm">⚠ {state.message}</p>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="btn-row">
           <button
             type="submit"
             disabled={pending}

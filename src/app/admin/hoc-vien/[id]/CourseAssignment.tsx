@@ -109,19 +109,23 @@ export function CourseAssignment({
                 {pageItems.map((c) => (
                   <div
                     key={c.id}
-                    className="flex items-center gap-3 rounded-lg border border-ink/10 bg-paper px-3 py-2"
+                    className="flex flex-col gap-2 rounded-lg border border-ink/10 bg-paper px-3 py-2 sm:flex-row sm:items-center sm:gap-3"
                   >
-                    <span className="text-xl shrink-0">{c.cover_emoji}</span>
-                    <span className="flex-1 min-w-0 truncate text-sm">
-                      {c.title}
-                      <span className="text-ink/45"> · {c.categoryLabel}</span>
-                    </span>
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                      <span className="text-xl leading-none shrink-0">
+                        {c.cover_emoji}
+                      </span>
+                      <span className="min-w-0 line-clamp-2 text-sm">
+                        {c.title}
+                        <span className="text-ink/45"> · {c.categoryLabel}</span>
+                      </span>
+                    </div>
                     <button
                       onClick={() => run(c.id, assignCourse, "Đã mở khóa.")}
                       disabled={busyId === c.id}
                       className={buttonClass(
                         "primary",
-                        "!px-3 !py-1.5 text-xs shrink-0",
+                        "!px-3 !py-1.5 text-xs w-full sm:w-auto shrink-0",
                       )}
                     >
                       {busyId === c.id ? "Đang gán…" : "Gán & duyệt"}
@@ -162,30 +166,40 @@ export function CourseAssignment({
       {enrolled.length > 0 && (
         <div className="divide-y divide-ink/10 border-t border-ink/10 pt-1">
           {enrolled.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 py-2.5">
-              <span className="text-xl shrink-0">{c.cover_emoji}</span>
-              <span className="flex-1 min-w-0 truncate">{c.title}</span>
-              <Badge accent={c.status === "approved" ? "herb" : "slate"}>
-                {c.status === "approved" ? "Đang học" : "Chờ duyệt"}
-              </Badge>
-              {c.status === "pending" && (
+            <div
+              key={c.id}
+              className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:gap-3"
+            >
+              <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                <span className="text-xl leading-none shrink-0">
+                  {c.cover_emoji}
+                </span>
+                <span className="min-w-0 line-clamp-2">{c.title}</span>
+              </div>
+              {/* sm:contents — máy rộng thì nhãn/nút trở lại nằm chung một hàng */}
+              <div className="flex items-center gap-3 sm:contents">
+                <Badge accent={c.status === "approved" ? "herb" : "slate"}>
+                  {c.status === "approved" ? "Đang học" : "Chờ duyệt"}
+                </Badge>
+                {c.status === "pending" && (
+                  <button
+                    onClick={() => run(c.id, assignCourse, "Đã duyệt.")}
+                    disabled={busyId === c.id}
+                    className={buttonClass("ghost", "!px-3 !py-1.5 text-xs")}
+                  >
+                    {busyId === c.id ? "Đang duyệt…" : "Duyệt"}
+                  </button>
+                )}
                 <button
-                  onClick={() => run(c.id, assignCourse, "Đã duyệt.")}
+                  onClick={() =>
+                    run(c.id, unassignCourse, "Đã gỡ khóa khỏi học viên.")
+                  }
                   disabled={busyId === c.id}
-                  className={buttonClass("ghost", "!px-3 !py-1.5 text-xs")}
+                  className="text-xs text-clay hover:underline shrink-0 disabled:opacity-40"
                 >
-                  {busyId === c.id ? "Đang duyệt…" : "Duyệt"}
+                  Gỡ
                 </button>
-              )}
-              <button
-                onClick={() =>
-                  run(c.id, unassignCourse, "Đã gỡ khóa khỏi học viên.")
-                }
-                disabled={busyId === c.id}
-                className="text-xs text-clay hover:underline shrink-0 disabled:opacity-40"
-              >
-                Gỡ
-              </button>
+              </div>
             </div>
           ))}
         </div>

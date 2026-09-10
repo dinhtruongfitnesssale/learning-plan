@@ -68,12 +68,12 @@ export function LessonComplete({
   const nextLabel = canGoNext ? "Bài tiếp theo →" : "Về trang khóa học";
 
   return (
-    <div className="rounded-[var(--radius-card)] border border-ink/10 bg-paper-2 p-6">
+    <div className="rounded-[var(--radius-card)] border border-ink/10 bg-paper-2 p-5 sm:p-6">
       {reward ? (
         <div className="text-center">
           <div className="text-3xl mb-2">🎁</div>
           <p className="font-serif text-xl">Tuyệt vời!</p>
-          <div className="mt-3 flex items-center justify-center gap-2 font-mono tnum">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 font-mono tnum">
             <span className="rounded-full bg-paper px-3 py-1 text-sm">
               +{reward.xp} XP
             </span>
@@ -89,15 +89,21 @@ export function LessonComplete({
             </p>
           ) : null}
           <div className="mt-5">
-            <Link href={nextHref} className={buttonClass("primary")}>
+            <Link
+              href={nextHref}
+              className={buttonClass("primary", "w-full sm:w-auto")}
+            >
               {nextLabel}
             </Link>
           </div>
         </div>
       ) : done ? (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="text-herb font-medium">✓ Bạn đã hoàn thành bài này</p>
-          <Link href={nextHref} className={buttonClass("outline")}>
+          <Link
+            href={nextHref}
+            className={buttonClass("outline", "w-full sm:w-auto shrink-0")}
+          >
             {nextLabel}
           </Link>
         </div>
@@ -109,7 +115,7 @@ export function LessonComplete({
           </p>
           <button
             disabled
-            className={`${buttonClass("primary")} mt-4 opacity-40 cursor-not-allowed`}
+            className={`${buttonClass("primary", "w-full sm:w-auto")} mt-4 opacity-40 cursor-not-allowed`}
           >
             Cần đạt quiz trước 🔒
           </button>
@@ -122,7 +128,7 @@ export function LessonComplete({
           <button
             onClick={markComplete}
             disabled={loading}
-            className={buttonClass("primary")}
+            className={buttonClass("primary", "w-full sm:w-auto")}
           >
             {loading ? "Đang lưu…" : "Đánh dấu hoàn thành"}
           </button>

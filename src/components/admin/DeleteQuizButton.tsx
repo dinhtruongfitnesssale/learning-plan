@@ -84,7 +84,7 @@ function ConfirmDialog({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-6 py-4 bg-paper-2 border-t border-ink/10">
+        <div className="btn-row sm:justify-end px-5 sm:px-6 py-4 bg-paper-2 border-t border-ink/10">
           <button
             type="button"
             onClick={onClose}

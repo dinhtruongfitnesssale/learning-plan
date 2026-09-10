@@ -67,7 +67,7 @@ export function AppHeader({
 
   return (
     <header className="border-b border-ink/10 bg-paper/80 backdrop-blur sticky top-0 z-30">
-      <div className="mx-auto max-w-5xl px-5 h-14 flex items-center justify-between gap-4">
+      <div className="safe-x mx-auto max-w-5xl h-14 flex items-center justify-between gap-3">
         <Link href={home} className="flex items-center gap-2.5 min-w-0 shrink">
           <Image src="/logo.png" alt="" width={28} height={28} className="shrink-0" />
           <span className="font-serif text-lg leading-none truncate">{APP_NAME}</span>
@@ -102,12 +102,12 @@ export function AppHeader({
           </button>
 
           {open && (
-            <div className="absolute right-0 mt-2 w-56 rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] p-1.5 z-40">
+            <div className="absolute right-0 mt-2 w-[min(15rem,calc(100vw-2rem))] rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] p-1.5 z-40">
               {items.map((it) => (
                 <Link
                   key={it.href}
                   href={it.href}
-                  className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-ink/80 hover:bg-paper-2 hover:text-ink transition-colors"
+                  className="flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm text-ink/80 hover:bg-paper-2 hover:text-ink transition-colors"
                 >
                   <span>{it.label}</span>
                   {it.badge ? (
@@ -121,7 +121,7 @@ export function AppHeader({
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
-                  className="w-full text-left rounded-lg px-3 py-2 text-sm text-ink/60 hover:bg-paper-2 hover:text-ink transition-colors"
+                  className="w-full text-left rounded-lg px-3 py-2.5 text-sm text-ink/60 hover:bg-paper-2 hover:text-ink transition-colors"
                 >
                   Thoát
                 </button>

@@ -91,28 +91,36 @@ export default async function AdminLearners({
               const totalXp = xpByUser.get(p.id) ?? 0;
               const lv = levelForXp(totalXp);
               return (
-                <Link key={p.id} href={`/admin/hoc-vien/${p.id}`}>
-                  <Card className="p-4 flex items-center gap-4 hover:border-ink/25 transition-colors">
-                    <div className="grid place-items-center w-10 h-10 rounded-full bg-paper-2 font-serif text-lg shrink-0">
-                      {(p.full_name || "?").charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate flex items-center gap-2">
-                        <span className="truncate">
-                          {p.full_name || "(chưa đặt tên)"}
-                        </span>
-                        {p.is_guest && (
-                          <Badge accent="slate" className="shrink-0">
-                            Khách mời
-                          </Badge>
-                        )}
+                <Link
+                  key={p.id}
+                  href={`/admin/hoc-vien/${p.id}`}
+                  className="block"
+                >
+                  <Card className="p-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4 hover:border-ink/25 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="grid place-items-center w-10 h-10 rounded-full bg-paper-2 font-serif text-lg shrink-0">
+                        {(p.full_name || "?").charAt(0).toUpperCase()}
                       </div>
-                      <div className="text-xs text-ink/50 truncate">{p.email}</div>
-                      <div className="text-xs text-ink/40 font-mono tnum">
-                        {enrByUser.get(p.id) ?? 0} khóa · {totalXp} XP
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium flex items-center gap-2">
+                          <span className="truncate">
+                            {p.full_name || "(chưa đặt tên)"}
+                          </span>
+                          {p.is_guest && (
+                            <Badge accent="slate" className="shrink-0">
+                              Khách mời
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-ink/50 truncate">
+                          {p.email}
+                        </div>
+                        <div className="text-xs text-ink/40 font-mono tnum">
+                          {enrByUser.get(p.id) ?? 0} khóa · {totalXp} XP
+                        </div>
                       </div>
                     </div>
-                    <Badge accent="amber">
+                    <Badge accent="amber" className="self-start sm:self-auto">
                       Lv{lv.level} · {lv.name}
                     </Badge>
                   </Card>

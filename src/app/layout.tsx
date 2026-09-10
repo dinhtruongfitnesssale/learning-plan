@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
@@ -32,6 +32,11 @@ export const metadata: Metadata = {
   },
   description:
     "Học viện dinh dưỡng & tập luyện — học từng buổi như dọn một mâm cơm Việt, tiến bộ thật, không chạy theo huy hiệu ảo.",
+  appleWebApp: {
+    capable: true,
+    title: APP_NAME,
+    statusBarStyle: "default",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -39,6 +44,15 @@ export const metadata: Metadata = {
     ],
     apple: "/favicon.svg",
   },
+};
+
+// Điện thoại: khớp bề rộng máy, không cho tự phóng to/thu nhỏ lung tung,
+// tràn ra cả vùng tai thỏ và tô màu thanh trạng thái theo màu nền app.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f6f2ea",
 };
 
 export default function RootLayout({

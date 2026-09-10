@@ -163,3 +163,71 @@ body {
   scrollbar-color: color-mix(in srgb, var(--color-ink) 22%, transparent)
     transparent;
 }
+
+/* ── Điện thoại: cho mọi thứ vừa khít màn hình ──────────────── */
+
+/* Không để chữ dài (email, slug, link) đẩy trang tràn ngang. */
+body {
+  overflow-wrap: break-word;
+  overflow-x: clip;
+}
+
+/* iOS tự phóng to trang khi bấm vào ô nhập có chữ < 16px — ép 16px
+   trên màn hình hẹp để trang không "nhảy". Đặt ngoài @layer nên
+   thắng các class text-sm/text-xs của Tailwind. */
+@media (max-width: 639.98px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Bỏ ô xám nhấp nháy khi chạm trên điện thoại. */
+@media (hover: none) {
+  a,
+  button,
+  summary,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Nhóm nút: điện thoại xếp dọc — mỗi dòng 1 nút, full chiều ngang,
+   chữ trong nút không bao giờ xuống dòng. Từ sm trở lên nằm ngang. */
+.btn-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.btn-row > *,
+.btn-row button,
+.btn-row a {
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .btn-row {
+    flex-direction: row;
+    align-items: center;
+  }
+  .btn-row > *,
+  .btn-row button,
+  .btn-row a {
+    width: auto;
+  }
+}
+
+/* Vùng an toàn iPhone (tai thỏ / thanh gạt dưới). */
+.safe-x {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+@media (min-width: 640px) {
+  .safe-x {
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
+}
+.safe-b {
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+}

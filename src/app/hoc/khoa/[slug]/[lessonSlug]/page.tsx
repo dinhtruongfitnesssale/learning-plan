@@ -42,16 +42,20 @@ export default async function LessonPage({
       </Link>
 
       <header>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <Eyebrow>Bài học</Eyebrow>
           <span className="font-mono text-xs text-ink/40 tnum">
             {lesson.est_minutes}′ · {lesson.xp_reward} XP
           </span>
           {done && <Badge accent="herb">✓ đã học</Badge>}
         </div>
-        <h1 className="font-serif text-3xl sm:text-4xl mt-2">{lesson.title}</h1>
+        <h1 className="font-serif text-2xl sm:text-4xl mt-2 break-words">
+          {lesson.title}
+        </h1>
         {lesson.summary && (
-          <p className="text-lg text-ink/60 mt-2">{lesson.summary}</p>
+          <p className="text-base sm:text-lg text-ink/60 mt-2">
+            {lesson.summary}
+          </p>
         )}
       </header>
 
@@ -123,24 +127,30 @@ export default async function LessonPage({
       />
 
       {/* Điều hướng trước/sau — bài kế khóa cho tới khi hoàn thành bài này */}
-      <nav className="flex items-center justify-between pt-2 text-sm">
+      <nav className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pt-2 text-sm">
         {prev ? (
-          <Link href={`/hoc/khoa/${course.slug}/${prev.slug}`} className="link">
+          <Link
+            href={`/hoc/khoa/${course.slug}/${prev.slug}`}
+            className="link line-clamp-1 sm:max-w-[48%]"
+          >
             ← {prev.title}
           </Link>
         ) : (
           <span />
         )}
         {next && !nextLocked ? (
-          <Link href={`/hoc/khoa/${course.slug}/${next.slug}`} className="link">
+          <Link
+            href={`/hoc/khoa/${course.slug}/${next.slug}`}
+            className="link line-clamp-1 sm:max-w-[48%] sm:text-right"
+          >
             {next.title} →
           </Link>
         ) : next ? (
           <span
-            className="flex items-center gap-1 text-ink/35"
+            className="flex items-center gap-1 text-ink/35 min-w-0 sm:max-w-[48%]"
             title="Hoàn thành bài này (và đạt quiz nếu có) để mở bài tiếp theo"
           >
-            🔒 {next.title}
+            🔒 <span className="line-clamp-1">{next.title}</span>
           </span>
         ) : (
           <span />

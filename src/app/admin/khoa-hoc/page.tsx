@@ -94,8 +94,8 @@ export default async function AdminCourses({
                         </div>
                       </div>
                     </div>
-                    {/* Nhãn: không bị bóp trên mobile — hết chỗ thì kéo ngang */}
-                    <div className="flex items-center gap-2 overflow-x-auto overscroll-x-contain -mx-1 px-1 pb-0.5 sm:mx-0 sm:px-0 sm:pb-0 sm:overflow-visible sm:shrink-0">
+                    {/* Nhãn: hẹp thì tự xuống hàng, luôn nằm gọn trong màn hình */}
+                    <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:shrink-0">
                       <Badge accent={ct?.accent ?? "amber"} className="shrink-0">
                         {ct?.label ?? c.category}
                       </Badge>

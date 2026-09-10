@@ -74,14 +74,16 @@ export function Quiz({
   }
 
   return (
-    <section className="rounded-[var(--radius-card)] border border-slate/30 bg-slate-soft/40 p-6">
-      <div className="flex items-center justify-between mb-1">
+    <section className="rounded-[var(--radius-card)] border border-slate/30 bg-slate-soft/40 p-4 sm:p-6">
+      <div className="flex items-center justify-between gap-2 mb-1">
         <Eyebrow>Kiểm tra năng lực</Eyebrow>
         {bestPercent !== null && (
           <Badge accent="slate">Kỷ lục: {bestPercent}%</Badge>
         )}
       </div>
-      <h3 className="font-serif text-2xl mb-1">{quiz.title}</h3>
+      <h3 className="font-serif text-xl sm:text-2xl mb-1 break-words">
+        {quiz.title}
+      </h3>
       <p className="text-sm text-ink/60 mb-5">
         Cần đúng từ {quiz.pass_score}% để đạt. XP cộng theo đúng số câu bạn làm
         được — đo năng lực thật.
@@ -99,7 +101,10 @@ export function Quiz({
                 Làm lần lượt từng câu, có thể xem lại câu trước. Trả lời hết mới
                 nộp được bài.
               </p>
-              <button onClick={start} className={buttonClass("primary")}>
+              <button
+                onClick={start}
+                className={buttonClass("primary", "w-full sm:w-auto")}
+              >
                 Làm quiz →
               </button>
             </>
@@ -294,7 +299,7 @@ function QuizRunner({
       {error && <p className="text-clay text-sm mt-4">{error}</p>}
 
       {/* Điều hướng */}
-      <div className="flex items-center justify-between gap-3 mt-6">
+      <div className="flex items-center justify-between gap-2 mt-6">
         <button
           type="button"
           onClick={() => setCur(cur - 1)}
@@ -413,7 +418,7 @@ function ResultBanner({
   return (
     <div
       className={cn(
-        "rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-3",
+        "rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3",
         result.passed ? "bg-herb-soft" : "bg-clay-soft",
       )}
     >
@@ -443,7 +448,7 @@ function ResultBanner({
             </p>
           ))}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="btn-row w-full sm:w-auto sm:shrink-0">
         <button onClick={onReview} className={buttonClass("outline")}>
           Xem lại bài
         </button>

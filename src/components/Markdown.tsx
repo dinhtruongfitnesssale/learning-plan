@@ -47,6 +47,35 @@ export function Markdown({ children }: { children: string }) {
               {children}
             </code>
           ),
+          // Ảnh / bảng / khối code: giữ trong bề ngang màn hình, bảng dài thì
+          // tự có thanh cuộn riêng thay vì kéo lệch cả trang.
+          img: ({ src, alt }) => (
+            <img
+              src={typeof src === "string" ? src : undefined}
+              alt={alt ?? ""}
+              className="w-full h-auto rounded-[var(--radius-card)] border border-ink/10"
+            />
+          ),
+          pre: ({ children }) => (
+            <pre className="overflow-x-auto rounded-lg bg-paper-2 p-3 text-sm">
+              {children}
+            </pre>
+          ),
+          table: ({ children }) => (
+            <div className="overflow-x-auto -mx-1 px-1">
+              <table className="w-full text-sm border-collapse">{children}</table>
+            </div>
+          ),
+          th: ({ children }) => (
+            <th className="border border-ink/10 bg-paper-2 px-2.5 py-1.5 text-left font-semibold">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="border border-ink/10 px-2.5 py-1.5 align-top">
+              {children}
+            </td>
+          ),
         }}
       >
         {children}

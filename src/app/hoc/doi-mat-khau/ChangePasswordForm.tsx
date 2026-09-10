@@ -88,7 +88,11 @@ export function ChangePasswordForm() {
         </p>
       )}
 
-      <button type="submit" disabled={loading} className={buttonClass("primary")}>
+      <button
+        type="submit"
+        disabled={loading}
+        className={buttonClass("primary", "w-full sm:w-auto")}
+      >
         {loading ? "Đang đổi…" : "Đổi mật khẩu"}
       </button>
     </form>

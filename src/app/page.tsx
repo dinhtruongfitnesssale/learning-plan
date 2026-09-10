@@ -10,7 +10,7 @@ export default async function Landing() {
 
   return (
     <>
-      <header className="mx-auto max-w-5xl px-5 h-16 flex items-center justify-between gap-6">
+      <header className="safe-x mx-auto max-w-5xl h-16 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <Image src="/logo.png" alt="" width={30} height={30} className="shrink-0" />
           <span className="font-serif text-lg truncate">{APP_NAME}</span>
@@ -22,19 +22,19 @@ export default async function Landing() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="mx-auto max-w-5xl px-5 pt-16 pb-20 text-center">
+        <section className="safe-x mx-auto max-w-5xl pt-12 pb-14 sm:pt-16 sm:pb-20 text-center">
           <Eyebrow className="justify-center">
             Học viện dinh dưỡng &amp; tập luyện
           </Eyebrow>
-          <h1 className="font-serif text-4xl sm:text-6xl leading-[1.05] mt-4 max-w-3xl mx-auto">
+          <h1 className="font-serif text-3xl sm:text-6xl leading-[1.1] sm:leading-[1.05] mt-4 max-w-3xl mx-auto">
             Học khỏe mỗi ngày, <br className="hidden sm:block" />
             <span className="hl">như dọn một mâm cơm tử tế</span>.
           </h1>
-          <p className="mt-6 text-lg text-ink/65 max-w-xl mx-auto leading-relaxed">
+          <p className="mt-5 text-base sm:text-lg text-ink/65 max-w-xl mx-auto leading-relaxed">
             Từng buổi học nhỏ, gọn, dễ làm. Tiến bộ được đo bằng năng lực thật —
             không phải huy hiệu ảo hay áp lực chuỗi ngày.
           </p>
-          <div className="mt-9 flex items-center justify-center gap-3">
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <ButtonLink href={dest}>Bắt đầu học</ButtonLink>
             <Link href="#cach-hoat-dong" className="link text-sm self-center">
               Cách hoạt động
@@ -42,12 +42,12 @@ export default async function Landing() {
           </div>
         </section>
 
-        <div className="mx-auto max-w-5xl px-5">
+        <div className="safe-x mx-auto max-w-5xl">
           <Rule amber />
         </div>
 
         {/* Trụ cột thiết kế (theo Cornell notes về gamification) */}
-        <section id="cach-hoat-dong" className="mx-auto max-w-5xl px-5 py-20">
+        <section id="cach-hoat-dong" className="safe-x mx-auto max-w-5xl py-12 sm:py-20">
           <Eyebrow>Vì sao bạn sẽ theo được</Eyebrow>
           <h2 className="font-serif text-3xl mt-3 mb-10 max-w-lg">
             Game hóa đúng cách — tôn vinh tiến bộ, không gây quá tải.
@@ -65,7 +65,7 @@ export default async function Landing() {
       </main>
 
       <footer className="border-t border-ink/10">
-        <div className="mx-auto max-w-5xl px-5 py-8 text-center text-sm text-ink/50">
+        <div className="safe-x safe-b mx-auto max-w-5xl pt-8 text-center text-sm text-ink/50">
           <span>
             © {new Date().getFullYear()} {APP_NAME} · {APP_TAGLINE}
           </span>

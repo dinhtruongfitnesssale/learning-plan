@@ -111,7 +111,7 @@ export function QuizQuestionsEditor({
                       />
                     </label>
                   </div>
-                  <button className={buttonClass("outline")}>
+                  <button className={buttonClass("outline", "w-full sm:w-auto")}>
                     Lưu thay đổi
                   </button>
                 </form>
@@ -167,7 +167,9 @@ export function QuizQuestionsEditor({
             <input name="explanation" className={inputCls} />
           </label>
         </div>
-        <button className={buttonClass("primary")}>+ Thêm câu hỏi</button>
+        <button className={buttonClass("primary", "w-full sm:w-auto")}>
+          + Thêm câu hỏi
+        </button>
       </form>
     </>
   );

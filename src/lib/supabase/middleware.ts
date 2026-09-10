@@ -32,9 +32,14 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthPage = pathname === "/login";
-  // Route công khai: landing, login, asset tĩnh, auth callback.
+  // Route công khai: landing, login, asset tĩnh, auth callback, và
+  // manifest (trình duyệt tải file này khi “Thêm vào màn hình chính”,
+  // không kèm cookie — chặn lại là mất icon/tên app).
   const isPublic =
-    pathname === "/" || isAuthPage || pathname.startsWith("/auth");
+    pathname === "/" ||
+    isAuthPage ||
+    pathname === "/manifest.webmanifest" ||
+    pathname.startsWith("/auth");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

@@ -149,9 +149,12 @@ export function LessonEditForm({
             <span className="text-sm text-ink/70">Hiển thị</span>
           </label>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button disabled={pending} className={buttonClass("primary")}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <button
+              disabled={pending}
+              className={buttonClass("primary", "w-full sm:w-auto")}
+            >
               {pending ? "Đang lưu…" : "Lưu bài học"}
             </button>
             {state?.ok && (

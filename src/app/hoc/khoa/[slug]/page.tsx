@@ -79,7 +79,7 @@ export default async function CoursePage({
     const lessonLocked = !approved || locked;
     const row = (
       <Card
-        className={`px-4 py-3.5 flex items-center gap-4 ${
+        className={`px-4 py-3.5 flex items-start gap-3 sm:items-center sm:gap-4 ${
           lessonLocked ? "opacity-70" : "hover:border-ink/25 transition-colors"
         }`}
       >
@@ -91,16 +91,27 @@ export default async function CoursePage({
           {lessonLocked ? "🔒" : ldone ? "✓" : i + 1}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="font-medium truncate">{lesson.title}</div>
+          <div className="font-medium line-clamp-2">{lesson.title}</div>
           {availableOn ? (
             <div className="text-xs text-amber mt-0.5">
               🔒 Mở ngày {fmtDate(availableOn)}
             </div>
           ) : (
-            <div className="text-xs text-ink/50 mt-0.5">{lesson.summary}</div>
+            <div className="text-xs text-ink/50 mt-0.5 line-clamp-2">
+              {lesson.summary}
+            </div>
           )}
+          {/* Điện thoại: thông tin phụ nằm dưới tiêu đề cho khỏi bóp chữ */}
+          <div className="flex items-center gap-2 mt-1.5 sm:hidden">
+            {lesson.video_url && <span title="Có video">🎥</span>}
+            {lesson.pdf_url && <span title="Có tài liệu PDF">📄</span>}
+            {hasQuiz && <Badge accent="slate">quiz</Badge>}
+            <span className="font-mono text-xs text-ink/40 tnum">
+              {lesson.est_minutes}′
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
           {lesson.video_url && <span title="Có video">🎥</span>}
           {lesson.pdf_url && <span title="Có tài liệu PDF">📄</span>}
           {hasQuiz && <Badge accent="slate">quiz</Badge>}
@@ -113,7 +124,12 @@ export default async function CoursePage({
     return (
       <li key={lesson.id}>
         {!lessonLocked ? (
-          <Link href={`/hoc/khoa/${course.slug}/${lesson.slug}`}>{row}</Link>
+          <Link
+            href={`/hoc/khoa/${course.slug}/${lesson.slug}`}
+            className="block"
+          >
+            {row}
+          </Link>
         ) : (
           row
         )}
@@ -137,7 +153,9 @@ export default async function CoursePage({
               {ct?.label ?? "Khóa học"}
             </Badge>
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl mt-1">{course.title}</h1>
+          <h1 className="font-serif text-2xl sm:text-4xl mt-1 break-words">
+            {course.title}
+          </h1>
           <p className="text-ink/60 mt-2 max-w-xl">{course.summary}</p>
           {approved && (
             <p className="font-mono text-xs text-ink/50 mt-2 tnum">
@@ -153,13 +171,17 @@ export default async function CoursePage({
           <form action={requestRelearn}>
             <input type="hidden" name="course_id" value={course.id} />
             <input type="hidden" name="slug" value={course.slug} />
-            <button className={buttonClass("primary")}>Yêu cầu học lại</button>
+            <button className={buttonClass("primary", "w-full sm:w-auto")}>
+              Yêu cầu học lại
+            </button>
           </form>
         ) : !approved ? (
           <form action={requestEnroll}>
             <input type="hidden" name="course_id" value={course.id} />
             <input type="hidden" name="slug" value={course.slug} />
-            <button className={buttonClass("primary")}>Yêu cầu học</button>
+            <button className={buttonClass("primary", "w-full sm:w-auto")}>
+              Yêu cầu học
+            </button>
           </form>
         ) : null}
       </header>
@@ -258,13 +280,17 @@ export default async function CoursePage({
                 storageKey={`chapter:${course.slug}:${g.module.id}`}
                 className="group rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] overflow-hidden"
                 summary={
-                  <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
-                    <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0">
+                  <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-start gap-2.5 sm:items-center sm:gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
+                    <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0 mt-0.5 sm:mt-0">
                       ▸
                     </span>
-                    <span className="eyebrow shrink-0">Chương {number}</span>
-                    <span className="font-medium flex-1 min-w-0 truncate">
-                      {g.module.title}
+                    <span className="flex-1 min-w-0">
+                      <span className="eyebrow block sm:inline sm:mr-2">
+                        Chương {number}
+                      </span>
+                      <span className="font-medium line-clamp-2 align-middle">
+                        {g.module.title}
+                      </span>
                     </span>
                     {approved &&
                       chapterLocked &&
@@ -312,18 +338,26 @@ export default async function CoursePage({
                       ) : info.quizAvailable ? (
                         <Link
                           href={`/hoc/khoa/${course.slug}/chuong/${g.module.id}`}
+                          className="block"
                         >
-                          <Card className="px-4 py-3.5 flex items-center gap-3 bg-amber-soft hover:border-ink/25 transition-colors">
-                            <span className="text-xl shrink-0">📝</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium">
-                                Bài kiểm tra chương
-                              </div>
-                              <div className="text-xs text-ink/55">
-                                Đạt để mở khóa chương kế tiếp
+                          <Card className="px-4 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 bg-amber-soft hover:border-ink/25 transition-colors">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <span className="text-xl shrink-0">📝</span>
+                              <div className="min-w-0">
+                                <div className="font-medium">
+                                  Bài kiểm tra chương
+                                </div>
+                                <div className="text-xs text-ink/55">
+                                  Đạt để mở khóa chương kế tiếp
+                                </div>
                               </div>
                             </div>
-                            <span className={buttonClass("primary", "shrink-0")}>
+                            <span
+                              className={buttonClass(
+                                "primary",
+                                "w-full sm:w-auto shrink-0",
+                              )}
+                            >
                               Làm bài →
                             </span>
                           </Card>

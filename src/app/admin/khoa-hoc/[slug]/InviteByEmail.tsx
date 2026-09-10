@@ -90,7 +90,7 @@ export function InviteByEmail({
 
         <button
           disabled={pending || emails.length === 0}
-          className={buttonClass("primary")}
+          className={buttonClass("primary", "w-full sm:w-auto")}
           type="submit"
         >
           {pending

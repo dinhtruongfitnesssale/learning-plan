@@ -69,7 +69,10 @@ export function QuizConfigForm({
         />
       </label>
       <div className="flex items-center gap-2">
-        <button disabled={pending} className={buttonClass("outline")}>
+        <button
+          disabled={pending}
+          className={buttonClass("outline", "w-full sm:w-auto")}
+        >
           {pending ? "Đang lưu…" : quiz ? "Lưu" : "Tạo quiz"}
         </button>
         {saved && <span className="text-sm text-herb">Đã lưu ✓</span>}

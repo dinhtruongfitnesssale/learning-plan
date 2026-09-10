@@ -111,17 +111,26 @@ export default async function CourseEditor({
 
   const lessonRow = (l: Lesson, i: number) => (
     <li key={l.id}>
-      <Link href={`/admin/khoa-hoc/${c.slug}/bai/${l.slug}`}>
-        <Card className="px-4 py-3 flex items-center gap-3 hover:border-ink/25 transition-colors">
-          <span className="font-mono text-sm text-ink/40 w-5 tnum">{i + 1}</span>
+      <Link
+        href={`/admin/khoa-hoc/${c.slug}/bai/${l.slug}`}
+        className="block"
+      >
+        <Card className="px-4 py-3 flex items-start gap-3 hover:border-ink/25 transition-colors">
+          <span className="font-mono text-sm text-ink/40 w-5 tnum shrink-0">
+            {i + 1}
+          </span>
           <div className="flex-1 min-w-0">
-            <div className="font-medium truncate">{l.title}</div>
+            <div className="font-medium line-clamp-2">{l.title}</div>
             <div className="text-xs text-ink/45 font-mono">
               {l.xp_reward} XP
               {l.available_on && <span> · 📅 mở {fmtDate(l.available_on)}</span>}
             </div>
           </div>
-          {!l.published && <Badge accent="ink">ẩn</Badge>}
+          {!l.published && (
+            <Badge accent="ink" className="shrink-0">
+              ẩn
+            </Badge>
+          )}
         </Card>
       </Link>
     </li>
@@ -129,11 +138,11 @@ export default async function CourseEditor({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/admin/khoa-hoc" className="link text-sm">
           ← Tất cả khóa
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="btn-row">
           <form action={toggleCoursePublish}>
             <input type="hidden" name="id" value={c.id} />
             <input type="hidden" name="slug" value={c.slug} />
@@ -148,13 +157,24 @@ export default async function CourseEditor({
         </div>
       </div>
 
-      <section className="flex items-center gap-3">
-        <span className="text-3xl">{c.cover_emoji}</span>
-        <div>
+      <section className="flex items-start gap-3">
+        <span className="text-3xl leading-none shrink-0">{c.cover_emoji}</span>
+        <div className="min-w-0 flex-1">
           <Eyebrow>Sửa khóa học</Eyebrow>
-          <h1 className="font-serif text-3xl">{c.title}</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl break-words">
+            {c.title}
+          </h1>
+          <Badge
+            accent={c.published ? "herb" : "ink"}
+            className="mt-1.5 sm:hidden"
+          >
+            {c.published ? "Đã xuất bản" : "Nháp"}
+          </Badge>
         </div>
-        <Badge accent={c.published ? "herb" : "ink"} className="ml-auto">
+        <Badge
+          accent={c.published ? "herb" : "ink"}
+          className="hidden sm:inline-flex shrink-0"
+        >
           {c.published ? "Đã xuất bản" : "Nháp"}
         </Badge>
       </section>
@@ -187,15 +207,17 @@ export default async function CourseEditor({
                     storageKey={`admin-chapter:${c.slug}:${g.module.id}`}
                     className="group rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] overflow-hidden"
                     summary={
-                      <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
-                        <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0">
+                      <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-start gap-2.5 sm:items-center sm:gap-3 px-4 py-3.5 hover:bg-paper-2 transition-colors">
+                        <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0 mt-0.5 sm:mt-0">
                           ▸
                         </span>
-                        <span className="eyebrow shrink-0">
-                          Chương {from + gi + 1}
-                        </span>
-                        <span className="font-medium flex-1 min-w-0 truncate">
-                          {g.module.title}
+                        <span className="flex-1 min-w-0">
+                          <span className="eyebrow block sm:inline sm:mr-2">
+                            Chương {from + gi + 1}
+                          </span>
+                          <span className="font-medium line-clamp-2 align-middle">
+                            {g.module.title}
+                          </span>
                         </span>
                         <span className="font-mono text-xs text-ink/40 tnum shrink-0">
                           {g.lessons.length} bài

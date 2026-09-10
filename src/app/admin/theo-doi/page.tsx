@@ -162,24 +162,28 @@ function lastActiveLabel(row: TrackingRow) {
 
 function LearnerRow({ row, highlight = false }: { row: TrackingRow; highlight?: boolean }) {
   return (
-    <Link href={`/admin/hoc-vien/${row.id}`}>
+    <Link href={`/admin/hoc-vien/${row.id}`} className="block">
       <Card
-        className={`p-4 flex items-center gap-4 transition-colors hover:border-ink/25 ${
+        className={`p-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4 transition-colors hover:border-ink/25 ${
           highlight ? "border-clay/30 bg-clay-soft/30" : ""
         }`}
       >
-        <div className="grid place-items-center w-10 h-10 rounded-full bg-paper-2 font-serif text-lg shrink-0">
-          {(row.fullName || "?").charAt(0).toUpperCase()}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium truncate">
-            {row.fullName || "(chưa đặt tên)"}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="grid place-items-center w-10 h-10 rounded-full bg-paper-2 font-serif text-lg shrink-0">
+            {(row.fullName || "?").charAt(0).toUpperCase()}
           </div>
-          <div className="text-xs text-ink/50 truncate">{row.email}</div>
-          <div className="text-xs text-ink/40 mt-0.5">{lastActiveLabel(row)}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium truncate">
+              {row.fullName || "(chưa đặt tên)"}
+            </div>
+            <div className="text-xs text-ink/50 truncate">{row.email}</div>
+            <div className="text-xs text-ink/40 mt-0.5">
+              {lastActiveLabel(row)}
+            </div>
+          </div>
         </div>
 
-        <div className="text-right shrink-0">
+        <div className="flex items-center gap-2 sm:block sm:text-right sm:shrink-0">
           {row.daysSince === null ? (
             <Badge accent="clay">Chưa bắt đầu</Badge>
           ) : row.needsReminder ? (
@@ -187,7 +191,7 @@ function LearnerRow({ row, highlight = false }: { row: TrackingRow; highlight?: 
           ) : (
             <Badge accent="herb">🔥 {row.currentStreak} ngày</Badge>
           )}
-          <div className="text-xs text-ink/40 font-mono tnum mt-1">
+          <div className="text-xs text-ink/40 font-mono tnum sm:mt-1">
             Kỷ lục: {row.longestStreak}
           </div>
         </div>

@@ -132,7 +132,7 @@ export function GuiMailForm({
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button
               disabled={!canSend}
-              className={buttonClass("primary")}
+              className={buttonClass("primary", "w-full sm:w-auto")}
               type="submit"
             >
               {pending

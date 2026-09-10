@@ -52,7 +52,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex-1 grid place-items-center px-5 py-12">
+    <main className="safe-x safe-b flex-1 grid place-items-center pt-12">
       <div className="w-full max-w-sm">
         <Link href="/" className="flex items-center gap-3 mb-8">
           <Image src="/logo.png" alt={APP_NAME} width={40} height={40} />

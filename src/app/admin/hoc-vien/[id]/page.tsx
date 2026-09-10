@@ -109,7 +109,9 @@ export default async function LearnerDetail({
                 />
                 <div className="min-w-0">
                   <div className="text-xl">{course.cover_emoji}</div>
-                  <h3 className="font-serif text-lg truncate">{course.title}</h3>
+                  <h3 className="font-serif text-lg line-clamp-2">
+                    {course.title}
+                  </h3>
                   <p className="text-xs text-ink/50 font-mono tnum">
                     {Math.round(percent * 100)}% hoàn thành
                   </p>

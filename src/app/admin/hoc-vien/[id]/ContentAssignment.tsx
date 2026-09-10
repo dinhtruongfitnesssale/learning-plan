@@ -123,12 +123,12 @@ function CourseRow({
 
   return (
     <details className="group rounded-lg border border-ink/10 bg-paper open:bg-paper-2/40">
-      <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-3 px-3.5 py-3 hover:bg-paper-2 rounded-lg">
+      <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3.5 py-3 hover:bg-paper-2 rounded-lg">
         <span className="text-ink/40 transition-transform group-open:rotate-90 shrink-0">
           ▸
         </span>
         <span className="text-xl shrink-0">{course.cover_emoji}</span>
-        <span className="flex-1 min-w-0 truncate font-medium">
+        <span className="flex-1 min-w-[8rem] line-clamp-2 font-medium">
           {course.title}
         </span>
         {partial && (
@@ -262,7 +262,10 @@ function CourseRow({
                 type="button"
                 onClick={save}
                 disabled={pending}
-                className={buttonClass("primary", "!px-4 !py-1.5 text-sm")}
+                className={buttonClass(
+                  "primary",
+                  "!px-4 !py-1.5 text-sm w-full sm:w-auto",
+                )}
               >
                 {pending ? "Đang lưu…" : "Lưu phân công"}
               </button>

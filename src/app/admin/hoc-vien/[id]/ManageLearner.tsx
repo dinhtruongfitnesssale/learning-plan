@@ -50,8 +50,11 @@ export function ManageLearner({
             />
           </label>
         </div>
-        <div className="flex items-center gap-3">
-          <button disabled={editPending} className={buttonClass("primary")}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <button
+            disabled={editPending}
+            className={buttonClass("primary", "w-full sm:w-auto")}
+          >
             {editPending ? "Đang lưu…" : "Lưu thay đổi"}
           </button>
           {editState?.ok && (
@@ -69,7 +72,7 @@ export function ManageLearner({
       <form action={setLearnerGuest} className="flex flex-wrap items-center gap-3">
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="is_guest" value={isGuest ? "false" : "true"} />
-        <div className="flex-1 min-w-[16rem]">
+        <div className="flex-1 min-w-[12rem]">
           <div className="text-sm font-medium">
             {isGuest ? "Tài khoản khách mời" : "Học viên đầy đủ"}
           </div>
@@ -79,7 +82,7 @@ export function ManageLearner({
               : "Tự bấm “Yêu cầu học” ở khóa bất kỳ, chờ bạn duyệt."}
           </p>
         </div>
-        <button className={buttonClass("outline", "shrink-0")}>
+        <button className={buttonClass("outline", "w-full sm:w-auto shrink-0")}>
           {isGuest ? "Nâng thành học viên đầy đủ" : "Chuyển thành khách mời"}
         </button>
       </form>
@@ -88,9 +91,12 @@ export function ManageLearner({
 
       {/* Đặt lại mật khẩu */}
       <div className="flex flex-wrap items-center gap-3">
-        <form action={pwAction}>
+        <form action={pwAction} className="w-full sm:w-auto">
           <input type="hidden" name="id" value={id} />
-          <button disabled={pwPending} className={buttonClass("outline")}>
+          <button
+            disabled={pwPending}
+            className={buttonClass("outline", "w-full sm:w-auto")}
+          >
             {pwPending ? "Đang tạo…" : "Đặt lại mật khẩu"}
           </button>
         </form>
@@ -130,7 +136,9 @@ export function ManageLearner({
         }}
       >
         <input type="hidden" name="id" value={id} />
-        <button className={buttonClass("danger")}>Xóa học viên này</button>
+        <button className={buttonClass("danger", "w-full sm:w-auto")}>
+          Xóa học viên này
+        </button>
         <p className="text-xs text-ink/45 mt-2">
           Hành động không thể hoàn tác.
         </p>

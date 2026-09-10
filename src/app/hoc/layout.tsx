@@ -10,7 +10,9 @@ export default async function LearnerLayout({
   return (
     <>
       <AppHeader profile={profile} variant="learner" />
-      <main className="flex-1 mx-auto w-full max-w-5xl px-5 py-8">{children}</main>
+      <main className="safe-x safe-b flex-1 mx-auto w-full max-w-5xl pt-6 sm:pt-8">
+        {children}
+      </main>
     </>
   );
 }
