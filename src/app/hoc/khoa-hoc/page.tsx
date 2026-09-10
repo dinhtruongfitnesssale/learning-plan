@@ -60,7 +60,12 @@ export default async function Catalog({
                   {ct?.label ?? "Khóa học"}
                 </Badge>
               </div>
-              <h3 className="font-serif text-xl mt-3">{course.title}</h3>
+              <h3
+                className="font-serif text-xl mt-3 line-clamp-2 break-words"
+                title={course.title}
+              >
+                {course.title}
+              </h3>
               <p className="text-sm text-ink/60 mt-1.5 flex-1 leading-relaxed">
                 {course.summary}
               </p>

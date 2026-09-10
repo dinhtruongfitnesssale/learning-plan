@@ -62,7 +62,7 @@ export default async function AdminCourses({
             categories={categories}
           />
 
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             {items.length === 0 && (
               <Card className="p-6 text-ink/60">
                 Không có khóa nào khớp bộ lọc.
@@ -71,19 +71,41 @@ export default async function AdminCourses({
             {items.map((c) => {
               const ct = catMap.get(c.category);
               return (
-                <Link key={c.id} href={`/admin/khoa-hoc/${c.slug}`}>
-                  <Card className="p-4 flex items-center gap-4 hover:border-ink/25 transition-colors">
-                    <span className="text-2xl">{c.cover_emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium">{c.title}</div>
-                      <div className="text-xs text-ink/50 font-mono">/{c.slug}</div>
+                <Link
+                  key={c.id}
+                  href={`/admin/khoa-hoc/${c.slug}`}
+                  className="block"
+                >
+                  <Card className="p-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4 hover:border-ink/25 transition-colors">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <span className="text-2xl leading-none shrink-0">
+                        {c.cover_emoji}
+                      </span>
+                      <div className="min-w-0">
+                        {/* Tên khóa: tối đa 2 dòng, dài hơn thì cắt bằng … */}
+                        <div
+                          className="font-medium line-clamp-2 break-words"
+                          title={c.title}
+                        >
+                          {c.title}
+                        </div>
+                        <div className="text-xs text-ink/50 font-mono truncate">
+                          /{c.slug}
+                        </div>
+                      </div>
                     </div>
-                    <Badge accent={ct?.accent ?? "amber"}>
-                      {ct?.label ?? c.category}
-                    </Badge>
-                    <Badge accent={c.published ? "herb" : "ink"}>
-                      {c.published ? "Đã xuất bản" : "Nháp"}
-                    </Badge>
+                    {/* Nhãn: không bị bóp trên mobile — hết chỗ thì kéo ngang */}
+                    <div className="flex items-center gap-2 overflow-x-auto overscroll-x-contain -mx-1 px-1 pb-0.5 sm:mx-0 sm:px-0 sm:pb-0 sm:overflow-visible sm:shrink-0">
+                      <Badge accent={ct?.accent ?? "amber"} className="shrink-0">
+                        {ct?.label ?? c.category}
+                      </Badge>
+                      <Badge
+                        accent={c.published ? "herb" : "ink"}
+                        className="shrink-0"
+                      >
+                        {c.published ? "Đã xuất bản" : "Nháp"}
+                      </Badge>
+                    </div>
                   </Card>
                 </Link>
               );

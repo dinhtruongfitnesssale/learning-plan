@@ -91,6 +91,8 @@ export function Badge({
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold",
+        // Không cho nhãn xuống dòng khi hẹp (mobile) — thà tràn/kéo ngang còn hơn vỡ chữ
+        "whitespace-nowrap",
         c.bg,
         c.text,
         className,
