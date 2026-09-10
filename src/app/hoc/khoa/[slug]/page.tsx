@@ -417,7 +417,7 @@ export default async function CoursePage({
                           me ? "bg-amber-soft" : ""
                         }`}
                       >
-                        <span className="font-mono text-xs text-ink/50 w-5 tnum">
+                        <span className="font-mono text-xs text-ink/50 w-5 tnum shrink-0">
                           {row.rnk}
                         </span>
                         <span className="flex-1 text-sm truncate">

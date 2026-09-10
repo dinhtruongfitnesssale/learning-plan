@@ -23,17 +23,17 @@ export function QuizResults({ quizzes }: { quizzes: QuizRow[] }) {
     <div className="space-y-2.5">
       <Card className="divide-y divide-ink/10">
         {items.map((q, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+          <div key={i} className="flex items-center gap-3 px-5 py-3.5">
             <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{q.title}</div>
+              <div className="font-medium line-clamp-2">{q.title}</div>
               <div className="text-xs text-ink/50 font-mono tnum">
                 {q.attempts} lượt làm
               </div>
             </div>
-            <Badge accent={q.passed ? "herb" : "clay"}>
+            <Badge accent={q.passed ? "herb" : "clay"} className="shrink-0">
               {q.passed ? "Đạt" : "Chưa đạt"}
             </Badge>
-            <span className="font-mono text-lg font-semibold tnum w-14 text-right">
+            <span className="font-mono text-lg font-semibold tnum w-12 sm:w-14 text-right shrink-0">
               {q.best}%
             </span>
           </div>

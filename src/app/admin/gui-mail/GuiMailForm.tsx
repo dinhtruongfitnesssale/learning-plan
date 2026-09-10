@@ -361,7 +361,7 @@ function Attachments() {
             {files.map((f, i) => (
               <div
                 key={`${f.name}-${f.size}-${i}`}
-                className="relative group w-24"
+                className="relative group w-24 shrink-0"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img

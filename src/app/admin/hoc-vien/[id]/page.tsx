@@ -52,17 +52,20 @@ export default async function LearnerDetail({
         ← Tất cả học viên
       </Link>
 
-      <header className="flex items-center gap-4">
-        <div className="grid place-items-center w-14 h-14 rounded-full bg-paper-2 font-serif text-2xl">
+      <header className="flex items-center gap-3 sm:gap-4">
+        <div className="grid place-items-center w-14 h-14 rounded-full bg-paper-2 font-serif text-2xl shrink-0">
           {(profile.full_name || "?").charAt(0).toUpperCase()}
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <Eyebrow>Học viên</Eyebrow>
-          <h1 className="font-serif text-3xl">
+          <h1 className="font-serif text-2xl sm:text-3xl break-words">
             {profile.full_name || "(chưa đặt tên)"}
           </h1>
+          <Badge accent="amber" className="mt-1.5 sm:hidden">
+            Lv{level.level} · {level.name}
+          </Badge>
         </div>
-        <Badge accent="amber" className="ml-auto">
+        <Badge accent="amber" className="hidden sm:inline-flex shrink-0">
           Lv{level.level} · {level.name}
         </Badge>
       </header>
@@ -107,7 +110,7 @@ export default async function LearnerDetail({
                     </span>
                   }
                 />
-                <div className="min-w-0">
+                <div className="flex-1 min-w-0">
                   <div className="text-xl">{course.cover_emoji}</div>
                   <h3 className="font-serif text-lg line-clamp-2">
                     {course.title}

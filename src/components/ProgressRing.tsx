@@ -30,7 +30,7 @@ export function ProgressRing({
 
   return (
     <div
-      className="relative inline-flex items-center justify-center"
+      className="relative inline-flex shrink-0 items-center justify-center"
       style={{ width: size, height: size }}
     >
       <svg width={size} height={size} className="-rotate-90">

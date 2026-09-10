@@ -24,7 +24,7 @@ export default async function Dashboard() {
       <div className="grid sm:grid-cols-3 gap-4">
         <Card className="p-5 flex items-center gap-4">
           <ProgressRing value={level.progress} accent="amber" size={68} />
-          <div>
+          <div className="min-w-0">
             <div className="text-xs text-ink/50">Cấp độ {level.level}</div>
             <div className="font-serif text-xl">{level.name}</div>
             <div className="text-xs text-ink/50 mt-0.5 font-mono tnum">
@@ -81,7 +81,11 @@ export default async function Dashboard() {
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {data.courses.map(({ course, done, total, percent }) => (
-              <Link key={course.id} href={`/hoc/khoa/${course.slug}`}>
+              <Link
+                key={course.id}
+                href={`/hoc/khoa/${course.slug}`}
+                className="block h-full"
+              >
                 <Card className="p-5 h-full hover:border-ink/25 transition-colors flex items-center gap-4">
                   <ProgressRing
                     value={percent}
@@ -92,9 +96,9 @@ export default async function Dashboard() {
                       </span>
                     }
                   />
-                  <div className="min-w-0">
+                  <div className="flex-1 min-w-0">
                     <div className="text-2xl">{course.cover_emoji}</div>
-                    <h3 className="font-serif text-lg mt-1 truncate">
+                    <h3 className="font-serif text-lg mt-1 line-clamp-2">
                       {course.title}
                     </h3>
                     <p className="text-sm text-ink/55 line-clamp-2">
