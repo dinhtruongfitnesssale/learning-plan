@@ -53,10 +53,12 @@ export default async function Catalog({
           {items.map(({ course, status }) => {
             const ct = catMap.get(course.category);
             return (
-            <Card key={course.id} className="p-6 flex flex-col">
-              <div className="flex items-start justify-between">
-                <div className="text-3xl">{course.cover_emoji}</div>
-                <Badge accent={ct?.accent ?? "amber"}>
+            <Card key={course.id} className="p-6 flex flex-col min-w-0">
+              <div className="flex items-start justify-between gap-2 min-w-0">
+                <div className="text-3xl leading-none shrink-0">
+                  {course.cover_emoji}
+                </div>
+                <Badge accent={ct?.accent ?? "amber"} className="min-w-0">
                   {ct?.label ?? "Khóa học"}
                 </Badge>
               </div>

@@ -16,22 +16,33 @@ export function CourseFilter({
   categories: { slug: string; label: string; emoji: string }[];
 }) {
   return (
-    <form action={basePath} method="get" className="flex flex-wrap items-center gap-2">
+    <form
+      action={basePath}
+      method="get"
+      className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center"
+    >
       <input
         name="q"
         defaultValue={q}
         placeholder="Tìm khóa học…"
-        className={`${inputCls} flex-1 min-w-[160px]`}
+        className={`${inputCls} w-full sm:flex-1 sm:w-auto sm:min-w-[160px]`}
       />
-      <select name="cat" defaultValue={cat} className={inputCls}>
-        <option value="">Tất cả loại</option>
-        {categories.map((c) => (
-          <option key={c.slug} value={c.slug}>
-            {c.emoji} {c.label}
-          </option>
-        ))}
-      </select>
-      <button className={buttonClass("outline")}>Lọc</button>
+      <div className="flex items-center gap-2 sm:contents">
+        {/* w-full + min-w-0: tên loại dài mấy cũng không kéo giãn ô chọn */}
+        <select
+          name="cat"
+          defaultValue={cat}
+          className={`${inputCls} w-full min-w-0 flex-1 sm:w-44 sm:flex-none`}
+        >
+          <option value="">Tất cả loại</option>
+          {categories.map((c) => (
+            <option key={c.slug} value={c.slug}>
+              {c.emoji} {c.label}
+            </option>
+          ))}
+        </select>
+        <button className={buttonClass("outline", "shrink-0")}>Lọc</button>
+      </div>
     </form>
   );
 }

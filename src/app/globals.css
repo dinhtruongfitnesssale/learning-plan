@@ -254,3 +254,13 @@ body {
 .sheet-up {
   animation: sheet-up 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Ô nhập/ô chọn mặc định có bề rộng nội tại (input ~20 ký tự, select bằng
+   lựa chọn dài nhất) và bề rộng đó kéo giãn cả khung chứa — đây là thứ
+   khiến các form 2 cột và hàng lọc tràn ra ngoài màn hình điện thoại. */
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
