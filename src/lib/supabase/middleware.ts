@@ -47,6 +47,8 @@ export async function updateSession(request: NextRequest) {
     isAuthPage ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/api/thanh-toan/webhook" ||
+    // Vercel Cron gọi không kèm cookie; route tự kiểm CRON_SECRET.
+    pathname === "/api/cron/nhac-hoc" ||
     pathname.startsWith("/auth");
 
   if (!user && !isPublic) {

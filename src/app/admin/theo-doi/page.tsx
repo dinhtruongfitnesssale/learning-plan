@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { requireCoach } from "@/lib/auth";
-import { getLearningTracking, INACTIVE_DAYS, type TrackingRow } from "@/lib/data";
+import {
+  getLearningTracking,
+  getPushStats,
+  INACTIVE_DAYS,
+  type TrackingRow,
+} from "@/lib/data";
+import { RemindNowButton } from "./RemindNowButton";
 import { Card, Eyebrow, Badge, Stat } from "@/components/ui";
 import { Pagination } from "@/components/Pagination";
 import { cn } from "@/lib/cn";
@@ -15,7 +21,10 @@ export default async function AdminTracking({
   searchParams: Promise<{ rf?: string; rPage?: string }>;
 }) {
   await requireCoach();
-  const { rows, reminders, onTrack } = await getLearningTracking();
+  const [{ rows, reminders, onTrack }, push] = await Promise.all([
+    getLearningTracking(),
+    getPushStats(),
+  ]);
 
   const studiedToday = rows.filter((r) => r.daysSince === 0).length;
 
@@ -66,6 +75,22 @@ export default async function AdminTracking({
           <Stat value={reminders.length} label="Cần nhắc nhở" accent="clay" />
         </Card>
       </div>
+
+      {/* Thông báo đẩy: tự nhắc mỗi tối + nút nhắc ngay */}
+      <Card className="p-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <span className="text-2xl shrink-0">🔔</span>
+        <div className="flex-1 min-w-0 text-sm">
+          <div className="font-medium">
+            {push.users}/{rows.length} học viên đã bật nhắc học trên điện thoại
+          </div>
+          <p className="text-ink/60 mt-0.5">
+            Tự gửi khoảng 19h mỗi tối: khi chuỗi ngày học sắp đứt, khi nghỉ
+            3 / 7 / 14 / 30 ngày, hoặc tạo tài khoản mà chưa học bài nào. Mỗi
+            người tối đa 1 thông báo/ngày.
+          </p>
+        </div>
+        <RemindNowButton />
+      </Card>
 
       {/* Cần nhắc nhở */}
       <section>

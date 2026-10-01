@@ -1546,3 +1546,27 @@ export async function adjustCoins(
     } còn ${data} xu.`,
   };
 }
+
+// ── Nhắc học bằng thông báo đẩy ──────────────────────────────
+// Gửi ngay cho mọi học viên đang nghỉ (đã bật thông báo). Mỗi người tối
+// đa 1 lần/ngày dù bấm bao nhiêu lần (push_log chặn trùng).
+export async function remindInactiveNow(
+  _prev: { ok: boolean; message: string } | null,
+): Promise<{ ok: boolean; message: string }> {
+  await guard();
+  const { pushConfigured } = await import("@/lib/push");
+  if (!pushConfigured()) {
+    return { ok: false, message: "Chưa cấu hình khóa VAPID trên server." };
+  }
+  const { runReminders } = await import("@/lib/reminders");
+  const r = await runReminders("manual");
+  return {
+    ok: true,
+    message:
+      r.candidates === 0
+        ? "Không có ai đang nghỉ mà đã bật thông báo."
+        : `Đã gửi tới ${r.sent}/${r.candidates} người${
+            r.sent < r.candidates ? " (có người đã được nhắc hôm nay)" : ""
+          }.`,
+  };
+}

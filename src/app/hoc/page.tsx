@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { getLearnerDashboard, getCoinBalance } from "@/lib/data";
 import { Card, Eyebrow, ButtonLink, Badge } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
+import { PushOptIn } from "@/components/PushOptIn";
 
 export default async function Dashboard() {
   const { user, profile } = await requireUser();
@@ -23,6 +24,9 @@ export default async function Dashboard() {
           Chào {name.split(" ").slice(-1)[0]}, sẵn sàng vào bếp chưa?
         </h1>
       </section>
+
+      {/* Bật thông báo nhắc học (tự ẩn nếu máy không hỗ trợ) */}
+      <PushOptIn />
 
       {/* Thẻ chỉ số: XP / cấp độ / streak */}
       <div className="grid sm:grid-cols-3 gap-4">

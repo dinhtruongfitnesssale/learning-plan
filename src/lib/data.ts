@@ -1460,3 +1460,10 @@ export async function getCoinAdmin() {
     },
   };
 }
+
+// Số học viên đã bật thông báo nhắc học (ít nhất 1 máy).
+export async function getPushStats() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("push_subscriptions").select("user_id");
+  return { users: new Set((data ?? []).map((r) => r.user_id as string)).size };
+}

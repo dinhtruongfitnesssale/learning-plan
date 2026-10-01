@@ -7,7 +7,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Bỏ qua asset tĩnh & file ảnh.
-    "/((?!_next/static|_next/image|favicon.svg|icon.svg|logo.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Bỏ qua asset tĩnh & file ảnh. sw.js (service worker nhắc học) phải
+    // tải được kể cả khi phiên hết hạn, không thì trình duyệt đá nó đi.
+    "/((?!_next/static|_next/image|favicon.svg|icon.svg|logo.png|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
