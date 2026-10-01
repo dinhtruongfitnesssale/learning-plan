@@ -6,7 +6,7 @@ import { CourseFilter } from "@/components/CourseFilter";
 import { LockedCourseButton } from "@/components/LockedCourse";
 import { Pagination } from "@/components/Pagination";
 import { formatVnd } from "@/lib/payment";
-import { isMonetized } from "@/lib/coins";
+import { isMonetized, autoApproves } from "@/lib/coins";
 import { requestEnroll, requestRelearn } from "./actions";
 
 export default async function Catalog({
@@ -157,7 +157,7 @@ export default async function Catalog({
                     <input type="hidden" name="course_id" value={course.id} />
                     <input type="hidden" name="slug" value={course.slug} />
                     <button type="submit" className={buttonClass("primary", "w-full")}>
-                      Yêu cầu học
+                      {autoApproves(course) ? "Vào học ngay" : "Yêu cầu học"}
                     </button>
                   </form>
                 )}

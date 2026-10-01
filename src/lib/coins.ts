@@ -51,3 +51,21 @@ export function formatDays(n: number) {
   if (!Number.isFinite(n)) return "không cày được (thưởng đang = 0)";
   return `~${n} ngày`;
 }
+
+// Khóa TỰ DUYỆT: học viên bấm là vào học ngay. Khớp course_auto_approves()
+// ở DB (0022) — chỉ khóa miễn phí, công khai mới được tự duyệt.
+export function autoApproves(
+  c: Pick<
+    Course,
+    "auto_approve" | "published" | "private" | "price" | "course_coin_price" | "lesson_coin_price"
+  >,
+) {
+  return (
+    !!c.auto_approve &&
+    c.published &&
+    !c.private &&
+    c.price === 0 &&
+    c.course_coin_price === 0 &&
+    c.lesson_coin_price === 0
+  );
+}

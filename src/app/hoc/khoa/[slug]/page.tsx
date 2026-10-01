@@ -10,7 +10,7 @@ import { CourseReview } from "@/components/CourseReview";
 import { LockedCourseButton } from "@/components/LockedCourse";
 import { requestEnroll, requestRelearn, startPayment } from "../../khoa-hoc/actions";
 import { unlockCourse, unlockLesson } from "../../xu/actions";
-import { isMonetized, formatCoins } from "@/lib/coins";
+import { isMonetized, formatCoins, autoApproves } from "@/lib/coins";
 import { formatVnd } from "@/lib/payment";
 import type { Lesson } from "@/lib/supabase/types";
 
@@ -67,6 +67,8 @@ export default async function CoursePage({
   // (xu hoặc chuyển khoản) thay vì chỉ nút "Yêu cầu học".
   const monetized = isMonetized(course);
   const sellsLessons = course.lesson_coin_price > 0;
+  // Khóa tự duyệt: nút "Vào học ngay" thay cho "Yêu cầu học".
+  const instant = autoApproves(course);
   const freeCount = lessons.filter((it) => it.free).length;
   const percent = total ? done / total : 0;
   // Học xong toàn bộ khóa → mời đánh giá.
@@ -227,7 +229,7 @@ export default async function CoursePage({
             <input type="hidden" name="course_id" value={course.id} />
             <input type="hidden" name="slug" value={course.slug} />
             <button className={buttonClass("primary", "w-full sm:w-auto")}>
-              Yêu cầu học
+              {instant ? "Vào học ngay" : "Yêu cầu học"}
             </button>
           </form>
         ) : null}
@@ -367,7 +369,7 @@ export default async function CoursePage({
                   <input type="hidden" name="course_id" value={course.id} />
                   <input type="hidden" name="slug" value={course.slug} />
                   <button className={buttonClass("outline", "w-full")}>
-                    Yêu cầu học cả khóa
+                    {instant ? "Vào học cả khóa" : "Yêu cầu học cả khóa"}
                   </button>
                 </form>
               )}
@@ -388,7 +390,9 @@ export default async function CoursePage({
               ? "🔒 Yêu cầu của bạn đang chờ coach duyệt. Khi được duyệt, bạn sẽ vào học được ngay."
               : enrollStatus === "failed"
                 ? "🔒 Bạn đã làm sai quiz quá 2 lần nên khóa học này bị khóa. Bấm “Yêu cầu học lại” để coach mở lại — bạn sẽ có 2 lượt làm mới."
-                : "🔒 Bạn chưa được ghi danh. Bấm “Yêu cầu học” để coach duyệt."}
+                : instant
+                  ? "Khóa này miễn phí — bấm “Vào học ngay” để bắt đầu."
+                  : "🔒 Bạn chưa được ghi danh. Bấm “Yêu cầu học” để coach duyệt."}
           </p>
         </Card>
       )}

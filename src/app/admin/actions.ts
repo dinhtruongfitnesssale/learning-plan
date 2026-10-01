@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { autoApproves } from "@/lib/coins";
 import { requireCoach } from "@/lib/auth";
 import {
   slugify,
@@ -72,8 +73,25 @@ export async function updateCourse(formData: FormData) {
       free_lessons: nonNeg(formData.get("free_lessons")),
       lesson_coin_price: nonNeg(formData.get("lesson_coin_price")),
       course_coin_price: nonNeg(formData.get("course_coin_price")),
+      auto_approve: formData.get("auto_approve") === "on",
     })
     .eq("id", id);
+
+  // Vừa bật tự duyệt cho khóa miễn phí → duyệt luôn các yêu cầu đang chờ,
+  // không thì người xin trước khi bật vẫn phải đợi.
+  const { data: fresh } = await supabase
+    .from("courses")
+    .select("auto_approve, published, private, price, course_coin_price, lesson_coin_price")
+    .eq("id", id)
+    .maybeSingle();
+  if (fresh && autoApproves(fresh)) {
+    await supabase
+      .from("enrollments")
+      .update({ status: "approved", attempts_reset_at: new Date().toISOString() })
+      .eq("course_id", id)
+      .eq("status", "pending");
+    revalidatePath("/admin/yeu-cau");
+  }
   revalidatePath(`/admin/khoa-hoc/${slug}`);
   revalidatePath("/hoc/khoa-hoc");
 }

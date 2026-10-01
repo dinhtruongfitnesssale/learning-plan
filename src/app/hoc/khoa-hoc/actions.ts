@@ -20,7 +20,8 @@ async function isGuest(
   return Boolean(data?.is_guest);
 }
 
-// Học viên GỬI YÊU CẦU học (chờ admin duyệt). Không vào học ngay.
+// Học viên GỬI YÊU CẦU học (chờ admin duyệt). Khóa bật "Tự duyệt" thì
+// vào học ngay — RPC tự kiểm khóa có đủ điều kiện (miễn phí, công khai).
 export async function requestEnroll(formData: FormData) {
   const courseId = String(formData.get("course_id"));
   const slug = String(formData.get("slug"));
@@ -30,6 +31,22 @@ export async function requestEnroll(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   if (await isGuest(supabase, user.id)) return;
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("auto_approve")
+    .eq("id", courseId)
+    .maybeSingle();
+  if (course?.auto_approve) {
+    const { data: status, error } = await supabase.rpc("join_free_course", {
+      p_course_id: courseId,
+    });
+    if (!error && status === "approved") {
+      revalidatePath("/hoc", "layout");
+      redirect(`/hoc/khoa/${slug}`);
+    }
+    // Không đủ điều kiện tự duyệt (vd. coach vừa đặt giá) → gửi yêu cầu như cũ.
+  }
 
   const { data: existing } = await supabase
     .from("enrollments")

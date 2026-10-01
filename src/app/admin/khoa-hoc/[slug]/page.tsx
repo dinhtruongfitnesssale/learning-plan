@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories, getCoinSettings } from "@/lib/data";
-import { daysToEarn, formatDays } from "@/lib/coins";
+import { daysToEarn, formatDays, autoApproves } from "@/lib/coins";
 import { courseVisibility, VISIBILITY, type CourseVisibility } from "@/lib/course-status";
 import { cn } from "@/lib/cn";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
@@ -405,7 +405,7 @@ export default async function CourseEditor({
                 <p className="text-xs text-ink/45">
                   N bài đầu ai cũng học thử được, không cần duyệt. Bài sau mở
                   bằng xu (lẻ từng bài hoặc cả khóa). Để 0 = tắt mục đó. Cả 3 ô
-                  và học phí đều 0 thì khóa giữ luồng “Yêu cầu học” cũ.
+                  và học phí đều 0 = khóa miễn phí.
                 </p>
                 {(c.course_coin_price > 0 || c.lesson_coin_price > 0) && (
                   <p className="text-xs text-slate bg-slate-soft rounded-md px-2.5 py-2">
@@ -428,6 +428,28 @@ export default async function CourseEditor({
                   </p>
                 )}
               </fieldset>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="auto_approve"
+                  defaultChecked={c.auto_approve}
+                  className="mt-0.5"
+                />
+                <span>
+                  Tự duyệt — học viên bấm là vào học ngay
+                  <span className="block text-xs text-ink/45">
+                    Chỉ áp dụng khi khóa miễn phí (học phí, xu/bài, xu cả khóa
+                    đều 0) và Công khai. Bật lên thì các yêu cầu đang chờ của
+                    khóa này được duyệt luôn.
+                  </span>
+                  {c.auto_approve && !autoApproves(c) && (
+                    <span className="block text-xs text-clay mt-0.5">
+                      ⚠ Đang bật nhưng chưa có hiệu lực: khóa đang thu phí /
+                      bán xu hoặc chưa Công khai.
+                    </span>
+                  )}
+                </span>
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="text-sm text-ink/70">Biểu tượng</span>

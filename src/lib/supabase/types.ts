@@ -48,6 +48,8 @@ export interface Course {
   course_coin_price: number;
   /** Riêng tư: ẩn khỏi danh mục; chỉ coach (tự học) + người được phân khóa thấy. */
   private: boolean;
+  /** Tự duyệt: bấm là vào học ngay (chỉ có hiệu lực với khóa miễn phí). */
+  auto_approve: boolean;
   created_at: string;
 }
 
