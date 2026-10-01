@@ -5,7 +5,8 @@ import { Card, Eyebrow, Badge, Stat, buttonClass } from "@/components/ui";
 import { daysToEarn, formatDays, isMonetized, maxDailyEarn } from "@/lib/coins";
 import { formatVnd } from "@/lib/payment";
 import { CoinSettingsForm, AdjustCoinsForm } from "./CoinForms";
-import { createCoinPack, deleteCoinPack, toggleCoinPack } from "../actions";
+import { createCoinPack } from "../actions";
+import { CoinPackRow } from "./CoinPackRow";
 
 const inputCls =
   "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
@@ -125,39 +126,7 @@ export default async function CoinAdmin() {
         {packs.length > 0 && (
           <Card className="divide-y divide-ink/10">
             {packs.map((p) => (
-              <div
-                key={p.id}
-                className={`flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 ${
-                  p.active ? "" : "opacity-55"
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">
-                    {p.name} {!p.active && <Badge>Đang ẩn</Badge>}
-                  </div>
-                  <div className="text-xs text-ink/55 font-mono tnum">
-                    {formatVnd(p.price)} → {p.coins}
-                    {p.bonus > 0 && ` + ${p.bonus} tặng`} xu ·{" "}
-                    {Math.round(p.price / (p.coins + p.bonus)).toLocaleString("vi-VN")}
-                    đ/xu
-                  </div>
-                </div>
-                <div className="btn-row shrink-0">
-                  <form action={toggleCoinPack}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <input type="hidden" name="active" value={String(p.active)} />
-                    <button className={buttonClass("ghost", "!px-3 !py-1.5 text-xs")}>
-                      {p.active ? "Ẩn" : "Hiện"}
-                    </button>
-                  </form>
-                  <form action={deleteCoinPack}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <button className={buttonClass("ghost", "!px-3 !py-1.5 text-xs text-clay")}>
-                      Xóa
-                    </button>
-                  </form>
-                </div>
-              </div>
+              <CoinPackRow key={p.id} pack={p} />
             ))}
           </Card>
         )}

@@ -1483,6 +1483,35 @@ export async function createCoinPack(formData: FormData) {
   revalidatePath("/hoc/xu");
 }
 
+// Sửa gói nạp. Đơn đã tạo trước đó KHÔNG đổi: payments chốt sẵn số tiền và
+// số xu lúc tạo đơn, nên học viên đang chuyển khoản theo giá cũ vẫn đúng.
+export async function updateCoinPack(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
+  const supabase = await guard();
+  const name = String(formData.get("name") ?? "").trim();
+  const price = nonNeg(formData.get("price"));
+  const coins = nonNeg(formData.get("coins"));
+  if (!name) return { ok: false, message: "Nhập tên gói." };
+  if (price < 1000) return { ok: false, message: "Giá tối thiểu 1.000đ." };
+  if (coins <= 0) return { ok: false, message: "Số xu phải lớn hơn 0." };
+  const { error } = await supabase
+    .from("coin_packs")
+    .update({
+      name,
+      price,
+      coins,
+      bonus: nonNeg(formData.get("bonus")),
+      sort_order: nonNeg(formData.get("sort_order")),
+    })
+    .eq("id", String(formData.get("id")));
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/admin/xu");
+  revalidatePath("/hoc/xu");
+  return { ok: true, message: "Đã lưu." };
+}
+
 export async function toggleCoinPack(formData: FormData) {
   const supabase = await guard();
   await supabase
