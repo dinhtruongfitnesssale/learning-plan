@@ -14,6 +14,7 @@ const SNOOZE_KEY = "push-optin-snooze";
 type State =
   | "checking"
   | "unsupported" // trình duyệt không hỗ trợ → ẩn hẳn
+  | "no-key" // server chưa có khóa VAPID (thiếu biến môi trường)
   | "ios-install" // iPhone chưa "Thêm vào MH chính" → hướng dẫn
   | "denied" // đã chặn quyền thông báo
   | "off"
@@ -42,7 +43,7 @@ export function PushOptIn({
 
   useEffect(() => {
     (async () => {
-      if (!VAPID) return setState("unsupported");
+      if (!VAPID) return setState("no-key");
       try {
         const until = Number(localStorage.getItem(SNOOZE_KEY) ?? 0);
         if (until > Date.now()) setSnoozed(true);
@@ -119,7 +120,34 @@ export function PushOptIn({
     setSnoozed(true);
   }
 
-  if (state === "checking" || state === "unsupported") return null;
+  // Học viên: không hỗ trợ / chưa cấu hình thì ẩn hẳn, khỏi rối. Coach thì
+  // phải thấy LÝ DO, không thì tưởng tính năng hỏng.
+  if (state === "checking") return null;
+  if (state === "no-key" || state === "unsupported") {
+    if (audience !== "coach") return null;
+    return (
+      <Card className="p-4 flex items-start gap-3 bg-clay-soft">
+        <span className="text-xl shrink-0">🔕</span>
+        <p className="text-sm text-ink/70">
+          {state === "no-key" ? (
+            <>
+              <b>Thông báo chưa hoạt động:</b> Vercel chưa có biến{" "}
+              <code className="font-mono text-xs">NEXT_PUBLIC_VAPID_PUBLIC_KEY</code>{" "}
+              (và <code className="font-mono text-xs">VAPID_PRIVATE_KEY</code>,{" "}
+              <code className="font-mono text-xs">VAPID_SUBJECT</code>). Thêm vào
+              rồi bấm Redeploy là nút bật hiện ra — cho cả học viên.
+            </>
+          ) : (
+            <>
+              <b>Trình duyệt này không nhận được thông báo.</b> Trên điện thoại
+              hãy dùng Chrome (Android) hoặc thêm app ra màn hình chính
+              (iPhone, iOS 16.4 trở lên).
+            </>
+          )}
+        </p>
+      </Card>
+    );
+  }
 
   if (state === "on") {
     return (
