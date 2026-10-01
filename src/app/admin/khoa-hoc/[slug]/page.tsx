@@ -148,20 +148,12 @@ export default async function CourseEditor({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/admin/khoa-hoc" className="link text-sm">
-            ← Tất cả khóa
-          </Link>
-          {/* Điện thoại: "Xem trước" thành link nhỏ cùng hàng, nhường chỗ
-              cho thanh trạng thái bên dưới. */}
-          <Link href={`/hoc/khoa/${c.slug}`} className="link text-sm sm:hidden">
-            {vis === "private" ? "Vào tự học →" : "Xem trước →"}
-          </Link>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Trạng thái khóa: 3 ô chia đều, ô đang chọn tô đậm. Điện thoại
-              thì kéo hết bề ngang cho dễ bấm. */}
+      <div className="space-y-4">
+        <Link href="/admin/khoa-hoc" className="link text-sm">
+          ← Tất cả khóa
+        </Link>
+        {/* Trạng thái khóa: căn giữa trang. */}
+        <div className="flex justify-center">
           <div
             role="group"
             aria-label="Trạng thái khóa"
@@ -198,12 +190,6 @@ export default async function CourseEditor({
               </form>
             ))}
           </div>
-          <Link
-            href={`/hoc/khoa/${c.slug}`}
-            className={buttonClass("ghost", "hidden sm:inline-flex shrink-0")}
-          >
-            {vis === "private" ? "Vào tự học" : "Xem trước"}
-          </Link>
         </div>
       </div>
 
