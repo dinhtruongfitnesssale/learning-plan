@@ -165,10 +165,10 @@ export default async function CourseEditor({
           <div
             role="group"
             aria-label="Trạng thái khóa"
-            className="grid grid-cols-3 w-full sm:w-auto rounded-full border border-ink/15 bg-paper p-1"
+            className="flex w-full sm:w-auto gap-1 rounded-full border border-ink/15 bg-paper p-1"
           >
             {(["draft", "private", "public"] as CourseVisibility[]).map((m) => (
-              <form key={m} action={setCourseVisibility} className="min-w-0">
+              <form key={m} action={setCourseVisibility} className="flex flex-1 min-w-0">
                 <input type="hidden" name="id" value={c.id} />
                 <input type="hidden" name="slug" value={c.slug} />
                 <input type="hidden" name="mode" value={m} />
@@ -177,13 +177,22 @@ export default async function CourseEditor({
                   title={VISIBILITY[m].hint}
                   aria-pressed={vis === m}
                   className={cn(
-                    "w-full rounded-full px-3 py-2 sm:py-1.5 text-sm whitespace-nowrap transition-colors",
+                    "flex flex-1 items-center justify-center gap-1 rounded-full whitespace-nowrap leading-none transition-colors",
+                    // Điện thoại: chữ 13px + đệm vừa đủ để 3 ô nằm gọn cả
+                    // trên máy 320px; máy tính: cỡ chữ thường.
+                    "px-1.5 py-2.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm",
                     vis === m
-                      ? "bg-ink text-paper font-semibold"
+                      ? "bg-ink text-paper font-semibold shadow-sm"
                       : "text-ink/65 hover:bg-paper-2 hover:text-ink",
                   )}
                 >
-                  {VISIBILITY[m].label}
+                  {VISIBILITY[m].icon && (
+                    // Máy rất hẹp (<360px) bỏ icon cho chữ khỏi chật.
+                    <span className="text-[11px] hidden min-[360px]:inline">
+                      {VISIBILITY[m].icon}
+                    </span>
+                  )}
+                  {VISIBILITY[m].name}
                 </button>
               </form>
             ))}
