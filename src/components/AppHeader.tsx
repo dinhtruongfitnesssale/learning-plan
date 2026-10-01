@@ -13,10 +13,12 @@ export function AppHeader({
   profile,
   variant = "learner",
   pendingCount = 0,
+  payCount = 0,
 }: {
   profile: Profile | null;
   variant?: "learner" | "coach";
   pendingCount?: number;
+  payCount?: number;
 }) {
   const isCoach = profile?.role === "coach";
   const home = variant === "coach" ? "/admin" : "/hoc";
@@ -40,7 +42,7 @@ export function AppHeader({
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const items = getNavItems({ variant, isCoach, pendingCount });
+  const items = getNavItems({ variant, isCoach, pendingCount, payCount });
 
   // Ngưỡng hiện nav ngang: coach nhiều mục + tên app dài nên chỉ mở ở màn
   // hình rất rộng (2xl); dưới mức đó dùng menu ☰ để không đè logo.
@@ -81,7 +83,7 @@ export function AppHeader({
             className="relative grid place-items-center w-10 h-10 rounded-full text-ink/70 hover:bg-paper-2 hover:text-ink transition-colors"
           >
             <span className="text-xl leading-none">{open ? "✕" : "☰"}</span>
-            {variant === "coach" && pendingCount > 0 && !open && (
+            {variant === "coach" && pendingCount + payCount > 0 && !open && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-clay" />
             )}
           </button>

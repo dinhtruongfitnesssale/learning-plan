@@ -12,6 +12,8 @@ import type {
   Profile,
   Streak,
   LeaderboardRow,
+  Payment,
+  PaymentEvent,
 } from "./supabase/types";
 
 // Tổng quan cho bảng học của học viên.
@@ -137,10 +139,18 @@ export async function getCatalog(userId: string, filters: CourseFilters = {}) {
   if (filters.cat) query = query.eq("category", filters.cat);
   if (filters.q) query = query.ilike("title", `%${filters.q}%`);
 
-  const [{ data: courses, count }, { data: enr }] = await Promise.all([
-    query.order("sort_order").range(from, from + PAGE_SIZE - 1),
-    supabase.from("enrollments").select("course_id, status").eq("user_id", userId),
-  ]);
+  const [{ data: courses, count }, { data: enr }, { data: pays }] =
+    await Promise.all([
+      query.order("sort_order").range(from, from + PAGE_SIZE - 1),
+      supabase.from("enrollments").select("course_id, status").eq("user_id", userId),
+      // Đơn học phí đang mở: để nút hiện "Tiếp tục thanh toán" thay vì sinh
+      // thêm mã mới mỗi lần học viên quay lại danh mục.
+      supabase
+        .from("payments")
+        .select("course_id, code, status")
+        .eq("user_id", userId)
+        .in("status", ["pending", "matched"]),
+    ]);
 
   const statusByCourse = new Map(
     (enr ?? []).map((e) => [
@@ -148,11 +158,18 @@ export async function getCatalog(userId: string, filters: CourseFilters = {}) {
       e.status as "pending" | "approved" | "failed",
     ]),
   );
+  const payByCourse = new Map(
+    (pays ?? []).map((p) => [
+      p.course_id as string,
+      { code: p.code as string, status: p.status as string },
+    ]),
+  );
   const total = count ?? 0;
   return {
     items: ((courses as Course[]) ?? []).map((c) => ({
       course: c,
       status: statusByCourse.get(c.id) ?? null,
+      payment: payByCourse.get(c.id) ?? null,
     })),
     page,
     total,
@@ -1025,4 +1042,82 @@ export async function getCourseReviews() {
       slug: string;
     },
   })) as ReviewRow[];
+}
+
+// ── Thanh toán ────────────────────────────────────────────────
+
+// Đơn đang mở, để coach soi và bấm chốt. 'matched' (webhook đã khớp mã)
+// xếp trước 'pending' vì đó mới là việc cần làm ngay.
+export async function getOpenPayments() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("payments")
+    .select("*, courses(cover_emoji, slug), profiles(full_name)")
+    .in("status", ["pending", "matched"])
+    .order("status", { ascending: false })
+    .order("created_at", { ascending: true });
+  return (data ?? []).map((r) => ({
+    ...(r as unknown as Payment),
+    course: r.courses as unknown as { cover_emoji: string; slug: string } | null,
+    learner: r.profiles as unknown as { full_name: string } | null,
+  }));
+}
+
+// Số giao dịch đã khớp mã, đang chờ coach bấm. Dùng cho chấm đỏ ở menu.
+export async function getMatchedPaymentCount() {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("payments")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "matched");
+  return count ?? 0;
+}
+
+// Tiền ĐÃ VỀ nhưng hệ thống không khớp được vào đơn nào — học viên gõ sai
+// nội dung, chuyển thiếu, hoặc mã đã hết hạn. Đây là việc coach BẮT BUỘC
+// phải nhìn: bỏ qua là có người trả tiền mà không được học.
+//
+// Đọc bằng service role vì payment_events cố ý không mở cho ai.
+export async function getUnmatchedTransfers(limit = 50) {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("payment_events")
+    .select("*")
+    .in("result", ["no_code", "unknown_code", "expired", "amount_short"])
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as PaymentEvent[];
+}
+
+// Đơn đang mở của CHÍNH học viên cho một khóa (hiện mã + số tiền để CK).
+export async function getMyOpenPayment(userId: string, courseId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("payments")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .in("status", ["pending", "matched"])
+    .maybeSingle();
+  return (data as Payment | null) ?? null;
+}
+
+// Một đơn theo mã, cho trang thanh toán của học viên. RLS lo phần quyền:
+// learner chỉ đọc được đơn của chính mình, coach đọc được tất cả.
+export async function getPaymentByCode(code: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("payments")
+    .select("*, courses(title, slug, cover_emoji)")
+    .eq("code", code)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    ...(data as unknown as Payment),
+    course: data.courses as unknown as {
+      title: string;
+      slug: string;
+      cover_emoji: string;
+    } | null,
+  };
 }

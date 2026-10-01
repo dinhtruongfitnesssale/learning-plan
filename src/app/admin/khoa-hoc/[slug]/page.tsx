@@ -318,6 +318,21 @@ export default async function CourseEditor({
                   )}
                 </select>
               </label>
+              <label className="block">
+                <span className="text-sm text-ink/70">Học phí (VND)</span>
+                <input
+                  name="price"
+                  type="number"
+                  min={0}
+                  step={1000}
+                  defaultValue={c.price}
+                  className={inputCls}
+                />
+                <span className="text-xs text-ink/45">
+                  Để 0 = miễn phí, học viên bấm “Yêu cầu học” như cũ. Lớn hơn 0
+                  thì họ phải chuyển khoản trước.
+                </span>
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="text-sm text-ink/70">Biểu tượng</span>

@@ -34,6 +34,8 @@ export interface Course {
   category: string;
   sort_order: number;
   published: boolean;
+  /** Học phí (VND, số nguyên). 0 = miễn phí → dùng luồng "Yêu cầu học". */
+  price: number;
   created_at: string;
 }
 
@@ -83,6 +85,49 @@ export interface Enrollment {
   user_id: string;
   course_id: string;
   status: "pending" | "approved";
+  created_at: string;
+}
+
+export type PaymentStatus =
+  | "pending"    // đã sinh mã, chờ tiền về
+  | "matched"    // webhook khớp được mã — chờ coach xác nhận
+  | "confirmed"  // coach đã chốt, khóa học đã mở
+  | "rejected"
+  | "expired";
+
+export interface Payment {
+  id: string;
+  /** Mã ghi trong nội dung chuyển khoản, dạng BH + 8 ký tự hex. */
+  code: string;
+  user_id: string | null;
+  course_id: string | null;
+  /** Ảnh chụp lúc tạo đơn — sổ vẫn đọc được khi học viên/khóa bị xóa. */
+  user_email: string;
+  course_title: string;
+  amount: number;
+  status: PaymentStatus;
+  bank_ref: string | null;
+  /** Số tiền thực nhận. Lệch với amount = chuyển thừa, coach tự xử. */
+  bank_amount: number | null;
+  bank_content: string | null;
+  matched_at: string | null;
+  confirmed_at: string | null;
+  confirmed_by: string | null;
+  note: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface PaymentEvent {
+  id: string;
+  provider: string;
+  provider_ref: string;
+  amount: number;
+  content: string;
+  payload: Json;
+  payment_id: string | null;
+  /** matched | duplicate | no_code | unknown_code | expired | amount_short */
+  result: string;
   created_at: string;
 }
 
@@ -227,6 +272,8 @@ export type Database = {
       xp_events: { Row: XpEvent; Insert: Partial<XpEvent>; Update: Partial<XpEvent>; Relationships: [] };
       streaks: { Row: Streak; Insert: Partial<Streak>; Update: Partial<Streak>; Relationships: [] };
       course_reviews: { Row: CourseReview; Insert: Partial<CourseReview>; Update: Partial<CourseReview>; Relationships: [] };
+      payments: { Row: Payment; Insert: Partial<Payment>; Update: Partial<Payment>; Relationships: [] };
+      payment_events: { Row: PaymentEvent; Insert: Partial<PaymentEvent>; Update: Partial<PaymentEvent>; Relationships: [] };
     };
     Views: Record<string, never>;
     Functions: {
@@ -245,6 +292,33 @@ export type Database = {
       course_leaderboard: {
         Args: { p_course_id: string };
         Returns: LeaderboardRow[];
+      };
+      create_payment_intent: {
+        Args: { p_course_id: string };
+        Returns: Payment;
+      };
+      match_bank_transfer: {
+        Args: {
+          p_provider: string;
+          p_ref: string;
+          p_amount: number;
+          p_content: string;
+          p_payload: Json;
+        };
+        Returns: { ok: boolean; result: string; code: string | null };
+      };
+      confirm_payment: {
+        Args: { p_payment_id: string };
+        Returns: {
+          ok: boolean;
+          already: boolean;
+          user_id: string;
+          course_id: string;
+        };
+      };
+      reject_payment: {
+        Args: { p_payment_id: string; p_note?: string };
+        Returns: void;
       };
     };
     Enums: Record<string, never>;

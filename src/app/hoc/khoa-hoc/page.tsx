@@ -5,12 +5,13 @@ import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { CourseFilter } from "@/components/CourseFilter";
 import { LockedCourseButton } from "@/components/LockedCourse";
 import { Pagination } from "@/components/Pagination";
-import { requestEnroll, requestRelearn } from "./actions";
+import { formatVnd } from "@/lib/payment";
+import { requestEnroll, requestRelearn, startPayment } from "./actions";
 
 export default async function Catalog({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; cat?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; cat?: string; page?: string; loi?: string }>;
 }) {
   const { user, profile } = await requireUser();
   // Khách mời (được tặng khóa): thấy đủ danh mục nhưng không tự yêu cầu học.
@@ -37,6 +38,13 @@ export default async function Catalog({
         </p>
       </section>
 
+      {/* startPayment không tạo được đơn thì chuyển về đây kèm lý do. */}
+      {sp.loi && (
+        <Card className="p-4 border-clay/30 bg-clay-soft text-sm text-clay">
+          ⚠ {sp.loi}
+        </Card>
+      )}
+
       <CourseFilter
         basePath="/hoc/khoa-hoc"
         q={q}
@@ -50,8 +58,9 @@ export default async function Catalog({
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map(({ course, status }) => {
+          {items.map(({ course, status, payment }) => {
             const ct = catMap.get(course.category);
+            const paid = course.price > 0;
             return (
             <Card key={course.id} className="p-6 flex flex-col min-w-0">
               <div className="flex items-start justify-between gap-2 min-w-0">
@@ -71,6 +80,11 @@ export default async function Catalog({
               <p className="text-sm text-ink/60 mt-1.5 flex-1 leading-relaxed">
                 {course.summary}
               </p>
+              {paid && status !== "approved" && (
+                <p className="mt-3 font-mono tnum text-sm font-semibold text-ink">
+                  {formatVnd(course.price)}
+                </p>
+              )}
               <div className="mt-5">
                 {status === "approved" ? (
                   <Link
@@ -95,6 +109,23 @@ export default async function Catalog({
                     <input type="hidden" name="slug" value={course.slug} />
                     <button type="submit" className={buttonClass("primary", "w-full")}>
                       🔒 Yêu cầu học lại
+                    </button>
+                  </form>
+                ) : payment ? (
+                  // Đã có đơn đang mở → quay lại đúng đơn đó, không sinh mã mới.
+                  <Link
+                    href={`/hoc/thanh-toan/${payment.code}`}
+                    className={buttonClass("outline", "w-full")}
+                  >
+                    {payment.status === "matched"
+                      ? "⏳ Đã nhận tiền"
+                      : "💳 Tiếp tục thanh toán"}
+                  </Link>
+                ) : paid ? (
+                  <form action={startPayment}>
+                    <input type="hidden" name="course_id" value={course.id} />
+                    <button type="submit" className={buttonClass("primary", "w-full")}>
+                      Đăng ký
                     </button>
                   </form>
                 ) : (

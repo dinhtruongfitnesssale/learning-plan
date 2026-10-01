@@ -12,10 +12,12 @@ export function BottomNav({
   variant = "learner",
   isCoach = false,
   pendingCount = 0,
+  payCount = 0,
 }: {
   variant?: "learner" | "coach";
   isCoach?: boolean;
   pendingCount?: number;
+  payCount?: number;
 }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -33,7 +35,7 @@ export function BottomNav({
     };
   }, [moreOpen]);
 
-  const items = getNavItems({ variant, isCoach, pendingCount });
+  const items = getNavItems({ variant, isCoach, pendingCount, payCount });
   const tabs = items.filter((it) => it.primary).slice(0, 4);
   const rest = items.filter((it) => !tabs.includes(it));
   const restBadge = rest.reduce((n, it) => n + (it.badge ?? 0), 0);

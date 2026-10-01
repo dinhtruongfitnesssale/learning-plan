@@ -15,10 +15,13 @@ export function getNavItems({
   variant,
   isCoach,
   pendingCount = 0,
+  payCount = 0,
 }: {
   variant: "learner" | "coach";
   isCoach: boolean;
   pendingCount?: number;
+  /** Số giao dịch đã khớp tiền, đang chờ coach bấm chốt. */
+  payCount?: number;
 }): NavItem[] {
   if (variant === "learner") {
     return [
@@ -57,6 +60,13 @@ export function getNavItems({
       icon: "📥",
       primary: true,
       badge: pendingCount,
+    },
+    {
+      href: "/admin/thanh-toan",
+      label: "Thanh toán",
+      short: "Tiền",
+      icon: "💳",
+      badge: payCount,
     },
     { href: "/hoc", label: "Xem trước", icon: "👁️" },
   ];

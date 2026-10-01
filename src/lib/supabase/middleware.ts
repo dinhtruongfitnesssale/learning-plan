@@ -35,10 +35,17 @@ export async function updateSession(request: NextRequest) {
   // Route công khai: landing, login, asset tĩnh, auth callback, và
   // manifest (trình duyệt tải file này khi “Thêm vào màn hình chính”,
   // không kèm cookie — chặn lại là mất icon/tên app).
+  //
+  // /api/thanh-toan/webhook: ngân hàng gọi server-to-server, KHÔNG có
+  // cookie phiên. Không mở ở đây thì mọi webhook bị đá về /login bằng
+  // redirect 307 — cổng đọc là "gửi thất bại", tiền về mà app không
+  // biết, và lỗi này hoàn toàn im lặng. Route tự xác thực bằng khóa bí
+  // mật riêng, không dựa vào phiên đăng nhập.
   const isPublic =
     pathname === "/" ||
     isAuthPage ||
     pathname === "/manifest.webmanifest" ||
+    pathname === "/api/thanh-toan/webhook" ||
     pathname.startsWith("/auth");
 
   if (!user && !isPublic) {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Payment } from "@/lib/supabase/types";
 
 // Tài khoản khách mời (được tặng khóa) không được tự xin học khóa khác —
 // phải liên hệ admin. RLS cũng chặn, đây là lớp phòng vệ phía app.
@@ -112,4 +113,35 @@ export async function submitCourseReview(
   if (slug) revalidatePath(`/hoc/khoa/${slug}`);
   revalidatePath("/admin/danh-gia");
   return { ok: true, message: "Cảm ơn bạn đã đánh giá! 💛" };
+}
+
+// Học viên bấm ĐĂNG KÝ khóa có thu phí → sinh mã chuyển khoản.
+//
+// Số tiền KHÔNG đi qua form: RPC tự đọc courses.price ở server. Nếu để
+// client gửi amount lên thì sửa DevTools là mua khóa 2 triệu với 10 nghìn.
+//
+// Gọi nhiều lần trả về đúng một đơn (RPC idempotent) — học viên bấm lại
+// vẫn thấy cùng mã, không chuyển khoản nhầm mã cũ.
+export async function startPayment(formData: FormData) {
+  const courseId = String(formData.get("course_id"));
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const fail = (msg: string) =>
+    redirect("/hoc/khoa-hoc?loi=" + encodeURIComponent(msg));
+
+  if (await isGuest(supabase, user.id)) {
+    fail("Tài khoản khách mời cần liên hệ admin để được mở khóa học.");
+  }
+
+  const { data, error } = await supabase.rpc("create_payment_intent", {
+    p_course_id: courseId,
+  });
+  if (error) fail(error.message);
+
+  revalidatePath("/hoc/khoa-hoc");
+  redirect(`/hoc/thanh-toan/${(data as Payment).code}`);
 }
