@@ -148,12 +148,17 @@ export default async function CourseEditor({
 
   return (
     <div className="space-y-8">
-      <div className="space-y-4">
-        <Link href="/admin/khoa-hoc" className="link text-sm">
-          ← Tất cả khóa
-        </Link>
-        {/* Trạng thái khóa: căn giữa trang. */}
-        <div className="flex justify-center">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/admin/khoa-hoc" className="link text-sm">
+            ← Tất cả khóa
+          </Link>
+          <Link href={`/hoc/khoa/${c.slug}`} className="link text-sm">
+            {vis === "private" ? "Vào tự học →" : "Xem trước →"}
+          </Link>
+        </div>
+        {/* Trạng thái khóa: căn giữa, tách hẳn khỏi dòng link phía trên. */}
+        <div className="flex justify-center pt-1">
           <div
             role="group"
             aria-label="Trạng thái khóa"
