@@ -8,6 +8,9 @@ export type NavItem = {
   icon: string;
   // primary: hiện thành tab dưới đáy; còn lại nằm trong tab "Thêm".
   primary?: boolean;
+  // Hiện thẳng trên thanh ngang máy tính (mặc định = primary). Mục còn lại
+  // gom vào menu "Thêm ▾" cho thanh khỏi tràn đè lên logo.
+  inline?: boolean;
   badge?: number;
 };
 
@@ -81,6 +84,7 @@ export function getNavItems({
       label: "Thanh toán",
       short: "Tiền",
       icon: "💳",
+      inline: true,
       badge: payCount,
     },
     { href: "/hoc", label: "Xem trước", icon: "👁️" },
@@ -92,4 +96,9 @@ export function getNavItems({
 export function isNavActive(pathname: string, href: string) {
   if (href === "/hoc" || href === "/admin") return pathname === href;
   return pathname === href || pathname.startsWith(href + "/");
+}
+
+// Mục hiện thẳng trên thanh ngang máy tính.
+export function isInline(it: NavItem) {
+  return it.inline ?? !!it.primary;
 }

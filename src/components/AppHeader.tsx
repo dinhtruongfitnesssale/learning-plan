@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { APP_NAME } from "@/lib/brand";
 import type { Profile } from "@/lib/supabase/types";
-import { getNavItems } from "@/lib/nav";
+import { getNavItems, isInline, isNavActive, type NavItem } from "@/lib/nav";
 import { cn } from "@/lib/cn";
 
 export function AppHeader({
@@ -24,24 +24,6 @@ export function AppHeader({
   const home = variant === "coach" ? "/admin" : "/hoc";
   const pathname = usePathname();
 
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // Đóng menu khi đổi trang.
-  useEffect(() => setOpen(false), [pathname]);
-
-  // Đóng menu khi bấm ra ngoài.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
-
   const items = getNavItems({
     variant,
     isCoach,
@@ -49,14 +31,14 @@ export function AppHeader({
     payCount,
     isGuest: profile?.is_guest ?? false,
   });
+  // Thanh ngang chỉ giữ mục dùng hằng ngày; phần còn lại vào "Thêm ▾".
+  const inline = items.filter(isInline);
+  const rest = items.filter((it) => !isInline(it));
 
-  // Ngưỡng hiện nav ngang: coach nhiều mục + tên app dài nên chỉ mở ở màn
-  // hình rất rộng (2xl); dưới mức đó dùng menu ☰ để không đè logo.
-  const inlineNavCls = variant === "coach" ? "hidden 2xl:flex" : "hidden md:flex";
-  // Dưới 768px đã có thanh điều hướng dưới đáy nên không cần nút ☰ nữa;
-  // chỉ coach ở khoảng máy tính bảng → 2xl mới cần.
-  const menuBtnCls =
-    variant === "coach" ? "hidden md:block 2xl:hidden" : "hidden";
+  // Coach nhiều mục hơn nên cần màn hình rộng hơn (lg) mới bày ngang; từ
+  // md tới lg dùng nút ☰ chứa tất cả. Dưới md đã có thanh dưới đáy.
+  const inlineNavCls = variant === "coach" ? "hidden lg:flex" : "hidden md:flex";
+  const burgerCls = variant === "coach" ? "hidden md:block lg:hidden" : "hidden";
 
   return (
     <header className="border-b border-ink/10 bg-paper/80 backdrop-blur sticky top-0 z-30">
@@ -70,96 +52,159 @@ export function AppHeader({
         </Link>
 
         {/* Nav ngang — chỉ khi đủ rộng */}
-        <nav className={cn("items-center gap-1 lg:gap-2 shrink-0", inlineNavCls)}>
-          {items.map((it) => (
-            <NavLink key={it.href} href={it.href} badge={it.badge}>
-              {it.label}
-            </NavLink>
+        <nav className={cn("items-center gap-0.5 shrink-0", inlineNavCls)}>
+          {inline.map((it) => (
+            <NavLink
+              key={it.href}
+              item={it}
+              active={isNavActive(pathname, it.href)}
+            />
           ))}
-          <SignOutButton />
+          <Dropdown
+            label={
+              <>
+                Thêm <span className="text-[10px] opacity-60">▾</span>
+              </>
+            }
+            ariaLabel="Mục khác"
+            items={rest}
+            pathname={pathname}
+            buttonCls="rounded-full px-3 py-1.5 text-sm text-ink/70 hover:bg-paper-2 hover:text-ink"
+          />
         </nav>
 
-        {/* Nút menu thu gọn — khi hẹp */}
-        <div className={cn("relative shrink-0", menuBtnCls)} ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Mở menu"
-            aria-expanded={open}
-            className="relative grid place-items-center w-10 h-10 rounded-full text-ink/70 hover:bg-paper-2 hover:text-ink transition-colors"
-          >
-            <span className="text-xl leading-none">{open ? "✕" : "☰"}</span>
-            {variant === "coach" && pendingCount + payCount > 0 && !open && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-clay" />
-            )}
-          </button>
-
-          {open && (
-            <div className="absolute right-0 mt-2 w-[min(15rem,calc(100vw-2rem))] rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] p-1.5 z-40">
-              {items.map((it) => (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  className="flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm text-ink/80 hover:bg-paper-2 hover:text-ink transition-colors"
-                >
-                  <span>{it.label}</span>
-                  {it.badge ? (
-                    <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-clay text-paper text-xs font-semibold tabular-nums">
-                      {it.badge}
-                    </span>
-                  ) : null}
-                </Link>
-              ))}
-              <div className="my-1 border-t border-ink/10" />
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="w-full text-left rounded-lg px-3 py-2.5 text-sm text-ink/60 hover:bg-paper-2 hover:text-ink transition-colors"
-                >
-                  Thoát
-                </button>
-              </form>
-            </div>
-          )}
+        {/* Nút ☰ — coach ở khoảng máy tính bảng */}
+        <div className={cn("shrink-0", burgerCls)}>
+          <Dropdown
+            label={<span className="text-xl leading-none">☰</span>}
+            ariaLabel="Mở menu"
+            items={items}
+            pathname={pathname}
+            buttonCls="grid place-items-center w-10 h-10 rounded-full text-ink/70 hover:bg-paper-2 hover:text-ink"
+          />
         </div>
       </div>
     </header>
   );
 }
 
-function NavLink({
-  href,
-  children,
-  badge,
-}: {
-  href: string;
-  children: React.ReactNode;
-  badge?: number;
-}) {
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
-      href={href}
-      className="relative rounded-full px-3 py-1.5 text-sm text-ink/70 hover:bg-paper-2 hover:text-ink transition-colors"
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative rounded-full px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
+        active
+          ? "bg-paper-2 text-ink font-medium"
+          : "text-ink/70 hover:bg-paper-2 hover:text-ink",
+      )}
     >
-      {children}
-      {badge ? (
-        <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-clay text-paper text-xs font-semibold tabular-nums align-middle">
-          {badge}
-        </span>
-      ) : null}
+      {item.label}
+      {item.badge ? <Count n={item.badge} className="ml-1 align-middle" /> : null}
     </Link>
   );
 }
 
-function SignOutButton() {
+// Menu thả xuống dùng chung cho "Thêm ▾" và nút ☰. Luôn kèm nút Thoát ở cuối.
+function Dropdown({
+  label,
+  ariaLabel,
+  items,
+  pathname,
+  buttonCls,
+}: {
+  label: React.ReactNode;
+  ariaLabel: string;
+  items: NavItem[];
+  pathname: string;
+  buttonCls: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const badge = items.reduce((n, it) => n + (it.badge ?? 0), 0);
+  const activeInside = items.some((it) => isNavActive(pathname, it.href));
+
+  // Đóng khi đổi trang.
+  useEffect(() => setOpen(false), [pathname]);
+
+  // Đóng khi bấm ra ngoài hoặc nhấn Esc.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <form action="/auth/signout" method="post" className="ml-1">
+    <div className="relative" ref={ref}>
       <button
-        type="submit"
-        className="rounded-full px-3 py-1.5 text-sm text-ink/60 hover:bg-paper-2 hover:text-ink transition-colors"
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={ariaLabel}
+        aria-expanded={open}
+        className={cn(
+          "relative whitespace-nowrap transition-colors",
+          buttonCls,
+          activeInside && "bg-paper-2 text-ink font-medium",
+        )}
       >
-        Thoát
+        {label}
+        {badge > 0 && !open && (
+          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-clay" />
+        )}
       </button>
-    </form>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-[min(15rem,calc(100vw-2rem))] rounded-[var(--radius-card)] border border-ink/10 bg-paper shadow-[var(--shadow-soft)] p-1.5 z-40">
+          {items.map((it) => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={cn(
+                "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                isNavActive(pathname, it.href)
+                  ? "bg-amber-soft text-ink font-medium"
+                  : "text-ink/80 hover:bg-paper-2 hover:text-ink",
+              )}
+            >
+              <span className="text-base leading-none">{it.icon}</span>
+              <span className="flex-1">{it.label}</span>
+              {it.badge ? <Count n={it.badge} /> : null}
+            </Link>
+          ))}
+          <div className="my-1 border-t border-ink/10" />
+          <form action="/auth/signout" method="post">
+            <button
+              type="submit"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-ink/60 hover:bg-paper-2 hover:text-ink transition-colors"
+            >
+              <span className="text-base leading-none">🚪</span>
+              <span>Thoát</span>
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Count({ n, className }: { n: number; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-clay text-paper text-xs font-semibold tabular-nums",
+        className,
+      )}
+    >
+      {n}
+    </span>
   );
 }
