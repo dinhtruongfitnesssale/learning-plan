@@ -97,12 +97,12 @@ export function CoinSettingsForm({ s }: { s: CoinSettings }) {
             value={s.referral_monthly_limit}
           />
         </div>
-        <label className="mt-3 flex items-start gap-2 text-sm">
+        <label className="mt-3 flex items-start gap-3 text-sm cursor-pointer">
           <input
             type="checkbox"
             name="signup_enabled"
             defaultChecked={s.signup_enabled}
-            className="mt-0.5"
+            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-ink"
           />
           <span>
             Cho phép tự đăng ký tài khoản qua link giới thiệu

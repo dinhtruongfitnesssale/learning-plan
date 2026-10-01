@@ -46,8 +46,13 @@ export function AutoConfirmSettings({
 
       <div className="border-t border-ink/10 px-4 py-4 space-y-4">
         <form action={action} className="space-y-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="auto_enabled" defaultChecked={s.auto_enabled} />
+          <label className="flex items-center gap-3 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              name="auto_enabled"
+              defaultChecked={s.auto_enabled}
+              className="h-5 w-5 shrink-0 cursor-pointer accent-ink"
+            />
             <span>Bật tự động chốt (bỏ chọn = tắt khẩn cấp, quay về chốt tay)</span>
           </label>
           <div className="grid grid-cols-2 gap-3">

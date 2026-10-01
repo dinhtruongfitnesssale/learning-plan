@@ -428,12 +428,12 @@ export default async function CourseEditor({
                   </p>
                 )}
               </fieldset>
-              <label className="flex items-start gap-2 text-sm">
+              <label className="flex items-start gap-3 rounded-lg border border-ink/10 px-3 py-3 text-sm cursor-pointer hover:bg-paper-2 transition-colors">
                 <input
                   type="checkbox"
                   name="auto_approve"
                   defaultChecked={c.auto_approve}
-                  className="mt-0.5"
+                  className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-ink"
                 />
                 <span>
                   Tự duyệt — học viên bấm là vào học ngay
