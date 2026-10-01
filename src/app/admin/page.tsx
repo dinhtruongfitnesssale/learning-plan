@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getLearningTracking } from "@/lib/data";
 import { Card, Eyebrow, ButtonLink, Stat, Badge } from "@/components/ui";
+import { PushOptIn } from "@/components/PushOptIn";
 
 export default async function AdminOverview() {
   const supabase = await createClient();
@@ -26,6 +27,8 @@ export default async function AdminOverview() {
           Soạn khóa học, tạo tài khoản học viên, và theo dõi tiến bộ.
         </p>
       </section>
+
+      <PushOptIn audience="coach" />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="p-5">

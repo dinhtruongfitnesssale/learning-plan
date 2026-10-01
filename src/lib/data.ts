@@ -1494,3 +1494,46 @@ export async function getPushStats() {
   const { data } = await supabase.from("push_subscriptions").select("user_id");
   return { users: new Set((data ?? []).map((r) => r.user_id as string)).size };
 }
+
+// Cấu hình tự chốt thanh toán (0021). Mặc định khớp migration.
+export type PaymentSettings = {
+  auto_enabled: boolean;
+  auto_course_max: number;
+  auto_topup_max: number;
+};
+export async function getPaymentSettings(): Promise<PaymentSettings> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("payment_settings")
+    .select("auto_enabled, auto_course_max, auto_topup_max")
+    .eq("id", 1)
+    .maybeSingle();
+  return (
+    (data as PaymentSettings | null) ?? {
+      auto_enabled: true,
+      auto_course_max: 2_000_000,
+      auto_topup_max: 2_000_000,
+    }
+  );
+}
+
+// Vài đơn đã chốt gần nhất (tự động lẫn tay) — để soi lại nhanh.
+export async function getRecentConfirmed(limit = 8) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("payments")
+    .select("id, code, user_email, course_title, amount, coins, auto_confirmed, confirmed_at")
+    .eq("status", "confirmed")
+    .order("confirmed_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as {
+    id: string;
+    code: string;
+    user_email: string;
+    course_title: string;
+    amount: number;
+    coins: number;
+    auto_confirmed: boolean;
+    confirmed_at: string;
+  }[];
+}

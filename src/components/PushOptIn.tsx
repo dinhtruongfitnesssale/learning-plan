@@ -28,7 +28,12 @@ function urlBase64ToUint8Array(base64: string) {
 }
 
 // Thẻ "Bật nhắc học" trên bảng học. Bật rồi thì thu gọn thành 1 dòng.
-export function PushOptIn() {
+export function PushOptIn({
+  audience = "learner",
+}: {
+  /** coach: lời mời "nhận báo tiền về" thay vì "nhắc học". */
+  audience?: "learner" | "coach";
+} = {}) {
   const [state, setState] = useState<State>("checking");
   const [sub, setSub] = useState<PushSubscription | null>(null);
   const [busy, setBusy] = useState(false);
@@ -119,7 +124,10 @@ export function PushOptIn() {
   if (state === "on") {
     return (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink/55">
-        <span>🔔 Đã bật nhắc học trên máy này</span>
+        <span>
+          🔔 Đã bật thông báo {audience === "coach" ? "tiền về" : "nhắc học"} trên
+          máy này
+        </span>
         <button onClick={test} disabled={busy} className="link">
           Gửi thử
         </button>
@@ -137,7 +145,11 @@ export function PushOptIn() {
     <Card className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
       <span className="text-2xl shrink-0">🔔</span>
       <div className="flex-1 min-w-0 text-sm">
-        <div className="font-medium">Bật nhắc học trên điện thoại</div>
+        <div className="font-medium">
+          {audience === "coach"
+            ? "Nhận thông báo tiền về trên điện thoại"
+            : "Bật nhắc học trên điện thoại"}
+        </div>
         {state === "ios-install" ? (
           <p className="text-ink/60 mt-0.5">
             Trên iPhone: bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên) →{" "}
@@ -151,8 +163,9 @@ export function PushOptIn() {
           </p>
         ) : (
           <p className="text-ink/60 mt-0.5">
-            Nhắc khi chuỗi ngày học sắp đứt hoặc lâu rồi bạn chưa vào học.
-            Không spam.
+            {audience === "coach"
+              ? "Báo từng giao dịch: đã tự mở khóa, cần bạn chốt, hay tiền về không khớp đơn."
+              : "Nhắc khi chuỗi ngày học sắp đứt hoặc lâu rồi bạn chưa vào học. Không spam."}
           </p>
         )}
         {note && <p className="text-clay text-xs mt-1">{note}</p>}

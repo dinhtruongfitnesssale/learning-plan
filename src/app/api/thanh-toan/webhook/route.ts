@@ -1,5 +1,12 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifySepayTransaction } from "@/lib/sepay";
+import {
+  notifyAutoConfirmed,
+  notifyNeedsConfirm,
+  notifyUnmatched,
+} from "@/lib/payment-notify";
 
 // POST /api/thanh-toan/webhook — ngân hàng/cổng đối soát báo "có tiền về".
 //
@@ -13,6 +20,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 //
 // ENV cần có:
 //   PAYMENT_WEBHOOK_SECRET  — khóa dán vào cấu hình webhook bên cổng
+//   SEPAY_API_TOKEN         — token API SePay, để HỎI LẠI giao dịch trước
+//                             khi tự chốt (thiếu → mọi đơn chờ coach bấm)
 //   SUPABASE_SERVICE_ROLE_KEY — đã có sẵn
 //
 // Mặc định viết theo SePay (Authorization: Apikey <key>). Đổi cổng thì
@@ -105,6 +114,46 @@ export async function POST(request: Request) {
 
   // result: matched | duplicate | no_code | unknown_code | expired | amount_short
   // Mọi trường hợp đều là 200: DB đã ghi log, không cần cổng gửi lại.
-  // 'matched' mới chỉ là khớp mã — coach vẫn phải bấm xác nhận mới mở khóa.
-  return Response.json({ success: true, ...(data as object) });
+  const r = data as { result: string; code: string | null };
+
+  if (r.result === "matched" && r.code) {
+    const code = r.code;
+    // TỰ CHỐT: chỉ khi SePay API xác nhận giao dịch là thật. Số tiền đưa
+    // vào RPC là số API trả về, không phải số trong webhook. Mọi lỗi ở
+    // đây đều "an toàn": đơn giữ 'matched' và coach được báo để bấm tay.
+    const v = await verifySepayTransaction({
+      sepayId: String(body.id ?? ""),
+      code,
+      reference: body.referenceCode ? String(body.referenceCode) : undefined,
+    });
+    let reason = v.ok ? "" : v.reason;
+    if (v.ok) {
+      const { data: ac, error: acErr } = await admin.rpc("auto_confirm_payment", {
+        p_code: code,
+        p_verified_amount: v.amount,
+      });
+      const res = (ac as { result: string; cap?: number } | null)?.result;
+      if (acErr) {
+        console.error("auto_confirm_payment lỗi:", acErr);
+        reason = "lỗi khi tự chốt";
+      } else if (res === "confirmed") {
+        after(() => notifyAutoConfirmed(code));
+        return Response.json({ success: true, result: "auto_confirmed", code });
+      } else {
+        reason =
+          res === "over_cap"
+            ? "vượt trần tự chốt"
+            : res === "amount_mismatch"
+              ? "số tiền lệch với đơn"
+              : res === "disabled"
+                ? "đang tắt tự chốt"
+                : "đơn không còn chờ";
+      }
+    }
+    after(() => notifyNeedsConfirm(code, reason));
+  } else if (r.result !== "duplicate") {
+    after(() => notifyUnmatched(r.result, transfer.amount, transfer.content));
+  }
+
+  return Response.json({ success: true, ...r });
 }

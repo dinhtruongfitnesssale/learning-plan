@@ -1576,3 +1576,23 @@ export async function setCourseVisibility(formData: FormData) {
   revalidatePath("/admin/khoa-hoc");
   revalidatePath("/hoc", "layout");
 }
+
+// Cài đặt tự chốt thanh toán.
+export async function updatePaymentSettings(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
+  const supabase = await guard();
+  const { error } = await supabase
+    .from("payment_settings")
+    .update({
+      auto_enabled: formData.get("auto_enabled") === "on",
+      auto_course_max: nonNeg(formData.get("auto_course_max")),
+      auto_topup_max: nonNeg(formData.get("auto_topup_max")),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/admin/thanh-toan");
+  return { ok: true, message: "Đã lưu." };
+}

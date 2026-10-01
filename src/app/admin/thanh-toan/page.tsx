@@ -1,5 +1,12 @@
 import { requireCoach } from "@/lib/auth";
-import { getOpenPayments, getUnmatchedTransfers } from "@/lib/data";
+import {
+  getOpenPayments,
+  getUnmatchedTransfers,
+  getPaymentSettings,
+  getRecentConfirmed,
+} from "@/lib/data";
+import { sepayApiConfigured } from "@/lib/sepay";
+import { AutoConfirmSettings } from "./AutoConfirmSettings";
 import { Card, Eyebrow, Badge } from "@/components/ui";
 import { UNMATCHED_LABEL, formatVnd } from "@/lib/payment";
 import { PaymentActions } from "./PaymentActions";
@@ -14,10 +21,14 @@ const dt = (s: string) =>
 
 export default async function PaymentsAdmin() {
   await requireCoach();
-  const [payments, unmatched] = await Promise.all([
+  const [payments, unmatched, settings, recent] = await Promise.all([
     getOpenPayments(),
     getUnmatchedTransfers(),
+    getPaymentSettings(),
+    getRecentConfirmed(),
   ]);
+  const apiReady = sepayApiConfigured();
+  const webhookReady = Boolean(process.env.PAYMENT_WEBHOOK_SECRET);
 
   const matched = payments.filter((p) => p.status === "matched");
   const waiting = payments.filter((p) => p.status === "pending");
@@ -28,10 +39,17 @@ export default async function PaymentsAdmin() {
         <Eyebrow>Quản trị · Thanh toán</Eyebrow>
         <h1 className="font-serif text-3xl mt-2">Thanh toán</h1>
         <p className="text-ink/60 mt-2">
-          Tiền về đúng mã thì hệ thống tự khớp; bạn bấm chốt là khóa học mở và
-          học viên nhận email.
+          Tiền về đúng mã, đúng số và dưới trần thì hệ thống tự mở khóa / cộng
+          xu và báo về điện thoại bạn. Chỉ ngoại lệ mới nằm lại đây chờ bạn
+          chốt.
         </p>
       </section>
+
+      <AutoConfirmSettings
+        settings={settings}
+        apiReady={apiReady}
+        webhookReady={webhookReady}
+      />
 
       <Section
         title="Đã nhận tiền · chờ bạn chốt"
@@ -72,6 +90,31 @@ export default async function PaymentsAdmin() {
               </p>
             </Card>
           ))}
+        </section>
+      )}
+
+      {recent.length > 0 && (
+        <section className="space-y-2.5">
+          <h2 className="font-serif text-xl">Đã chốt gần đây</h2>
+          <Card className="divide-y divide-ink/10">
+            {recent.map((p) => (
+              <div key={p.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span className="shrink-0">{p.coins > 0 ? "🪙" : "📘"}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="truncate">{p.course_title}</div>
+                  <div className="text-xs text-ink/45 truncate">
+                    {p.user_email} · {dt(p.confirmed_at)}
+                  </div>
+                </div>
+                <span className="font-mono tnum text-xs shrink-0">
+                  {formatVnd(p.amount)}
+                </span>
+                <Badge accent={p.auto_confirmed ? "herb" : "ink"} className="shrink-0">
+                  {p.auto_confirmed ? "Tự động" : "Tay"}
+                </Badge>
+              </div>
+            ))}
+          </Card>
         </section>
       )}
 
