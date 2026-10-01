@@ -16,9 +16,12 @@ export function getNavItems({
   isCoach,
   pendingCount = 0,
   payCount = 0,
+  isGuest = false,
 }: {
   variant: "learner" | "coach";
   isCoach: boolean;
+  /** Khách mời không có ví xu → ẩn mục Xu. */
+  isGuest?: boolean;
   pendingCount?: number;
   /** Số giao dịch đã khớp tiền, đang chờ coach bấm chốt. */
   payCount?: number;
@@ -27,12 +30,23 @@ export function getNavItems({
     return [
       { href: "/hoc", label: "Bảng học", icon: "🏠", primary: true },
       { href: "/hoc/khoa-hoc", label: "Khóa học", icon: "📚", primary: true },
+      ...(isGuest
+        ? []
+        : [
+            {
+              href: "/hoc/xu",
+              label: "Xu & nhiệm vụ",
+              short: "Xu",
+              icon: "🪙",
+              primary: true,
+            } satisfies NavItem,
+          ]),
       {
         href: "/hoc/doi-mat-khau",
         label: "Đổi mật khẩu",
         short: "Mật khẩu",
         icon: "🔑",
-        primary: true,
+        primary: isGuest,
       },
       ...(isCoach
         ? [
@@ -54,6 +68,7 @@ export function getNavItems({
     { href: "/admin/gui-mail", label: "Gửi mail", icon: "✉️" },
     { href: "/admin/theo-doi", label: "Theo dõi", icon: "📈" },
     { href: "/admin/danh-gia", label: "Đánh giá", icon: "⭐" },
+    { href: "/admin/xu", label: "Xu & nhiệm vụ", short: "Xu", icon: "🪙" },
     {
       href: "/admin/yeu-cau",
       label: "Yêu cầu",

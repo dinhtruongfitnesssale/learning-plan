@@ -42,7 +42,13 @@ export function AppHeader({
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const items = getNavItems({ variant, isCoach, pendingCount, payCount });
+  const items = getNavItems({
+    variant,
+    isCoach,
+    pendingCount,
+    payCount,
+    isGuest: profile?.is_guest ?? false,
+  });
 
   // Ngưỡng hiện nav ngang: coach nhiều mục + tên app dài nên chỉ mở ở màn
   // hình rất rộng (2xl); dưới mức đó dùng menu ☰ để không đè logo.

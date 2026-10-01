@@ -14,8 +14,13 @@ export default async function LessonPage({
   params: Promise<{ slug: string; lessonSlug: string }>;
 }) {
   const { slug, lessonSlug } = await params;
-  const { user } = await requireUser();
-  const data = await getLessonView(slug, lessonSlug, user.id);
+  const { user, profile } = await requireUser();
+  const data = await getLessonView(
+    slug,
+    lessonSlug,
+    user.id,
+    profile?.is_guest ?? false,
+  );
   if (!data) notFound();
   // Chưa được duyệt → quay về trang khóa (hiện trạng thái chờ duyệt).
   if (data.locked) redirect(`/hoc/khoa/${slug}`);
@@ -30,6 +35,9 @@ export default async function LessonPage({
     prev,
     next,
     nextLocked,
+    nextPaywalled,
+    lessonCoinPrice,
+    balance,
   } = data;
   const pdfEmbed = lesson.pdf_url ? pdfEmbedSrc(lesson.pdf_url) : "";
   const pdfIsDrive = pdfEmbed.includes("drive.google.com");
@@ -124,6 +132,12 @@ export default async function LessonPage({
         initialDone={done}
         hasQuiz={hasQuiz}
         quizPassed={quizPassed}
+        nextPaywalled={nextPaywalled}
+        nextUnlock={
+          next && nextPaywalled && lessonCoinPrice > 0
+            ? { lessonId: next.id, price: lessonCoinPrice, balance }
+            : null
+        }
       />
 
       {/* Điều hướng trước/sau — bài kế khóa cho tới khi hoàn thành bài này */}
@@ -148,7 +162,11 @@ export default async function LessonPage({
         ) : next ? (
           <span
             className="flex items-center gap-1 text-ink/35 min-w-0 sm:max-w-[48%]"
-            title="Hoàn thành bài này (và đạt quiz nếu có) để mở bài tiếp theo"
+            title={
+              nextPaywalled
+                ? "Bài tiếp theo cần mở khóa (bằng xu hoặc mua khóa học)"
+                : "Hoàn thành bài này (và đạt quiz nếu có) để mở bài tiếp theo"
+            }
           >
             🔒 <span className="line-clamp-1">{next.title}</span>
           </span>

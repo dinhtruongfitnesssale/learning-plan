@@ -26,6 +26,9 @@ export default async function PaymentPage({
   if (!pay) notFound();
 
   const open = pay.status === "pending" || pay.status === "matched";
+  // Đơn nạp xu dùng chung trang này với đơn học phí khóa học.
+  const topup = pay.coins > 0;
+  const backHref = topup ? "/hoc/xu" : "/hoc/khoa-hoc";
 
   return (
     <div className="max-w-md mx-auto space-y-5">
@@ -34,7 +37,9 @@ export default async function PaymentPage({
       <section>
         <Eyebrow>Thanh toán</Eyebrow>
         <h1 className="font-serif text-2xl sm:text-3xl mt-2 flex items-start gap-2">
-          <span className="shrink-0">{pay.course?.cover_emoji ?? "📘"}</span>
+          <span className="shrink-0">
+            {topup ? "🪙" : (pay.course?.cover_emoji ?? "📘")}
+          </span>
           <span className="min-w-0 break-words">{pay.course_title}</span>
         </h1>
       </section>
@@ -42,8 +47,17 @@ export default async function PaymentPage({
       {pay.status === "confirmed" ? (
         <Card className="p-6 text-center space-y-4">
           <p className="text-4xl leading-none">🎉</p>
-          <p className="font-medium">Đã nhận học phí, khóa học đã mở.</p>
-          {pay.course && (
+          <p className="font-medium">
+            {topup
+              ? `Đã cộng ${pay.coins.toLocaleString("vi-VN")} xu vào ví của bạn.`
+              : "Đã nhận học phí, khóa học đã mở."}
+          </p>
+          {topup && (
+            <Link href="/hoc/xu" className={buttonClass("primary", "w-full")}>
+              Xem ví xu
+            </Link>
+          )}
+          {!topup && pay.course && (
             <Link
               href={`/hoc/khoa/${pay.course.slug}`}
               className={buttonClass("primary", "w-full")}
@@ -63,11 +77,8 @@ export default async function PaymentPage({
               </>
             )}
           </p>
-          <Link
-            href="/hoc/khoa-hoc"
-            className={buttonClass("outline", "w-full")}
-          >
-            Về danh mục khóa học
+          <Link href={backHref} className={buttonClass("outline", "w-full")}>
+            {topup ? "Về ví xu" : "Về danh mục khóa học"}
           </Link>
         </Card>
       ) : (
@@ -116,9 +127,9 @@ export default async function PaymentPage({
             </p>
             {pay.status === "matched" ? (
               <p>
-                Hệ thống đã khớp khoản chuyển khoản của bạn. Coach sẽ xác nhận
-                và mở khóa học, thường trong vài giờ. Bạn nhận được email khi
-                khóa mở — không cần chuyển thêm lần nữa.
+                {topup
+                  ? "Hệ thống đã khớp khoản chuyển khoản của bạn. Coach sẽ xác nhận và cộng xu vào ví, thường trong vài giờ — không cần chuyển thêm lần nữa."
+                  : "Hệ thống đã khớp khoản chuyển khoản của bạn. Coach sẽ xác nhận và mở khóa học, thường trong vài giờ. Bạn nhận được email khi khóa mở — không cần chuyển thêm lần nữa."}
               </p>
             ) : (
               <ol className="list-decimal pl-5 space-y-1.5">

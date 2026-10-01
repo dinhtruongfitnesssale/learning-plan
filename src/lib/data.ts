@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
 import { levelForXp } from "./brand";
+import { isMonetized } from "./coins";
 import type {
   Course,
   CourseCategory,
@@ -14,6 +15,9 @@ import type {
   LeaderboardRow,
   Payment,
   PaymentEvent,
+  CoinSettings,
+  CoinPack,
+  CoinLedgerRow,
 } from "./supabase/types";
 
 // Tổng quan cho bảng học của học viên.
@@ -21,7 +25,7 @@ export async function getLearnerDashboard(userId: string) {
   const supabase = await createClient();
 
   const [{ data: xp }, { data: streakRow }, { data: enr }] = await Promise.all([
-    supabase.from("xp_events").select("amount").eq("user_id", userId),
+    supabase.from("xp_events").select("amount, course_id").eq("user_id", userId),
     supabase.from("streaks").select("*").eq("user_id", userId).maybeSingle(),
     supabase
       .from("enrollments")
@@ -31,9 +35,31 @@ export async function getLearnerDashboard(userId: string) {
   ]);
 
   const totalXp = (xp ?? []).reduce((a, b) => a + (b.amount ?? 0), 0);
-  const courses = (enr ?? [])
+  const approvedCourses = (enr ?? [])
     .map((e) => e.courses as unknown as Course)
     .filter(Boolean);
+
+  // Khóa đang HỌC THỬ (chưa ghi danh nhưng đã học ít nhất 1 bài) cũng hiện
+  // ở "Tiếp tục học" — không thì học xong phần miễn phí là mất dấu khóa.
+  const approvedIds = new Set(approvedCourses.map((c) => c.id));
+  const trialIds = [
+    ...new Set(
+      (xp ?? [])
+        .map((x) => x.course_id as string | null)
+        .filter((id): id is string => !!id && !approvedIds.has(id)),
+    ),
+  ];
+  let trialCourses: Course[] = [];
+  if (trialIds.length) {
+    const { data: tc } = await supabase
+      .from("courses")
+      .select("*")
+      .in("id", trialIds)
+      .eq("published", true);
+    trialCourses = ((tc as Course[]) ?? []).filter(isMonetized);
+  }
+  const trialSet = new Set(trialCourses.map((c) => c.id));
+  const courses = [...approvedCourses, ...trialCourses];
   const courseIds = courses.map((c) => c.id);
 
   let progressByCourse: Record<string, { done: number; total: number }> = {};
@@ -94,6 +120,7 @@ export async function getLearnerDashboard(userId: string) {
       const p = progressByCourse[c.id] ?? { done: 0, total: 0 };
       return {
         course: c,
+        trial: trialSet.has(c.id),
         done: p.done,
         total: p.total,
         percent: p.total ? p.done / p.total : 0,
@@ -309,8 +336,59 @@ function orderLessonsByModule(lessons: Lesson[], modules: Module[]): Lesson[] {
   );
 }
 
+// Số dư ví xu (0 nếu chưa có ví).
+export async function getCoinBalance(userId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("coin_wallets")
+    .select("balance")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data?.balance as number | undefined) ?? 0;
+}
+
+// Bài nào học viên VÀO được (khớp lesson_accessible() trong 0018):
+// ghi danh approved → tất cả; failed / khách mời → không bài nào; còn lại
+// → N bài học thử đầu khóa + các bài đã mở bằng xu.
+// Trả về Set id bài vào được, kèm .free = các bài thuộc phần học thử.
+function lessonAccess({
+  course,
+  enrollStatus,
+  isGuest,
+  allLessons,
+  allModules,
+  unlocked,
+}: {
+  course: Course;
+  enrollStatus: "pending" | "approved" | "failed" | null;
+  isGuest: boolean;
+  allLessons: Lesson[];
+  allModules: Module[];
+  unlocked: Set<string>;
+}) {
+  const free = new Set(
+    orderLessonsByModule(allLessons, allModules)
+      .slice(0, Math.max(0, course.free_lessons ?? 0))
+      .map((l) => l.id),
+  );
+  const ids = new Set<string>();
+  if (enrollStatus === "approved") {
+    allLessons.forEach((l) => ids.add(l.id));
+  } else if (enrollStatus !== "failed" && !isGuest) {
+    allLessons.forEach((l) => {
+      if (free.has(l.id) || unlocked.has(l.id)) ids.add(l.id);
+    });
+  }
+  return Object.assign(ids, { free });
+}
+
 // Chi tiết khóa học cho học viên.
-export async function getCourseDetail(slug: string, userId: string) {
+// isGuest: khách mời không học thử / không mở bằng xu (chỉ học khóa được tặng).
+export async function getCourseDetail(
+  slug: string,
+  userId: string,
+  isGuest = false,
+) {
   const supabase = await createClient();
   const { data: course } = await supabase
     .from("courses")
@@ -319,34 +397,59 @@ export async function getCourseDetail(slug: string, userId: string) {
     .maybeSingle();
   if (!course) return null;
 
-  const [{ data: modules }, { data: lessons }, { data: prog }, { data: enr }] =
-    await Promise.all([
-      supabase
-        .from("modules")
-        .select("*")
-        .eq("course_id", course.id)
-        .order("sort_order")
-        .order("id"),
-      supabase
-        .from("lessons")
-        .select("*")
-        .eq("course_id", course.id)
-        .eq("published", true)
-        .order("sort_order")
-        .order("id"),
-      supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
-      supabase
-        .from("enrollments")
-        .select("status")
-        .eq("user_id", userId)
-        .eq("course_id", course.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: modules },
+    { data: lessons },
+    { data: prog },
+    { data: enr },
+    { data: unl },
+    balance,
+    { data: openPay },
+  ] = await Promise.all([
+    supabase
+      .from("modules")
+      .select("*")
+      .eq("course_id", course.id)
+      .order("sort_order")
+      .order("id"),
+    supabase
+      .from("lessons")
+      .select("*")
+      .eq("course_id", course.id)
+      .eq("published", true)
+      .order("sort_order")
+      .order("id"),
+    supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
+    supabase
+      .from("enrollments")
+      .select("status")
+      .eq("user_id", userId)
+      .eq("course_id", course.id)
+      .maybeSingle(),
+    supabase.from("lesson_unlocks").select("lesson_id").eq("user_id", userId),
+    getCoinBalance(userId),
+    // Đơn học phí đang mở → nút "Tiếp tục thanh toán" thay vì sinh mã mới.
+    supabase
+      .from("payments")
+      .select("code, status")
+      .eq("user_id", userId)
+      .eq("course_id", course.id)
+      .in("status", ["pending", "matched"])
+      .maybeSingle(),
+  ]);
   const enrollStatus =
     (enr?.status as "pending" | "approved" | "failed" | undefined) ?? null;
 
   const allLessons = (lessons as Lesson[]) ?? [];
   const allModules = (modules as Module[]) ?? [];
+  const access = lessonAccess({
+    course: course as Course,
+    enrollStatus,
+    isGuest,
+    allLessons,
+    allModules,
+    unlocked: new Set((unl ?? []).map((r) => r.lesson_id as string)),
+  });
   // Phân công nội dung: ẩn hẳn chương/bài không được gán cho học viên này.
   const vis = await contentVisibility(
     supabase,
@@ -432,27 +535,51 @@ export async function getCourseDetail(slug: string, userId: string) {
     };
   });
 
+  const approved = enrollStatus === "approved";
+  const c = course as Course;
+  // Giá mở cả khóa đã trừ xu từng tiêu mở lẻ bài trong khóa này.
+  let unlockCost = c.course_coin_price;
+  if (!approved && c.course_coin_price > 0) {
+    const { data: cost } = await supabase.rpc("course_unlock_cost", {
+      p_course_id: c.id,
+    });
+    if (typeof cost === "number") unlockCost = cost;
+  }
+
   return {
-    course: course as Course,
+    course: c,
     modules: modList,
     moduleInfo,
     lessons: lessonList.map((l, idx) => {
       // Bài chỉ khóa theo NGÀY của riêng nó — bài không phân ngày thì mở ngay
       // (không thừa kế lịch của chương).
       const dateLocked = isFuture(l.available_on);
+      const accessible = access.has(l.id);
+      const orderLocked =
+        (l.module_id ? gating.lockedModules.has(l.module_id) : false) ||
+        idx > firstIncomplete ||
+        dateLocked;
       return {
         lesson: l,
         done: doneSet.has(l.id),
         hasQuiz: quizLessonIds.has(l.id),
-        locked:
-          (l.module_id ? gating.lockedModules.has(l.module_id) : false) ||
-          idx > firstIncomplete ||
-          dateLocked,
+        // Khóa thật sự: chưa có quyền (chưa mua / ngoài học thử) HOẶC chưa
+        // tới lượt (học tuần tự, quiz chương, lịch mở).
+        locked: !accessible || orderLocked,
+        // Chưa mua nhưng đã TỚI LƯỢT → đây là bài hiện nút "Mở bằng xu".
+        paywalled: !accessible,
+        unlockable: !accessible && !orderLocked,
+        free: access.free.has(l.id) && !approved,
         availableOn: dateLocked ? l.available_on : null,
       };
     }),
     enrollStatus,
-    approved: enrollStatus === "approved",
+    approved,
+    // Đang học thử: chưa ghi danh nhưng có ít nhất 1 bài vào được.
+    canLearn: approved || access.size > 0,
+    balance,
+    unlockCost,
+    openPayment: (openPay as { code: string; status: string } | null) ?? null,
     done: lessonList.filter((l) => doneSet.has(l.id)).length,
     total: lessonList.length,
     // Giới hạn nội dung: học viên này chỉ được mở một phần khóa.
@@ -669,6 +796,7 @@ export async function getLessonView(
   courseSlug: string,
   lessonSlug: string,
   userId: string,
+  isGuest = false,
 ) {
   const supabase = await createClient();
   const { data: course } = await supabase
@@ -678,32 +806,26 @@ export async function getLessonView(
     .maybeSingle();
   if (!course) return null;
 
-  // Chỉ học viên đã được duyệt mới xem được bài.
-  const { data: enr } = await supabase
-    .from("enrollments")
-    .select("status")
-    .eq("user_id", userId)
-    .eq("course_id", course.id)
-    .maybeSingle();
-  const approved = enr?.status === "approved";
-  if (!approved) {
-    return { locked: true as const, course: course as Course };
-  }
-
-  const { data: lessons } = await supabase
-    .from("lessons")
-    .select("*")
-    .eq("course_id", course.id)
-    .eq("published", true)
-    .order("sort_order")
-    .order("id");
-
-  const allList = (lessons as Lesson[]) ?? [];
-  // Bài không tồn tại → 404. (Kiểm tra trên toàn bộ trước khi lọc phân công.)
-  if (!allList.some((l) => l.slug === lessonSlug)) return null;
-
-  // Khóa chương (chưa đạt quiz chương trước) + tiến độ (để khóa tuần tự).
-  const [{ data: modules }, { data: prog }] = await Promise.all([
+  const [
+    { data: enr },
+    { data: lessons },
+    { data: modules },
+    { data: prog },
+    { data: unl },
+  ] = await Promise.all([
+    supabase
+      .from("enrollments")
+      .select("status")
+      .eq("user_id", userId)
+      .eq("course_id", course.id)
+      .maybeSingle(),
+    supabase
+      .from("lessons")
+      .select("*")
+      .eq("course_id", course.id)
+      .eq("published", true)
+      .order("sort_order")
+      .order("id"),
     supabase
       .from("modules")
       .select("*")
@@ -711,8 +833,28 @@ export async function getLessonView(
       .order("sort_order")
       .order("id"),
     supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
+    supabase.from("lesson_unlocks").select("lesson_id").eq("user_id", userId),
   ]);
+  const enrollStatus =
+    (enr?.status as "pending" | "approved" | "failed" | undefined) ?? null;
+
+  const allList = (lessons as Lesson[]) ?? [];
+  // Bài không tồn tại → 404. (Kiểm tra trên toàn bộ trước khi lọc phân công.)
+  if (!allList.some((l) => l.slug === lessonSlug)) return null;
   const allModules = (modules as Module[]) ?? [];
+
+  // Đã ghi danh → mọi bài; chưa ghi danh → phần học thử + bài đã mở bằng xu.
+  const access = lessonAccess({
+    course: course as Course,
+    enrollStatus,
+    isGuest,
+    allLessons: allList,
+    allModules,
+    unlocked: new Set((unl ?? []).map((r) => r.lesson_id as string)),
+  });
+  if (access.size === 0) {
+    return { locked: true as const, course: course as Course };
+  }
 
   // Phân công nội dung: chỉ giữ chương/bài học viên được xem.
   const vis = await contentVisibility(
@@ -749,7 +891,9 @@ export async function getLessonView(
   // Học tuần tự: mọi bài sau bài chưa hoàn thành đầu tiên đều bị khóa.
   const fi = list.findIndex((l) => !doneSet.has(l.id));
   const firstIncomplete = fi === -1 ? list.length : fi;
-  const isLocked = (i: number) => {
+  // Khóa theo THỨ TỰ (tuần tự, quiz chương, lịch) — tách khỏi khóa do
+  // chưa mua để biết bài kế "tới lượt rồi, chỉ còn thiếu xu".
+  const isOrderLocked = (i: number) => {
     const les = list[i];
     const m = les.module_id;
     // Bài chỉ khóa theo NGÀY của riêng nó (không thừa kế lịch của chương).
@@ -759,6 +903,7 @@ export async function getLessonView(
       isFuture(les.available_on)
     );
   };
+  const isLocked = (i: number) => isOrderLocked(i) || !access.has(list[i].id);
 
   // Bài đang xem bị khóa (chưa hoàn thành bài trước) → quay về trang khóa.
   if (isLocked(idx)) {
@@ -780,9 +925,19 @@ export async function getLessonView(
   }
 
   const hasNext = idx < list.length - 1;
+  const next = hasNext ? list[idx + 1] : null;
+  const c = course as Course;
+  // Bài kế chưa mua: trang bài hiện nút "Mở bài tiếp theo bằng xu" — đúng
+  // khoảnh khắc người học đang muốn xem tiếp nhất.
+  const nextPaywalled = !!next && !access.has(next.id);
   return {
     locked: false as const,
-    course: course as Course,
+    course: c,
+    nextPaywalled,
+    nextOrderLocked: hasNext ? isOrderLocked(idx + 1) : false,
+    lessonCoinPrice: c.lesson_coin_price,
+    balance: nextPaywalled ? await getCoinBalance(userId) : 0,
+    approved: enrollStatus === "approved",
     lesson,
     done: doneSet.has(lesson.id),
     hasQuiz: !!quiz,
@@ -800,6 +955,7 @@ export async function getModuleQuizView(
   courseSlug: string,
   moduleId: string,
   userId: string,
+  isGuest = false,
 ) {
   const supabase = await createClient();
   const { data: course } = await supabase
@@ -815,7 +971,13 @@ export async function getModuleQuizView(
     .eq("user_id", userId)
     .eq("course_id", course.id)
     .maybeSingle();
-  if (enr?.status !== "approved") {
+  // Người học thử cũng làm được quiz chương — không thì quiz chương chặn
+  // mất các chương sau dù họ đã mở bài bằng xu. Điều kiện "học hết bài
+  // trong chương" bên dưới đã bảo đảm họ thật sự vào được các bài đó.
+  if (
+    enr?.status === "failed" ||
+    (enr?.status !== "approved" && (isGuest || !isMonetized(course as Course)))
+  ) {
     return { locked: true as const, course: course as Course };
   }
 
@@ -1119,5 +1281,182 @@ export async function getPaymentByCode(code: string) {
       slug: string;
       cover_emoji: string;
     } | null,
+  };
+}
+
+// ── Xu & nhiệm vụ ────────────────────────────────────────────
+
+// Giá trị mặc định khớp 0018 — dùng khi bảng chưa có (chưa chạy migration)
+// để trang không sập.
+const DEFAULT_COIN_SETTINGS: CoinSettings = {
+  id: 1,
+  daily_cap: 30,
+  reward_checkin: 5,
+  reward_lesson: 10,
+  reward_quiz: 5,
+  reward_module_quiz: 15,
+  reward_streak7: 20,
+  reward_review: 10,
+  referral_inviter: 50,
+  referral_invitee: 30,
+  referral_monthly_limit: 10,
+  signup_enabled: true,
+  updated_at: "",
+};
+
+export async function getCoinSettings(): Promise<CoinSettings> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("coin_settings")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle();
+  return (data as CoinSettings | null) ?? DEFAULT_COIN_SETTINGS;
+}
+
+// "Hôm nay" theo giờ VN, khớp vn_today() trong DB.
+export function vnTodayISO() {
+  return new Date().toLocaleDateString("sv-SE", {
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+}
+
+// Trang Xu & nhiệm vụ của học viên.
+export async function getCoinCenter(userId: string) {
+  const supabase = await createClient();
+  const today = vnTodayISO();
+  const [
+    settings,
+    balance,
+    { data: todayRows },
+    { data: ledger },
+    { data: packs },
+    { data: topups },
+    { data: me },
+    { count: invited },
+    { data: streakRow },
+  ] = await Promise.all([
+    getCoinSettings(),
+    getCoinBalance(userId),
+    supabase
+      .from("coin_ledger")
+      .select("amount, kind, capped")
+      .eq("user_id", userId)
+      .eq("earn_day", today),
+    supabase
+      .from("coin_ledger")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    supabase
+      .from("coin_packs")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order")
+      .order("price"),
+    supabase
+      .from("payments")
+      .select("code, status, pack_id, coins, amount")
+      .eq("user_id", userId)
+      .not("pack_id", "is", null)
+      .in("status", ["pending", "matched"]),
+    supabase.from("profiles").select("referral_code").eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("referred_by", userId),
+    supabase.from("streaks").select("current_streak").eq("user_id", userId).maybeSingle(),
+  ]);
+
+  const rows = (todayRows ?? []) as Pick<CoinLedgerRow, "amount" | "kind" | "capped">[];
+  const earnedCapped = rows
+    .filter((r) => r.capped)
+    .reduce((a, r) => a + r.amount, 0);
+  const doneToday = new Set(rows.filter((r) => r.amount > 0).map((r) => r.kind));
+
+  return {
+    settings,
+    balance,
+    earnedCapped,
+    checkedIn: doneToday.has("checkin"),
+    doneToday,
+    streak: (streakRow?.current_streak as number | undefined) ?? 0,
+    ledger: (ledger as CoinLedgerRow[]) ?? [],
+    packs: (packs as CoinPack[]) ?? [],
+    openTopups: (topups ?? []) as {
+      code: string;
+      status: string;
+      pack_id: string;
+      coins: number;
+      amount: number;
+    }[],
+    referralCode: (me?.referral_code as string | null) ?? null,
+    invited: invited ?? 0,
+  };
+}
+
+// Trang quản trị Xu: cấu hình + gói nạp + bảng ước tính theo khóa.
+export async function getCoinAdmin() {
+  const supabase = await createClient();
+  const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+  const [
+    settings,
+    { data: packs },
+    { data: courses },
+    { data: lessons },
+    { data: quizzes },
+    { data: wallets },
+    { data: recent },
+    { count: referred },
+  ] = await Promise.all([
+    getCoinSettings(),
+    supabase.from("coin_packs").select("*").order("sort_order").order("price"),
+    supabase.from("courses").select("*").order("sort_order"),
+    supabase.from("lessons").select("id, course_id").eq("published", true),
+    supabase.from("quizzes").select("lesson_id").not("lesson_id", "is", null),
+    supabase.from("coin_wallets").select("balance"),
+    supabase
+      .from("coin_ledger")
+      .select("amount, kind")
+      .gte("created_at", since),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .not("referred_by", "is", null),
+  ]);
+
+  const lessonCount = new Map<string, number>();
+  for (const l of lessons ?? []) {
+    const cid = l.course_id as string;
+    lessonCount.set(cid, (lessonCount.get(cid) ?? 0) + 1);
+  }
+
+  // Tổng 30 ngày theo loại: nhận (+) và tiêu (−).
+  const byKind = new Map<string, number>();
+  for (const r of recent ?? []) {
+    byKind.set(r.kind as string, (byKind.get(r.kind as string) ?? 0) + (r.amount as number));
+  }
+  const earned30 = [...byKind.entries()]
+    .filter(([k]) => k !== "topup" && k !== "admin")
+    .reduce((a, [, v]) => a + (v > 0 ? v : 0), 0);
+  const spent30 = -[...byKind.values()].reduce((a, v) => a + (v < 0 ? v : 0), 0);
+
+  return {
+    settings,
+    packs: (packs as CoinPack[]) ?? [],
+    courses: ((courses as Course[]) ?? []).map((c) => ({
+      course: c,
+      lessons: lessonCount.get(c.id) ?? 0,
+    })),
+    lessonQuizCount: (quizzes ?? []).length,
+    stats: {
+      circulation: (wallets ?? []).reduce((a, w) => a + (w.balance as number), 0),
+      wallets: (wallets ?? []).length,
+      earned30,
+      spent30,
+      topup30: byKind.get("topup") ?? 0,
+      referred: referred ?? 0,
+    },
   };
 }

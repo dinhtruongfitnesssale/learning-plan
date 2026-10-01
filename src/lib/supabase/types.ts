@@ -22,6 +22,10 @@ export interface Profile {
   last_custom_email_at: string | null;
   /** Tài khoản khách mời (được tặng khóa): không được tự yêu cầu học. */
   is_guest: boolean;
+  /** Mã giới thiệu 6 ký tự, dùng trong link /dang-ky?ref=… */
+  referral_code: string | null;
+  /** Người đã mời học viên này (qua link giới thiệu). */
+  referred_by: string | null;
 }
 
 export interface Course {
@@ -36,6 +40,12 @@ export interface Course {
   published: boolean;
   /** Học phí (VND, số nguyên). 0 = miễn phí → dùng luồng "Yêu cầu học". */
   price: number;
+  /** Số bài đầu khóa học thử miễn phí, không cần ghi danh. */
+  free_lessons: number;
+  /** Xu để mở lẻ 1 bài. 0 = không bán lẻ. */
+  lesson_coin_price: number;
+  /** Xu để mở cả khóa. 0 = không bán cả khóa bằng xu. */
+  course_coin_price: number;
   created_at: string;
 }
 
@@ -115,6 +125,68 @@ export interface Payment {
   confirmed_by: string | null;
   note: string;
   expires_at: string;
+  created_at: string;
+  /** Đơn NẠP XU: gói đã mua. null = đơn học phí khóa học. */
+  pack_id: string | null;
+  /** Số xu sẽ cộng khi chốt (> 0 nghĩa là đơn nạp xu). */
+  coins: number;
+}
+
+// ── Xu ────────────────────────────────────────────────────────
+export interface CoinSettings {
+  id: number;
+  /** Trần xu/ngày từ học bài + quiz. */
+  daily_cap: number;
+  reward_checkin: number;
+  reward_lesson: number;
+  reward_quiz: number;
+  reward_module_quiz: number;
+  reward_streak7: number;
+  reward_review: number;
+  referral_inviter: number;
+  referral_invitee: number;
+  /** Lượt thưởng người mời tối đa/tháng. 0 = không giới hạn. */
+  referral_monthly_limit: number;
+  signup_enabled: boolean;
+  updated_at: string;
+}
+
+export interface CoinPack {
+  id: string;
+  name: string;
+  /** VND */
+  price: number;
+  coins: number;
+  bonus: number;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export type CoinKind =
+  | "checkin"
+  | "lesson"
+  | "quiz"
+  | "module_quiz"
+  | "streak"
+  | "review"
+  | "referral_inviter"
+  | "referral_invitee"
+  | "topup"
+  | "admin"
+  | "unlock_lesson"
+  | "unlock_course";
+
+export interface CoinLedgerRow {
+  id: string;
+  user_id: string;
+  amount: number;
+  kind: CoinKind;
+  ref_key: string | null;
+  course_id: string | null;
+  note: string;
+  capped: boolean;
+  earn_day: string;
   created_at: string;
 }
 
@@ -219,6 +291,11 @@ export interface CompleteLessonResult {
   xp: number;
   bonus: number;
   streak?: number;
+  /** Xu nhận được khi học xong bài (có thể 0 nếu đã chạm trần ngày). */
+  coins?: number;
+  /** Xu thưởng mốc chuỗi 7/14/21… ngày. */
+  streak_coins?: number;
+  cap_reached?: boolean;
 }
 
 export interface QuizPublic {
@@ -274,6 +351,9 @@ export type Database = {
       course_reviews: { Row: CourseReview; Insert: Partial<CourseReview>; Update: Partial<CourseReview>; Relationships: [] };
       payments: { Row: Payment; Insert: Partial<Payment>; Update: Partial<Payment>; Relationships: [] };
       payment_events: { Row: PaymentEvent; Insert: Partial<PaymentEvent>; Update: Partial<PaymentEvent>; Relationships: [] };
+      coin_settings: { Row: CoinSettings; Insert: Partial<CoinSettings>; Update: Partial<CoinSettings>; Relationships: [] };
+      coin_packs: { Row: CoinPack; Insert: Partial<CoinPack>; Update: Partial<CoinPack>; Relationships: [] };
+      coin_ledger: { Row: CoinLedgerRow; Insert: Partial<CoinLedgerRow>; Update: Partial<CoinLedgerRow>; Relationships: [] };
     };
     Views: Record<string, never>;
     Functions: {
@@ -312,9 +392,36 @@ export type Database = {
         Returns: {
           ok: boolean;
           already: boolean;
+          /** course = mở khóa học · topup = cộng xu vào ví. */
+          kind: "course" | "topup";
           user_id: string;
-          course_id: string;
+          course_id: string | null;
+          coins: number;
         };
+      };
+      claim_daily_checkin: {
+        Args: Record<string, never>;
+        Returns: { coins: number; already: boolean };
+      };
+      unlock_lesson: {
+        Args: { p_lesson_id: string };
+        Returns: { already: boolean; spent?: number; balance: number };
+      };
+      unlock_course: {
+        Args: { p_course_id: string };
+        Returns: { already: boolean; spent?: number; balance?: number };
+      };
+      course_unlock_cost: {
+        Args: { p_course_id: string };
+        Returns: number;
+      };
+      create_topup_intent: {
+        Args: { p_pack_id: string };
+        Returns: Payment;
+      };
+      admin_adjust_coins: {
+        Args: { p_user: string; p_amount: number; p_note?: string };
+        Returns: number;
       };
       reject_payment: {
         Args: { p_payment_id: string; p_note?: string };

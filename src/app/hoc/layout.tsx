@@ -14,7 +14,11 @@ export default async function LearnerLayout({
       <main className="safe-x pb-bottom-nav flex-1 mx-auto w-full max-w-5xl pt-6 sm:pt-8">
         {children}
       </main>
-      <BottomNav variant="learner" isCoach={profile?.role === "coach"} />
+      <BottomNav
+        variant="learner"
+        isCoach={profile?.role === "coach"}
+        isGuest={profile?.is_guest ?? false}
+      />
     </>
   );
 }

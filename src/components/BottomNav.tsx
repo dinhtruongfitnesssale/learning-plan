@@ -11,11 +11,13 @@ import { cn } from "@/lib/cn";
 export function BottomNav({
   variant = "learner",
   isCoach = false,
+  isGuest = false,
   pendingCount = 0,
   payCount = 0,
 }: {
   variant?: "learner" | "coach";
   isCoach?: boolean;
+  isGuest?: boolean;
   pendingCount?: number;
   payCount?: number;
 }) {
@@ -35,7 +37,13 @@ export function BottomNav({
     };
   }, [moreOpen]);
 
-  const items = getNavItems({ variant, isCoach, pendingCount, payCount });
+  const items = getNavItems({
+    variant,
+    isCoach,
+    pendingCount,
+    payCount,
+    isGuest,
+  });
   const tabs = items.filter((it) => it.primary).slice(0, 4);
   const rest = items.filter((it) => !tabs.includes(it));
   const restBadge = rest.reduce((n, it) => n + (it.badge ?? 0), 0);

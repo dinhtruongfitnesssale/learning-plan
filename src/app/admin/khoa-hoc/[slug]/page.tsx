@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCategories } from "@/lib/data";
+import { getCategories, getCoinSettings } from "@/lib/data";
+import { daysToEarn, formatDays } from "@/lib/coins";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { Pagination } from "@/components/Pagination";
 import { Chapter } from "@/components/Chapter";
@@ -66,7 +67,7 @@ export default async function CourseEditor({
   const lessonList = (lessons as Lesson[]) ?? [];
 
   // Học viên + trạng thái ghi danh khóa này (để phân khóa hàng loạt).
-  const [categories, { data: profiles }, { data: courseEnr }] =
+  const [categories, { data: profiles }, { data: courseEnr }, coinCfg] =
     await Promise.all([
       getCategories(),
       supabase
@@ -78,7 +79,13 @@ export default async function CourseEditor({
         .from("enrollments")
         .select("user_id, status")
         .eq("course_id", c.id),
+      getCoinSettings(),
     ]);
+  // Ước tính cho coach: người cày (chạm trần mỗi ngày) cần bao lâu.
+  const publishedCount = lessonList.filter((l) => l.published).length;
+  const paidLessons = Math.max(0, publishedCount - c.free_lessons);
+  const daysCourse = daysToEarn(c.course_coin_price, coinCfg);
+  const daysAllLessons = daysToEarn(paidLessons * c.lesson_coin_price, coinCfg);
   const statusByUser = new Map(
     (courseEnr ?? []).map((e) => [e.user_id, e.status as "pending" | "approved"]),
   );
@@ -329,10 +336,70 @@ export default async function CourseEditor({
                   className={inputCls}
                 />
                 <span className="text-xs text-ink/45">
-                  Để 0 = miễn phí, học viên bấm “Yêu cầu học” như cũ. Lớn hơn 0
-                  thì họ phải chuyển khoản trước.
+                  Để 0 = không bán bằng chuyển khoản. Lớn hơn 0 thì học viên
+                  chuyển khoản để mở cả khóa.
                 </span>
               </label>
+              <fieldset className="rounded-lg border border-ink/10 p-3 space-y-3">
+                <legend className="px-1 text-sm font-medium">🪙 Học thử &amp; xu</legend>
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="block min-w-0">
+                    <span className="text-xs text-ink/70">Bài học thử</span>
+                    <input
+                      name="free_lessons"
+                      type="number"
+                      min={0}
+                      defaultValue={c.free_lessons}
+                      className={inputCls}
+                    />
+                  </label>
+                  <label className="block min-w-0">
+                    <span className="text-xs text-ink/70">Xu / bài</span>
+                    <input
+                      name="lesson_coin_price"
+                      type="number"
+                      min={0}
+                      defaultValue={c.lesson_coin_price}
+                      className={inputCls}
+                    />
+                  </label>
+                  <label className="block min-w-0">
+                    <span className="text-xs text-ink/70">Xu cả khóa</span>
+                    <input
+                      name="course_coin_price"
+                      type="number"
+                      min={0}
+                      defaultValue={c.course_coin_price}
+                      className={inputCls}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-ink/45">
+                  N bài đầu ai cũng học thử được, không cần duyệt. Bài sau mở
+                  bằng xu (lẻ từng bài hoặc cả khóa). Để 0 = tắt mục đó. Cả 3 ô
+                  và học phí đều 0 thì khóa giữ luồng “Yêu cầu học” cũ.
+                </p>
+                {(c.course_coin_price > 0 || c.lesson_coin_price > 0) && (
+                  <p className="text-xs text-slate bg-slate-soft rounded-md px-2.5 py-2">
+                    Người cày chăm (mỗi ngày nhận tối đa xu):{" "}
+                    {c.course_coin_price > 0 && (
+                      <>
+                        đủ xu mở cả khóa sau <b>{formatDays(daysCourse)}</b>
+                      </>
+                    )}
+                    {c.course_coin_price > 0 && c.lesson_coin_price > 0 && "; "}
+                    {c.lesson_coin_price > 0 && (
+                      <>
+                        mở lẻ hết {paidLessons} bài sau <b>{formatDays(daysAllLessons)}</b>
+                      </>
+                    )}
+                    .{" "}
+                    <Link href="/admin/xu" className="link">
+                      Chỉnh mức thưởng
+                    </Link>
+                  </p>
+                )}
+              </fieldset>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="text-sm text-ink/70">Biểu tượng</span>

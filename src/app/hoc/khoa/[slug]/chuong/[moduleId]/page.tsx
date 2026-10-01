@@ -11,8 +11,13 @@ export default async function ModuleQuizPage({
   params: Promise<{ slug: string; moduleId: string }>;
 }) {
   const { slug, moduleId } = await params;
-  const { user } = await requireUser();
-  const data = await getModuleQuizView(slug, moduleId, user.id);
+  const { user, profile } = await requireUser();
+  const data = await getModuleQuizView(
+    slug,
+    moduleId,
+    user.id,
+    profile?.is_guest ?? false,
+  );
   if (!data) notFound();
   // Chưa đủ điều kiện (chưa duyệt / chương bị khóa / chưa học hết bài / chưa có quiz)
   // → quay về trang khóa học.

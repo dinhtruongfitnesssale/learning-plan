@@ -13,6 +13,11 @@ import {
   parseEmails,
 } from "@/lib/slug";
 
+// Ô số do coach nhập → số nguyên không âm (ô trống / chữ = 0).
+function nonNeg(v: FormDataEntryValue | null) {
+  return Math.max(0, Math.round(Number(v) || 0));
+}
+
 // Mọi action đều kiểm tra coach (RLS cũng chặn, đây là lớp phòng vệ thứ hai).
 async function guard() {
   await requireCoach();
@@ -63,6 +68,10 @@ export async function updateCourse(formData: FormData) {
       // Giá do coach nhập → ép về số nguyên không âm. Giá > 0 đổi nút của
       // học viên từ "Yêu cầu học" sang "Đăng ký" + chuyển khoản.
       price: Math.max(0, Math.round(Number(formData.get("price")) || 0)),
+      // Học thử + giá xu (0018). 0 = tắt tính năng tương ứng.
+      free_lessons: nonNeg(formData.get("free_lessons")),
+      lesson_coin_price: nonNeg(formData.get("lesson_coin_price")),
+      course_coin_price: nonNeg(formData.get("course_coin_price")),
     })
     .eq("id", id);
   revalidatePath(`/admin/khoa-hoc/${slug}`);
@@ -1368,12 +1377,16 @@ export async function confirmPayment(
 
   const result = data as {
     already: boolean;
+    kind?: "course" | "topup";
     user_id: string;
-    course_id: string;
+    course_id: string | null;
+    coins?: number;
   };
+  const topup = result.kind === "topup";
 
-  // Đã chốt trước đó rồi thì đừng gửi email lần hai.
-  if (!result.already) {
+  // Đã chốt trước đó rồi thì đừng gửi email lần hai. Đơn nạp xu không gửi
+  // email — học viên thấy xu ngay trên trang thanh toán (tự tải lại).
+  if (!result.already && !topup && result.course_id) {
     try {
       const [{ data: prof }, { data: course }] = await Promise.all([
         supabase
@@ -1406,7 +1419,11 @@ export async function confirmPayment(
   revalidatePath("/admin");
   return {
     ok: true,
-    message: result.already ? "Giao dịch này đã chốt rồi." : "Đã mở khóa học.",
+    message: result.already
+      ? "Giao dịch này đã chốt rồi."
+      : topup
+        ? `Đã cộng ${result.coins ?? 0} xu vào ví học viên.`
+        : "Đã mở khóa học.",
   };
 }
 
@@ -1426,4 +1443,106 @@ export async function rejectPayment(
   revalidatePath("/admin/thanh-toan");
   revalidatePath("/admin");
   return { ok: true, message: "Đã từ chối giao dịch." };
+}
+
+// ── Xu & nhiệm vụ ────────────────────────────────────────────
+type Msg = { ok: boolean; message: string };
+
+export async function updateCoinSettings(
+  _prev: Msg | null,
+  formData: FormData,
+): Promise<Msg> {
+  const supabase = await guard();
+  const { error } = await supabase
+    .from("coin_settings")
+    .update({
+      daily_cap: nonNeg(formData.get("daily_cap")),
+      reward_checkin: nonNeg(formData.get("reward_checkin")),
+      reward_lesson: nonNeg(formData.get("reward_lesson")),
+      reward_quiz: nonNeg(formData.get("reward_quiz")),
+      reward_module_quiz: nonNeg(formData.get("reward_module_quiz")),
+      reward_streak7: nonNeg(formData.get("reward_streak7")),
+      reward_review: nonNeg(formData.get("reward_review")),
+      referral_inviter: nonNeg(formData.get("referral_inviter")),
+      referral_invitee: nonNeg(formData.get("referral_invitee")),
+      referral_monthly_limit: nonNeg(formData.get("referral_monthly_limit")),
+      signup_enabled: formData.get("signup_enabled") === "on",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/admin/xu");
+  revalidatePath("/hoc/xu");
+  return { ok: true, message: "Đã lưu cấu hình xu." };
+}
+
+export async function createCoinPack(formData: FormData) {
+  const supabase = await guard();
+  const name = String(formData.get("name") ?? "").trim();
+  const price = nonNeg(formData.get("price"));
+  const coins = nonNeg(formData.get("coins"));
+  if (!name || price <= 0 || coins <= 0) return;
+  await supabase.from("coin_packs").insert({
+    name,
+    price,
+    coins,
+    bonus: nonNeg(formData.get("bonus")),
+    sort_order: nonNeg(formData.get("sort_order")),
+  });
+  revalidatePath("/admin/xu");
+  revalidatePath("/hoc/xu");
+}
+
+export async function toggleCoinPack(formData: FormData) {
+  const supabase = await guard();
+  await supabase
+    .from("coin_packs")
+    .update({ active: formData.get("active") !== "true" })
+    .eq("id", String(formData.get("id")));
+  revalidatePath("/admin/xu");
+  revalidatePath("/hoc/xu");
+}
+
+// Gói đã có đơn thì payments.pack_id tự về null (on delete set null) — đơn
+// cũ vẫn giữ số xu đã chốt nên chốt muộn vẫn cộng đúng.
+export async function deleteCoinPack(formData: FormData) {
+  const supabase = await guard();
+  await supabase.from("coin_packs").delete().eq("id", String(formData.get("id")));
+  revalidatePath("/admin/xu");
+  revalidatePath("/hoc/xu");
+}
+
+// Coach tặng / trừ xu tay theo email (bù lỗi, thưởng sự kiện…).
+export async function adjustCoins(
+  _prev: Msg | null,
+  formData: FormData,
+): Promise<Msg> {
+  const supabase = await guard();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const amount = Math.round(Number(formData.get("amount")) || 0);
+  const note = String(formData.get("note") ?? "").trim();
+  if (!email || amount === 0) {
+    return { ok: false, message: "Nhập email và số xu (khác 0)." };
+  }
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    // ilike để khỏi lệch hoa/thường; thoát % và _ cho khỏi khớp nhầm người.
+    .ilike("email", email.replace(/[\\%_]/g, (ch) => "\\" + ch))
+    .maybeSingle();
+  if (!prof) return { ok: false, message: "Không thấy học viên với email này." };
+
+  const { data, error } = await supabase.rpc("admin_adjust_coins", {
+    p_user: prof.id,
+    p_amount: amount,
+    p_note: note,
+  });
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/admin/xu");
+  return {
+    ok: true,
+    message: `${amount > 0 ? "Đã tặng" : "Đã trừ"} ${Math.abs(amount)} xu · ${
+      prof.full_name || email
+    } còn ${data} xu.`,
+  };
 }

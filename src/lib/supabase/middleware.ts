@@ -31,7 +31,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthPage = pathname === "/login";
+  // /dang-ky: bạn được giới thiệu tự tạo tài khoản qua link ?ref=MÃ.
+  const isAuthPage = pathname === "/login" || pathname === "/dang-ky";
   // Route công khai: landing, login, asset tĩnh, auth callback, và
   // manifest (trình duyệt tải file này khi “Thêm vào màn hình chính”,
   // không kèm cookie — chặn lại là mất icon/tên app).

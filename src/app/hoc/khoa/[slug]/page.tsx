@@ -8,7 +8,10 @@ import { Pagination } from "@/components/Pagination";
 import { Chapter } from "@/components/Chapter";
 import { CourseReview } from "@/components/CourseReview";
 import { LockedCourseButton } from "@/components/LockedCourse";
-import { requestEnroll, requestRelearn } from "../../khoa-hoc/actions";
+import { requestEnroll, requestRelearn, startPayment } from "../../khoa-hoc/actions";
+import { unlockCourse, unlockLesson } from "../../xu/actions";
+import { isMonetized, formatCoins } from "@/lib/coins";
+import { formatVnd } from "@/lib/payment";
 import type { Lesson } from "@/lib/supabase/types";
 
 const MODULES_PER_PAGE = 4;
@@ -18,6 +21,9 @@ type LessonItem = {
   done: boolean;
   hasQuiz: boolean;
   locked: boolean;
+  paywalled: boolean; // chưa mua (ngoài phần học thử, chưa mở bằng xu)
+  unlockable: boolean; // chưa mua nhưng đã tới lượt → hiện nút mở bằng xu
+  free: boolean; // thuộc phần học thử miễn phí
   availableOn: string | null; // ngày mở nếu đang khóa theo lịch
 };
 
@@ -33,19 +39,35 @@ export default async function CoursePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; loi?: string; mo?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
   const { user, profile } = await requireUser();
-  const data = await getCourseDetail(slug, user.id);
-  if (!data) notFound();
-  const isCoach = profile?.role === "coach";
   // Khách mời không tự yêu cầu học — khóa nào chưa được mở thì hiện ổ khóa.
   const isGuest = profile?.is_guest ?? false;
+  const data = await getCourseDetail(slug, user.id, isGuest);
+  if (!data) notFound();
+  const isCoach = profile?.role === "coach";
 
-  const { course, lessons, enrollStatus, approved, done, total, leaderboard } =
-    data;
+  const {
+    course,
+    lessons,
+    enrollStatus,
+    approved,
+    canLearn,
+    done,
+    total,
+    leaderboard,
+    balance,
+    unlockCost,
+    openPayment,
+  } = data;
+  // Khóa có bán / cho học thử → học viên chưa ghi danh thấy khung mua
+  // (xu hoặc chuyển khoản) thay vì chỉ nút "Yêu cầu học".
+  const monetized = isMonetized(course);
+  const sellsLessons = course.lesson_coin_price > 0;
+  const freeCount = lessons.filter((it) => it.free).length;
   const percent = total ? done / total : 0;
   // Học xong toàn bộ khóa → mời đánh giá.
   const courseCompleted = approved && total > 0 && done === total;
@@ -76,7 +98,11 @@ export default async function CoursePage({
   // Ô số thứ tự / trạng thái ở đầu mỗi dòng bài.
   const renderLesson = (item: LessonItem, i: number) => {
     const { lesson, done: ldone, hasQuiz, locked, availableOn } = item;
-    const lessonLocked = !approved || locked;
+    const lessonLocked = locked;
+    // Bài kế tiếp chưa mua → nút mở bằng xu ngay trên dòng bài.
+    const showUnlock =
+      !isGuest && !approved && sellsLessons && item.unlockable;
+    const short = balance < course.lesson_coin_price;
     const row = (
       <Card
         className={`px-4 py-3.5 flex items-start gap-3 sm:items-center sm:gap-4 ${
@@ -96,6 +122,8 @@ export default async function CoursePage({
             <div className="text-xs text-amber mt-0.5">
               🔒 Mở ngày {fmtDate(availableOn)}
             </div>
+          ) : item.free && !ldone ? (
+            <div className="text-xs text-herb mt-0.5">🎁 Học thử miễn phí</div>
           ) : (
             <div className="text-xs text-ink/50 mt-0.5 line-clamp-2">
               {lesson.summary}
@@ -119,6 +147,25 @@ export default async function CoursePage({
             {lesson.est_minutes}′
           </span>
         </div>
+        {showUnlock && (
+          <form action={unlockLesson} className="shrink-0 self-center">
+            <input type="hidden" name="lesson_id" value={lesson.id} />
+            <input type="hidden" name="course_slug" value={course.slug} />
+            <input type="hidden" name="lesson_slug" value={lesson.slug} />
+            <button
+              type="submit"
+              disabled={short}
+              title={
+                short
+                  ? "Chưa đủ xu — làm nhiệm vụ hoặc nạp thêm ở trang Xu"
+                  : undefined
+              }
+              className={buttonClass("primary", "!px-3 !py-1.5 text-xs")}
+            >
+              🪙 Mở · {course.lesson_coin_price}
+            </button>
+          </form>
+        )}
       </Card>
     );
     return (
@@ -175,7 +222,7 @@ export default async function CoursePage({
               Yêu cầu học lại
             </button>
           </form>
-        ) : !approved ? (
+        ) : !approved && !monetized ? (
           <form action={requestEnroll}>
             <input type="hidden" name="course_id" value={course.id} />
             <input type="hidden" name="slug" value={course.slug} />
@@ -216,8 +263,109 @@ export default async function CoursePage({
         </Card>
       )}
 
-      {/* Banner trạng thái khi chưa được học */}
-      {!approved && (
+      {sp.loi && (
+        <Card className="p-4 border-clay/30 bg-clay-soft text-sm text-clay">
+          ⚠ {sp.loi}
+        </Card>
+      )}
+      {sp.mo && approved && (
+        <Card className="p-4 bg-herb-soft text-sm text-herb font-medium">
+          🎉 Đã mở cả khóa — học thôi!
+        </Card>
+      )}
+
+      {/* Khung mua: học thử + mở bằng xu + chuyển khoản */}
+      {!approved && !isGuest && monetized && enrollStatus !== "failed" && (
+        <Card className="p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-serif text-xl">Mở khóa học</h2>
+            <Link href="/hoc/xu" className="text-sm font-mono tnum link">
+              🪙 Bạn có {balance.toLocaleString("vi-VN")} xu
+            </Link>
+          </div>
+          {freeCount > 0 && (
+            <p className="text-sm text-ink/70">
+              🎁 <b>{freeCount} bài đầu</b> học thử miễn phí — bắt đầu ngay ở
+              danh sách bên dưới.
+            </p>
+          )}
+          {sellsLessons && (
+            <p className="text-sm text-ink/70">
+              🔓 Mở lẻ từng bài: <b>{formatCoins(course.lesson_coin_price)}</b>{" "}
+              / bài. Bấm “Mở” ở bài tiếp theo.
+            </p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {course.course_coin_price > 0 && (
+              <form action={unlockCourse}>
+                <input type="hidden" name="course_id" value={course.id} />
+                <input type="hidden" name="course_slug" value={course.slug} />
+                <button
+                  type="submit"
+                  disabled={balance < unlockCost}
+                  className={buttonClass("primary", "w-full")}
+                >
+                  🪙 Mở cả khóa · {formatCoins(unlockCost)}
+                </button>
+                {unlockCost < course.course_coin_price && (
+                  <p className="text-xs text-herb mt-1">
+                    Đã trừ {course.course_coin_price - unlockCost} xu bạn mở lẻ
+                    trước đó.
+                  </p>
+                )}
+                {balance < unlockCost && (
+                  <p className="text-xs text-ink/50 mt-1">
+                    Còn thiếu {unlockCost - balance} xu —{" "}
+                    <Link href="/hoc/xu" className="link">
+                      làm nhiệm vụ hoặc nạp xu
+                    </Link>
+                    .
+                  </p>
+                )}
+              </form>
+            )}
+            {course.price > 0 &&
+              (openPayment ? (
+                <Link
+                  href={`/hoc/thanh-toan/${openPayment.code}`}
+                  className={buttonClass("outline", "w-full")}
+                >
+                  {openPayment.status === "matched"
+                    ? "⏳ Đã nhận tiền · chờ xác nhận"
+                    : "💳 Tiếp tục thanh toán"}
+                </Link>
+              ) : (
+                <form action={startPayment}>
+                  <input type="hidden" name="course_id" value={course.id} />
+                  <button
+                    type="submit"
+                    className={buttonClass(
+                      course.course_coin_price > 0 ? "outline" : "primary",
+                      "w-full",
+                    )}
+                  >
+                    💳 Chuyển khoản · {formatVnd(course.price)}
+                  </button>
+                </form>
+              ))}
+            {course.price === 0 &&
+              course.course_coin_price === 0 &&
+              enrollStatus !== "pending" && (
+                <form action={requestEnroll}>
+                  <input type="hidden" name="course_id" value={course.id} />
+                  <input type="hidden" name="slug" value={course.slug} />
+                  <button className={buttonClass("outline", "w-full")}>
+                    Yêu cầu học cả khóa
+                  </button>
+                </form>
+              )}
+          </div>
+        </Card>
+      )}
+
+      {/* Banner trạng thái khi chưa được học. Khóa có bán mà chưa ghi danh
+          thì khung "Mở khóa học" phía trên đã nói đủ. */}
+      {!approved && !(monetized && !isGuest && enrollStatus === null) && (
         <Card
           className={`p-5 ${
             enrollStatus === "failed" ? "bg-clay-soft" : "bg-paper-2"
@@ -276,7 +424,7 @@ export default async function CoursePage({
             const isEmpty = g.lessons.length === 0;
             const chapterMeta = (
               <>
-                {approved &&
+                {canLearn &&
                   chapterLocked &&
                   (chapterUnlockOn ? (
                     <span className="text-xs text-amber whitespace-nowrap">
@@ -336,7 +484,7 @@ export default async function CoursePage({
                   )}
 
                   {/* Bài kiểm tra chương */}
-                  {approved && info?.hasQuiz && (
+                  {canLearn && info?.hasQuiz && (
                     <div className="mt-3">
                       {info.quizPassed ? (
                         <Card className="px-4 py-3.5 flex items-center gap-3 bg-herb-soft">

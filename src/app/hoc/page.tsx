@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getLearnerDashboard } from "@/lib/data";
+import { getLearnerDashboard, getCoinBalance } from "@/lib/data";
 import { Card, Eyebrow, ButtonLink, Badge } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
 
 export default async function Dashboard() {
   const { user, profile } = await requireUser();
-  const data = await getLearnerDashboard(user.id);
+  const isGuest = profile?.is_guest ?? false;
+  const [data, coins] = await Promise.all([
+    getLearnerDashboard(user.id),
+    isGuest ? Promise.resolve(0) : getCoinBalance(user.id),
+  ]);
   const name = profile?.full_name || "bạn";
   const { level, totalXp, streak } = data;
 
@@ -61,6 +65,24 @@ export default async function Dashboard() {
         </Card>
       </div>
 
+      {/* Ví xu — lối tắt sang nhiệm vụ hằng ngày */}
+      {!isGuest && (
+        <Link href="/hoc/xu" className="block">
+          <Card className="p-4 flex items-center gap-3 hover:border-ink/25 transition-colors">
+            <span className="text-2xl shrink-0">🪙</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-mono tnum font-semibold">
+                {coins.toLocaleString("vi-VN")} xu
+              </div>
+              <div className="text-xs text-ink/55">
+                Điểm danh, học bài, giới thiệu bạn bè để nhận thêm xu
+              </div>
+            </div>
+            <span className="link text-sm shrink-0">Nhiệm vụ →</span>
+          </Card>
+        </Link>
+      )}
+
       {/* Tiếp tục học */}
       <section>
         <div className="flex items-center justify-between mb-4">
@@ -80,7 +102,7 @@ export default async function Dashboard() {
           </Card>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4 [&>*]:min-w-0">
-            {data.courses.map(({ course, done, total, percent }) => (
+            {data.courses.map(({ course, trial, done, total, percent }) => (
               <Link
                 key={course.id}
                 href={`/hoc/khoa/${course.slug}`}
@@ -97,7 +119,10 @@ export default async function Dashboard() {
                     }
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="text-2xl">{course.cover_emoji}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{course.cover_emoji}</span>
+                      {trial && <Badge accent="herb">Học thử</Badge>}
+                    </div>
                     <h3 className="font-serif text-lg mt-1 line-clamp-2">
                       {course.title}
                     </h3>
