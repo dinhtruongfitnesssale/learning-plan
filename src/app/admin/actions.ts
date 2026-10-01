@@ -50,14 +50,19 @@ export async function createCourse(formData: FormData) {
   if (data) redirect(`/admin/khoa-hoc/${data.slug}`);
 }
 
-export async function updateCourse(formData: FormData) {
+export async function updateCourse(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
   const supabase = await guard();
   const id = String(formData.get("id"));
   const slug = String(formData.get("slug"));
-  await supabase
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) return { ok: false, message: "Tên khóa không được để trống." };
+  const { error } = await supabase
     .from("courses")
     .update({
-      title: String(formData.get("title")),
+      title,
       summary: String(formData.get("summary") ?? ""),
       cover_emoji: String(formData.get("cover_emoji") || "🍲"),
       accent: String(formData.get("accent")) as
@@ -76,6 +81,7 @@ export async function updateCourse(formData: FormData) {
       auto_approve: formData.get("auto_approve") === "on",
     })
     .eq("id", id);
+  if (error) return { ok: false, message: `Chưa lưu được: ${error.message}` };
 
   // Vừa bật tự duyệt cho khóa miễn phí → duyệt luôn các yêu cầu đang chờ,
   // không thì người xin trước khi bật vẫn phải đợi.
@@ -94,6 +100,7 @@ export async function updateCourse(formData: FormData) {
   }
   revalidatePath(`/admin/khoa-hoc/${slug}`);
   revalidatePath("/hoc/khoa-hoc");
+  return { ok: true, message: "Đã lưu" };
 }
 
 // ── Loại khóa học ─────────────────────────────────────────────

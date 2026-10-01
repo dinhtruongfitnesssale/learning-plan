@@ -52,6 +52,19 @@ body {
   font-feature-settings: "ss01";
 }
 
+/* Tailwind v4 bỏ cursor: pointer mặc định của nút → trả lại bàn tay cho
+   mọi thứ bấm được, để người dùng biết chỗ nào là nút. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label:has(> input[type="checkbox"]),
+  input[type="checkbox"],
+  select {
+    cursor: pointer;
+  }
+}
+
 /* Số liệu: luôn tabular, dùng JetBrains Mono */
 .tnum,
 .font-mono {

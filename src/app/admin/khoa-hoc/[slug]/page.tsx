@@ -9,6 +9,7 @@ import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { Pagination } from "@/components/Pagination";
 import { Chapter } from "@/components/Chapter";
 import { BulkAssign } from "./BulkAssign";
+import { SaveForm } from "@/components/SaveForm";
 import { InviteByEmail } from "./InviteByEmail";
 import {
   updateCourse,
@@ -323,7 +324,7 @@ export default async function CourseEditor({
 
           <Card className="p-5" as="section">
             <h3 className="font-serif text-lg mb-3">Thông tin khóa</h3>
-            <form action={updateCourse} className="space-y-3">
+            <SaveForm action={updateCourse} className="space-y-3">
               <input type="hidden" name="id" value={c.id} />
               <input type="hidden" name="slug" value={c.slug} />
               <label className="block">
@@ -469,8 +470,7 @@ export default async function CourseEditor({
                   </select>
                 </label>
               </div>
-              <button className={buttonClass("outline", "w-full")}>Lưu</button>
-            </form>
+            </SaveForm>
           </Card>
 
           <Card className="p-5" as="section">
