@@ -165,10 +165,10 @@ export default async function CourseEditor({
           <div
             role="group"
             aria-label="Trạng thái khóa"
-            className="flex w-full sm:w-auto gap-1 rounded-full border border-ink/15 bg-paper p-1"
+            className="flex w-full sm:w-auto items-center justify-between gap-1 rounded-full border border-ink/15 bg-paper p-1"
           >
             {(["draft", "private", "public"] as CourseVisibility[]).map((m) => (
-              <form key={m} action={setCourseVisibility} className="flex flex-1 min-w-0">
+              <form key={m} action={setCourseVisibility} className="flex">
                 <input type="hidden" name="id" value={c.id} />
                 <input type="hidden" name="slug" value={c.slug} />
                 <input type="hidden" name="mode" value={m} />
@@ -177,10 +177,11 @@ export default async function CourseEditor({
                   title={VISIBILITY[m].hint}
                   aria-pressed={vis === m}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-1 rounded-full whitespace-nowrap leading-none transition-colors",
-                    // Điện thoại: chữ 13px + đệm vừa đủ để 3 ô nằm gọn cả
-                    // trên máy 320px; máy tính: cỡ chữ thường.
-                    "px-1.5 py-2.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm",
+                    "flex flex-none items-center justify-center gap-1 rounded-full whitespace-nowrap leading-none transition-colors",
+                    // Mỗi ô rộng THEO CHỮ của nó (không chia đều): chỗ trống
+                    // dồn vào khoảng giữa các ô, nên ô đen không sát chữ ô
+                    // bên cạnh — nhất là "Công khai", chữ dài nhất.
+                    "px-3.5 py-2.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm",
                     vis === m
                       ? "bg-ink text-paper font-semibold shadow-sm"
                       : "text-ink/65 hover:bg-paper-2 hover:text-ink",
