@@ -46,6 +46,8 @@ export interface Course {
   lesson_coin_price: number;
   /** Xu để mở cả khóa. 0 = không bán cả khóa bằng xu. */
   course_coin_price: number;
+  /** Riêng tư: ẩn khỏi danh mục; chỉ coach (tự học) + người được phân khóa thấy. */
+  private: boolean;
   created_at: string;
 }
 

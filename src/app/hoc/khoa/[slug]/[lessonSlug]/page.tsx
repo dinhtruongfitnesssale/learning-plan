@@ -20,6 +20,7 @@ export default async function LessonPage({
     lessonSlug,
     user.id,
     profile?.is_guest ?? false,
+    profile?.role === "coach",
   );
   if (!data) notFound();
   // Chưa được duyệt → quay về trang khóa (hiện trạng thái chờ duyệt).

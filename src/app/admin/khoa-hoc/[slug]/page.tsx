@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories, getCoinSettings } from "@/lib/data";
 import { daysToEarn, formatDays } from "@/lib/coins";
+import { courseVisibility, VISIBILITY, type CourseVisibility } from "@/lib/course-status";
+import { cn } from "@/lib/cn";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { Pagination } from "@/components/Pagination";
 import { Chapter } from "@/components/Chapter";
@@ -10,7 +12,7 @@ import { BulkAssign } from "./BulkAssign";
 import { InviteByEmail } from "./InviteByEmail";
 import {
   updateCourse,
-  toggleCoursePublish,
+  setCourseVisibility,
   deleteCourse,
   createModule,
   updateModule,
@@ -48,6 +50,7 @@ export default async function CourseEditor({
     .maybeSingle();
   if (!course) notFound();
   const c = course as Course;
+  const vis = courseVisibility(c);
 
   const [{ data: modules }, { data: lessons }] = await Promise.all([
     supabase
@@ -150,16 +153,38 @@ export default async function CourseEditor({
           ← Tất cả khóa
         </Link>
         <div className="btn-row">
-          <form action={toggleCoursePublish}>
-            <input type="hidden" name="id" value={c.id} />
-            <input type="hidden" name="slug" value={c.slug} />
-            <input type="hidden" name="published" value={String(c.published)} />
-            <button className={buttonClass(c.published ? "outline" : "primary")}>
-              {c.published ? "Chuyển về nháp" : "Xuất bản"}
-            </button>
-          </form>
-          <Link href={`/hoc/khoa/${c.slug}`} className={buttonClass("ghost")}>
-            Xem trước
+          {/* Trạng thái khóa: 3 nút liền nhau, nút đang chọn tô đậm */}
+          <div
+            role="group"
+            aria-label="Trạng thái khóa"
+            className="inline-flex rounded-full border border-ink/15 p-0.5"
+          >
+            {(["draft", "private", "public"] as CourseVisibility[]).map((m) => (
+              <form key={m} action={setCourseVisibility}>
+                <input type="hidden" name="id" value={c.id} />
+                <input type="hidden" name="slug" value={c.slug} />
+                <input type="hidden" name="mode" value={m} />
+                <button
+                  type="submit"
+                  title={VISIBILITY[m].hint}
+                  aria-pressed={vis === m}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
+                    vis === m
+                      ? "bg-ink text-paper font-semibold"
+                      : "text-ink/65 hover:bg-paper-2 hover:text-ink",
+                  )}
+                >
+                  {VISIBILITY[m].label}
+                </button>
+              </form>
+            ))}
+          </div>
+          <Link
+            href={`/hoc/khoa/${c.slug}`}
+            className={buttonClass("ghost")}
+          >
+            {vis === "private" ? "Vào tự học" : "Xem trước"}
           </Link>
         </div>
       </div>
@@ -171,19 +196,13 @@ export default async function CourseEditor({
           <h1 className="font-serif text-2xl sm:text-3xl break-words">
             {c.title}
           </h1>
-          <Badge
-            accent={c.published ? "herb" : "ink"}
-            className="mt-1.5 sm:hidden"
-          >
-            {c.published ? "Đã xuất bản" : "Nháp"}
-          </Badge>
+          <p className="text-xs text-ink/50 mt-1">
+            <Badge accent={VISIBILITY[vis].accent} className="mr-1.5">
+              {VISIBILITY[vis].label}
+            </Badge>
+            {VISIBILITY[vis].hint}
+          </p>
         </div>
-        <Badge
-          accent={c.published ? "herb" : "ink"}
-          className="hidden sm:inline-flex shrink-0"
-        >
-          {c.published ? "Đã xuất bản" : "Nháp"}
-        </Badge>
       </section>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-8 items-start [&>*]:min-w-0">

@@ -46,9 +46,9 @@ export default async function CoursePage({
   const { user, profile } = await requireUser();
   // Khách mời không tự yêu cầu học — khóa nào chưa được mở thì hiện ổ khóa.
   const isGuest = profile?.is_guest ?? false;
-  const data = await getCourseDetail(slug, user.id, isGuest);
-  if (!data) notFound();
   const isCoach = profile?.role === "coach";
+  const data = await getCourseDetail(slug, user.id, isGuest, isCoach);
+  if (!data) notFound();
 
   const {
     course,
@@ -233,8 +233,20 @@ export default async function CoursePage({
         ) : null}
       </header>
 
+      {/* Khóa riêng tư: coach đang tự học */}
+      {isCoach && course.private && (
+        <Card className="p-4 bg-slate-soft flex items-start gap-3">
+          <span className="text-lg shrink-0">🔒</span>
+          <p className="text-sm text-ink/70">
+            <span className="font-medium">Khóa riêng tư — bạn đang tự học.</span>{" "}
+            Học viên không thấy khóa này trong danh mục; chỉ ai bạn phân khóa
+            mới vào được.
+          </p>
+        </Card>
+      )}
+
       {/* Bản xem trước của coach — giải thích vì sao coach thấy toàn bộ */}
-      {isCoach && (
+      {isCoach && !course.private && (
         <Card className="p-4 bg-slate-soft flex items-start gap-3">
           <span className="text-lg shrink-0">🔍</span>
           <p className="text-sm text-ink/70">

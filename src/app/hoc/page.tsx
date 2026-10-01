@@ -9,7 +9,7 @@ export default async function Dashboard() {
   const { user, profile } = await requireUser();
   const isGuest = profile?.is_guest ?? false;
   const [data, coins] = await Promise.all([
-    getLearnerDashboard(user.id),
+    getLearnerDashboard(user.id, profile?.role === "coach"),
     isGuest ? Promise.resolve(0) : getCoinBalance(user.id),
   ]);
   const name = profile?.full_name || "bạn";
@@ -126,6 +126,7 @@ export default async function Dashboard() {
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{course.cover_emoji}</span>
                       {trial && <Badge accent="herb">Học thử</Badge>}
+                      {course.private && <Badge accent="slate">🔒 Tự học</Badge>}
                     </div>
                     <h3 className="font-serif text-lg mt-1 line-clamp-2">
                       {course.title}

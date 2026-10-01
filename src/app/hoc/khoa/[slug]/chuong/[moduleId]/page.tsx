@@ -17,6 +17,7 @@ export default async function ModuleQuizPage({
     moduleId,
     user.id,
     profile?.is_guest ?? false,
+    profile?.role === "coach",
   );
   if (!data) notFound();
   // Chưa đủ điều kiện (chưa duyệt / chương bị khóa / chưa học hết bài / chưa có quiz)

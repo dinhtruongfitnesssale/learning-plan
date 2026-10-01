@@ -17,6 +17,7 @@ export default async function Catalog({
   const { user, profile } = await requireUser();
   // Khách mời (được tặng khóa): thấy đủ danh mục nhưng không tự yêu cầu học.
   const isGuest = profile?.is_guest ?? false;
+  const isCoach = profile?.role === "coach";
   const sp = await searchParams;
   const q = sp.q ?? "";
   const cat = sp.cat ?? "";
@@ -59,7 +60,10 @@ export default async function Catalog({
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map(({ course, status, payment }) => {
+          {items.map(({ course, status: enrolled, payment }) => {
+            // Coach tự học khóa riêng tư: vào thẳng, không cần ghi danh.
+            const status =
+              isCoach && course.private ? ("approved" as const) : enrolled;
             const ct = catMap.get(course.category);
             // Khóa có bán / cho học thử → vào trang khóa để học thử và chọn
             // cách mở (xu hoặc chuyển khoản), thay vì "Yêu cầu học".
@@ -70,9 +74,16 @@ export default async function Catalog({
                 <div className="text-3xl leading-none shrink-0">
                   {course.cover_emoji}
                 </div>
-                <Badge accent={ct?.accent ?? "amber"} className="min-w-0">
-                  {ct?.label ?? "Khóa học"}
-                </Badge>
+                <div className="flex flex-wrap justify-end gap-1.5 min-w-0">
+                  {course.private && (
+                    <Badge accent="slate" className="shrink-0">
+                      🔒 Riêng tư
+                    </Badge>
+                  )}
+                  <Badge accent={ct?.accent ?? "amber"} className="min-w-0">
+                    {ct?.label ?? "Khóa học"}
+                  </Badge>
+                </div>
               </div>
               <h3
                 className="font-serif text-xl mt-3 line-clamp-2 break-words"

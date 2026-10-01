@@ -127,16 +127,6 @@ export async function deleteCategory(formData: FormData) {
   revalidatePath("/admin/khoa-hoc");
 }
 
-export async function toggleCoursePublish(formData: FormData) {
-  const supabase = await guard();
-  const id = String(formData.get("id"));
-  const slug = String(formData.get("slug"));
-  const published = String(formData.get("published")) === "true";
-  await supabase.from("courses").update({ published: !published }).eq("id", id);
-  revalidatePath(`/admin/khoa-hoc/${slug}`);
-  revalidatePath("/admin/khoa-hoc");
-}
-
 export async function deleteCourse(formData: FormData) {
   const supabase = await guard();
   await supabase.from("courses").delete().eq("id", String(formData.get("id")));
@@ -1569,4 +1559,20 @@ export async function remindInactiveNow(
             r.sent < r.candidates ? " (có người đã được nhắc hôm nay)" : ""
           }.`,
   };
+}
+
+// Đổi trạng thái khóa: nháp / riêng tư / công khai (gộp published + private).
+export async function setCourseVisibility(formData: FormData) {
+  const supabase = await guard();
+  const id = String(formData.get("id"));
+  const slug = String(formData.get("slug"));
+  const mode = String(formData.get("mode"));
+  if (!["draft", "private", "public"].includes(mode)) return;
+  await supabase
+    .from("courses")
+    .update({ published: mode !== "draft", private: mode === "private" })
+    .eq("id", id);
+  revalidatePath(`/admin/khoa-hoc/${slug}`);
+  revalidatePath("/admin/khoa-hoc");
+  revalidatePath("/hoc", "layout");
 }

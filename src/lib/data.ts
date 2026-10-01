@@ -21,7 +21,7 @@ import type {
 } from "./supabase/types";
 
 // Tổng quan cho bảng học của học viên.
-export async function getLearnerDashboard(userId: string) {
+export async function getLearnerDashboard(userId: string, isCoach = false) {
   const supabase = await createClient();
 
   const [{ data: xp }, { data: streakRow }, { data: enr }] = await Promise.all([
@@ -59,7 +59,20 @@ export async function getLearnerDashboard(userId: string) {
     trialCourses = ((tc as Course[]) ?? []).filter(isMonetized);
   }
   const trialSet = new Set(trialCourses.map((c) => c.id));
-  const courses = [...approvedCourses, ...trialCourses];
+
+  // Coach: các khóa RIÊNG TƯ đã xuất bản là "khóa tự học" của coach.
+  let selfCourses: Course[] = [];
+  if (isCoach) {
+    const { data: pc } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("published", true)
+      .eq("private", true)
+      .order("sort_order");
+    const seen = new Set([...approvedIds, ...trialSet]);
+    selfCourses = ((pc as Course[]) ?? []).filter((c) => !seen.has(c.id));
+  }
+  const courses = [...approvedCourses, ...selfCourses, ...trialCourses];
   const courseIds = courses.map((c) => c.id);
 
   let progressByCourse: Record<string, { done: number; total: number }> = {};
@@ -388,6 +401,7 @@ export async function getCourseDetail(
   slug: string,
   userId: string,
   isGuest = false,
+  isCoach = false,
 ) {
   const supabase = await createClient();
   const { data: course } = await supabase
@@ -437,8 +451,12 @@ export async function getCourseDetail(
       .in("status", ["pending", "matched"])
       .maybeSingle(),
   ]);
+  // Coach TỰ HỌC khóa riêng tư: coi như đã ghi danh, khỏi phải tự phân
+  // khóa cho mình. Khóa công khai thì coach vẫn xem như học viên chưa mua.
   const enrollStatus =
-    (enr?.status as "pending" | "approved" | "failed" | undefined) ?? null;
+    isCoach && (course as Course).private
+      ? ("approved" as const)
+      : ((enr?.status as "pending" | "approved" | "failed" | undefined) ?? null);
 
   const allLessons = (lessons as Lesson[]) ?? [];
   const allModules = (modules as Module[]) ?? [];
@@ -797,6 +815,7 @@ export async function getLessonView(
   lessonSlug: string,
   userId: string,
   isGuest = false,
+  isCoach = false,
 ) {
   const supabase = await createClient();
   const { data: course } = await supabase
@@ -835,8 +854,12 @@ export async function getLessonView(
     supabase.from("lesson_progress").select("lesson_id").eq("user_id", userId),
     supabase.from("lesson_unlocks").select("lesson_id").eq("user_id", userId),
   ]);
+  // Coach TỰ HỌC khóa riêng tư: coi như đã ghi danh, khỏi phải tự phân
+  // khóa cho mình. Khóa công khai thì coach vẫn xem như học viên chưa mua.
   const enrollStatus =
-    (enr?.status as "pending" | "approved" | "failed" | undefined) ?? null;
+    isCoach && (course as Course).private
+      ? ("approved" as const)
+      : ((enr?.status as "pending" | "approved" | "failed" | undefined) ?? null);
 
   const allList = (lessons as Lesson[]) ?? [];
   // Bài không tồn tại → 404. (Kiểm tra trên toàn bộ trước khi lọc phân công.)
@@ -956,6 +979,7 @@ export async function getModuleQuizView(
   moduleId: string,
   userId: string,
   isGuest = false,
+  isCoach = false,
 ) {
   const supabase = await createClient();
   const { data: course } = await supabase
@@ -974,9 +998,12 @@ export async function getModuleQuizView(
   // Người học thử cũng làm được quiz chương — không thì quiz chương chặn
   // mất các chương sau dù họ đã mở bài bằng xu. Điều kiện "học hết bài
   // trong chương" bên dưới đã bảo đảm họ thật sự vào được các bài đó.
+  const selfStudy = isCoach && (course as Course).private;
   if (
-    enr?.status === "failed" ||
-    (enr?.status !== "approved" && (isGuest || !isMonetized(course as Course)))
+    (!selfStudy && enr?.status === "failed") ||
+    (!selfStudy &&
+      enr?.status !== "approved" &&
+      (isGuest || !isMonetized(course as Course)))
   ) {
     return { locked: true as const, course: course as Course };
   }

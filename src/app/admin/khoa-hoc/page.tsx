@@ -4,6 +4,7 @@ import { getAdminCourses, getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { CourseFilter } from "@/components/CourseFilter";
 import { Pagination } from "@/components/Pagination";
+import { courseVisibility, VISIBILITY } from "@/lib/course-status";
 import { createCourse, createCategory, deleteCategory } from "../actions";
 
 const inputCls =
@@ -100,10 +101,10 @@ export default async function AdminCourses({
                         {ct?.label ?? c.category}
                       </Badge>
                       <Badge
-                        accent={c.published ? "herb" : "ink"}
+                        accent={VISIBILITY[courseVisibility(c)].accent}
                         className="shrink-0"
                       >
-                        {c.published ? "Đã xuất bản" : "Nháp"}
+                        {VISIBILITY[courseVisibility(c)].label}
                       </Badge>
                     </div>
                   </Card>
