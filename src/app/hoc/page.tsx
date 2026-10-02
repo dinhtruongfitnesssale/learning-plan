@@ -4,9 +4,17 @@ import { getLearnerDashboard, getCoinBalance } from "@/lib/data";
 import { Card, Eyebrow, ButtonLink, Badge } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
 import { PushOptIn } from "@/components/PushOptIn";
+import { Pagination, paginate } from "@/components/Pagination";
 
-export default async function Dashboard() {
+const COURSES_PER_PAGE = 6;
+
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { user, profile } = await requireUser();
+  const sp = await searchParams;
   const isGuest = profile?.is_guest ?? false;
   const [data, coins] = await Promise.all([
     getLearnerDashboard(user.id, profile?.role === "coach"),
@@ -14,6 +22,7 @@ export default async function Dashboard() {
   ]);
   const name = profile?.full_name || "bạn";
   const { level, totalXp, streak } = data;
+  const courses = paginate(data.courses, Number(sp.page), COURSES_PER_PAGE);
 
   return (
     <div className="space-y-8">
@@ -88,7 +97,7 @@ export default async function Dashboard() {
       )}
 
       {/* Tiếp tục học */}
-      <section>
+      <section id="tiep-tuc-hoc" className="scroll-mt-20">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif text-2xl">Tiếp tục học</h2>
           <Link href="/hoc/khoa-hoc" className="link text-sm">
@@ -106,7 +115,7 @@ export default async function Dashboard() {
           </Card>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4 [&>*]:min-w-0">
-            {data.courses.map(({ course, trial, done, total, percent }) => (
+            {courses.items.map(({ course, trial, done, total, percent }) => (
               <Link
                 key={course.id}
                 href={`/hoc/khoa/${course.slug}`}
@@ -144,6 +153,12 @@ export default async function Dashboard() {
             ))}
           </div>
         )}
+        <Pagination
+          basePath="/hoc"
+          page={courses.page}
+          totalPages={courses.totalPages}
+          hash="tiep-tuc-hoc"
+        />
       </section>
     </div>
   );

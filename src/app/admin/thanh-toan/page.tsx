@@ -10,6 +10,17 @@ import { AutoConfirmSettings } from "./AutoConfirmSettings";
 import { Card, Eyebrow, Badge } from "@/components/ui";
 import { UNMATCHED_LABEL, formatVnd } from "@/lib/payment";
 import { PaymentActions } from "./PaymentActions";
+import { Pagination, paginate } from "@/components/Pagination";
+
+// Mỗi mục phân trang riêng, tham số trang riêng để lật mục này không đổi mục kia.
+const CARDS_PER_PAGE = 6;
+const ROWS_PER_PAGE = 10;
+type PageParams = {
+  chot?: string;
+  lech?: string;
+  gan?: string;
+  cho?: string;
+};
 
 const dt = (s: string) =>
   new Date(s).toLocaleString("vi-VN", {
@@ -19,19 +30,50 @@ const dt = (s: string) =>
     month: "2-digit",
   });
 
-export default async function PaymentsAdmin() {
+export default async function PaymentsAdmin({
+  searchParams,
+}: {
+  searchParams: Promise<PageParams>;
+}) {
   await requireCoach();
+  const sp = await searchParams;
   const [payments, unmatched, settings, recent] = await Promise.all([
     getOpenPayments(),
     getUnmatchedTransfers(),
     getPaymentSettings(),
-    getRecentConfirmed(),
+    getRecentConfirmed(50),
   ]);
   const apiReady = sepayApiConfigured();
   const webhookReady = Boolean(process.env.PAYMENT_WEBHOOK_SECRET);
 
   const matched = payments.filter((p) => p.status === "matched");
   const waiting = payments.filter((p) => p.status === "pending");
+
+  const matchedPg = paginate(matched, Number(sp.chot), CARDS_PER_PAGE);
+  const unmatchedPg = paginate(unmatched, Number(sp.lech), CARDS_PER_PAGE);
+  const recentPg = paginate(recent, Number(sp.gan), ROWS_PER_PAGE);
+  const waitingPg = paginate(waiting, Number(sp.cho), CARDS_PER_PAGE);
+  // Giữ trang hiện tại của các mục khác khi lật một mục.
+  const keep = {
+    chot: matchedPg.page > 1 ? String(matchedPg.page) : "",
+    lech: unmatchedPg.page > 1 ? String(unmatchedPg.page) : "",
+    gan: recentPg.page > 1 ? String(recentPg.page) : "",
+    cho: waitingPg.page > 1 ? String(waitingPg.page) : "",
+  };
+  const pager = (
+    param: keyof PageParams,
+    pg: { page: number; totalPages: number },
+    hash: string,
+  ) => (
+    <Pagination
+      basePath="/admin/thanh-toan"
+      page={pg.page}
+      totalPages={pg.totalPages}
+      params={{ ...keep, [param]: "" }}
+      pageParam={param}
+      hash={hash}
+    />
+  );
 
   return (
     <div className="space-y-6">
@@ -52,19 +94,21 @@ export default async function PaymentsAdmin() {
       />
 
       <Section
+        id="cho-chot"
         title="Đã nhận tiền · chờ bạn chốt"
         count={matched.length}
         empty="Chưa có khoản nào chờ chốt. 🎉"
       >
-        {matched.map((p) => (
+        {matchedPg.items.map((p) => (
           <PaymentCard key={p.id} pay={p} />
         ))}
+        {pager("chot", matchedPg, "cho-chot")}
       </Section>
 
       {/* Khoản tiền đã về mà không khớp được đơn nào. Đây là mục dễ bỏ sót
           nhất và cũng đắt nhất: có người đã trả tiền mà không được học. */}
       {unmatched.length > 0 && (
-        <section className="space-y-2.5">
+        <section id="khong-khop" className="space-y-2.5 scroll-mt-20">
           <h2 className="font-serif text-xl">
             ⚠ Tiền về nhưng không khớp đơn ({unmatched.length})
           </h2>
@@ -72,7 +116,7 @@ export default async function PaymentsAdmin() {
             Học viên gõ sai nội dung, chuyển thiếu, hoặc mã đã hết hạn. Đối
             chiếu rồi mở tay cho họ ở mục dưới.
           </p>
-          {unmatched.map((e) => (
+          {unmatchedPg.items.map((e) => (
             <Card key={e.id} className="p-4 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-mono tnum font-semibold">
@@ -90,14 +134,15 @@ export default async function PaymentsAdmin() {
               </p>
             </Card>
           ))}
+          {pager("lech", unmatchedPg, "khong-khop")}
         </section>
       )}
 
       {recent.length > 0 && (
-        <section className="space-y-2.5">
+        <section id="gan-day" className="space-y-2.5 scroll-mt-20">
           <h2 className="font-serif text-xl">Đã chốt gần đây</h2>
           <Card className="divide-y divide-ink/10">
-            {recent.map((p) => (
+            {recentPg.items.map((p) => (
               <div key={p.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                 <span className="shrink-0">{p.coins > 0 ? "🪙" : "📘"}</span>
                 <div className="flex-1 min-w-0">
@@ -115,35 +160,40 @@ export default async function PaymentsAdmin() {
               </div>
             ))}
           </Card>
+          {pager("gan", recentPg, "gan-day")}
         </section>
       )}
 
       <Section
+        id="cho-chuyen-khoan"
         title="Đang chờ chuyển khoản"
         count={waiting.length}
         empty="Không có đơn nào đang chờ."
       >
-        {waiting.map((p) => (
+        {waitingPg.items.map((p) => (
           <PaymentCard key={p.id} pay={p} />
         ))}
+        {pager("cho", waitingPg, "cho-chuyen-khoan")}
       </Section>
     </div>
   );
 }
 
 function Section({
+  id,
   title,
   count,
   empty,
   children,
 }: {
+  id: string;
   title: string;
   count: number;
   empty: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-2.5">
+    <section id={id} className="space-y-2.5 scroll-mt-20">
       <h2 className="font-serif text-xl">
         {title} {count > 0 && `(${count})`}
       </h2>

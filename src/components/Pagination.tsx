@@ -11,6 +11,7 @@ export function Pagination({
   totalPages,
   params = {},
   pageParam = "page",
+  hash,
 }: {
   basePath: string;
   page: number;
@@ -18,6 +19,8 @@ export function Pagination({
   params?: Record<string, string>;
   // Tên tham số trang trên URL (đổi khi có nhiều danh sách phân trang cùng trang).
   pageParam?: string;
+  // Neo (id) để bấm chuyển trang vẫn đứng ở đúng mục, không nhảy lên đầu.
+  hash?: string;
 }) {
   if (totalPages <= 1) return null;
 
@@ -28,7 +31,7 @@ export function Pagination({
     });
     if (p > 1) sp.set(pageParam, String(p));
     const qs = sp.toString();
-    return qs ? `${basePath}?${qs}` : basePath;
+    return `${basePath}${qs ? `?${qs}` : ""}${hash ? `#${hash}` : ""}`;
   };
 
   const cur = Math.min(Math.max(1, page), totalPages);
@@ -74,6 +77,17 @@ export function Pagination({
       )}
     </nav>
   );
+}
+
+// Cắt một mảng đã tải sẵn thành trang (cho danh sách ngắn, khỏi query lại).
+export function paginate<T>(items: T[], page: number, size: number) {
+  const totalPages = Math.max(1, Math.ceil(items.length / size));
+  const cur = Math.min(Math.max(1, page || 1), totalPages);
+  return {
+    items: items.slice((cur - 1) * size, cur * size),
+    page: cur,
+    totalPages,
+  };
 }
 
 // Danh sách ô cần hiện: số trang, hoặc khoảng bị lược ({ to } = trang sẽ
