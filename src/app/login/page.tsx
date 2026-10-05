@@ -98,6 +98,12 @@ function LoginForm() {
                 {showPassword ? "🙈" : "👁️"}
               </button>
             </div>
+            <Link
+              href="/quen-mat-khau"
+              className="link text-sm inline-block mt-2"
+            >
+              Quên mật khẩu?
+            </Link>
           </Field>
 
           {error && (

@@ -615,3 +615,66 @@ export async function sendGuestInviteEmail(opts: {
     }),
   });
 }
+
+// ── Quên mật khẩu ─────────────────────────────────────────────
+// Link trỏ về trang của app (/auth/dat-lai-mat-khau?token_hash=…), không
+// qua trang Supabase — nên không cần khai Redirect URL bên Supabase, và
+// token chỉ bị dùng khi người nhận bấm Lưu mật khẩu (trình quét link của
+// hộp thư mở trước cũng không làm hỏng link).
+export async function sendPasswordResetEmail(opts: {
+  to: string;
+  fullName: string;
+  tokenHash: string;
+}) {
+  if (!mailerReady()) {
+    throw new Error(
+      "Chưa cấu hình gửi email. Điền GMAIL_USER và GMAIL_APP_PASSWORD trong .env.local.",
+    );
+  }
+  const { to, fullName, tokenHash } = opts;
+  const link = `${appUrl()}/auth/dat-lai-mat-khau?token_hash=${encodeURIComponent(tokenHash)}`;
+  const hi = fullName ? `Chào ${fullName},` : "Chào bạn,";
+
+  const html = `<!doctype html>
+<html lang="vi">
+<body style="margin:0;padding:0;background:${COLORS.paper2};font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.paper2};padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${COLORS.paper};border:1px solid #e2dccf;border-radius:16px;overflow:hidden;">
+        <tr><td style="background:${COLORS.ink};padding:28px 32px;">
+          <div style="color:${COLORS.paper};font-size:20px;font-weight:700;">${APP_NAME}</div>
+          <div style="color:#b9b3a6;font-size:13px;margin-top:2px;">${APP_TAGLINE}</div>
+        </td></tr>
+        <tr><td style="padding:28px 32px;color:${COLORS.ink};font-size:15px;line-height:1.6;">
+          <p style="margin:0 0 12px;">${escapeHtml(hi)}</p>
+          <p style="margin:0 0 20px;">Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu cho tài khoản <b>${escapeHtml(to)}</b>. Bấm nút dưới đây để đặt mật khẩu mới:</p>
+          <p style="margin:0 0 24px;">
+            <a href="${link}" style="display:inline-block;background:${COLORS.ink};color:${COLORS.paper};text-decoration:none;font-weight:600;padding:12px 24px;border-radius:999px;">Đặt lại mật khẩu</a>
+          </p>
+          <p style="margin:0 0 8px;color:#4a463f;font-size:13px;">Link có hiệu lực trong 1 giờ và chỉ dùng được một lần.</p>
+          <p style="margin:0;color:#4a463f;font-size:13px;">Nếu bạn không yêu cầu, cứ bỏ qua email này — mật khẩu cũ vẫn giữ nguyên.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `${hi}
+
+Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu cho tài khoản ${to}.
+Mở link sau để đặt mật khẩu mới (hiệu lực 1 giờ, dùng một lần):
+${link}
+
+Nếu bạn không yêu cầu, cứ bỏ qua email này — mật khẩu cũ vẫn giữ nguyên.
+
+${APP_NAME} • ${APP_TAGLINE}`;
+
+  await transport().sendMail({
+    from: `"${APP_NAME}" <${GMAIL_USER}>`,
+    to,
+    subject: `Đặt lại mật khẩu ${APP_NAME}`,
+    text,
+    html,
+  });
+}
