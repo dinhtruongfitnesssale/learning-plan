@@ -2,13 +2,13 @@
 
 import { useActionState, useState } from "react";
 import { buttonClass } from "@/components/ui";
-import { signUpWithReferral } from "./actions";
+import { signUp } from "./actions";
 
 const inputClass =
   "w-full rounded-lg border border-ink/15 bg-paper px-3.5 py-2.5 text-ink placeholder:text-ink/35 outline-none focus:border-amber focus:ring-2 focus:ring-amber/20 transition";
 
 export function SignUpForm({ code }: { code: string }) {
-  const [state, action, pending] = useActionState(signUpWithReferral, null);
+  const [state, action, pending] = useActionState(signUp, null);
   const [show, setShow] = useState(false);
 
   return (

@@ -115,9 +115,11 @@ function LoginForm() {
           </button>
         </form>
 
-        <p className="text-xs text-ink/45 mt-6 leading-relaxed">
-          Chưa có tài khoản? Tài khoản do coach tạo và gửi cho bạn. Liên hệ coach
-          nếu bạn chưa nhận được thông tin đăng nhập.
+        <p className="text-sm text-ink/60 mt-6">
+          Chưa có tài khoản?{" "}
+          <Link href="/dang-ky" className="link">
+            Đăng ký
+          </Link>
         </p>
       </div>
     </main>

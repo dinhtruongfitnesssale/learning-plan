@@ -6,10 +6,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 type State = { ok: boolean; message: string } | null;
 
-// Đăng ký qua link giới thiệu. App vốn đóng (coach tạo tài khoản), nên
-// chỉ mở cửa khi có MÃ GIỚI THIỆU HỢP LỆ và coach đang bật tính năng —
-// không có mã thì vẫn phải nhờ coach như cũ.
-export async function signUpWithReferral(
+// Tự đăng ký tài khoản (khi coach bật ở Admin → Xu). Có MÃ GIỚI THIỆU hợp
+// lệ thì gắn người mời + tặng quà chào mừng; không có / sai mã thì vẫn tạo
+// tài khoản thường.
+export async function signUp(
   _prev: State,
   formData: FormData,
 ): Promise<State> {
@@ -29,13 +29,12 @@ export async function signUpWithReferral(
   const admin = createAdminClient();
   const [{ data: cfg }, { data: inviter }] = await Promise.all([
     admin.from("coin_settings").select("signup_enabled").eq("id", 1).maybeSingle(),
-    admin.from("profiles").select("id").eq("referral_code", code).maybeSingle(),
+    code
+      ? admin.from("profiles").select("id").eq("referral_code", code).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   if (!cfg?.signup_enabled) {
-    return { ok: false, message: "Đăng ký qua link giới thiệu đang tạm đóng." };
-  }
-  if (!code || !inviter) {
-    return { ok: false, message: "Mã giới thiệu không hợp lệ." };
+    return { ok: false, message: "Đăng ký tài khoản đang tạm đóng." };
   }
 
   // email_confirm: true — không bắt xác nhận email, để bạn mới vào học
@@ -58,11 +57,13 @@ export async function signUpWithReferral(
   }
 
   // Gắn người mời + tặng quà chào mừng. Hỏng bước này không chặn đăng ký.
-  const { error: refErr } = await admin.rpc("apply_referral", {
-    p_user: created.user.id,
-    p_code: code,
-  });
-  if (refErr) console.error("apply_referral thất bại:", refErr);
+  if (inviter) {
+    const { error: refErr } = await admin.rpc("apply_referral", {
+      p_user: created.user.id,
+      p_code: code,
+    });
+    if (refErr) console.error("apply_referral thất bại:", refErr);
+  }
 
   const supabase = await createClient();
   const { error: signInErr } = await supabase.auth.signInWithPassword({
@@ -70,5 +71,6 @@ export async function signUpWithReferral(
     password,
   });
   if (signInErr) redirect("/login");
-  redirect("/hoc/xu");
+  // Có quà chào mừng → mở ví xu cho thấy; đăng ký thường → vào trang học.
+  redirect(inviter ? "/hoc/xu" : "/hoc");
 }

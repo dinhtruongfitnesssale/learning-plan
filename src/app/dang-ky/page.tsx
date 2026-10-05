@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { APP_NAME } from "@/lib/brand";
 import { SignUpForm } from "./SignUpForm";
 
-// Trang đăng ký cho bạn được giới thiệu: /dang-ky?ref=MÃ.
+// Trang đăng ký: ai cũng tự tạo tài khoản được (khi coach bật). Vào qua
+// link giới thiệu /dang-ky?ref=MÃ thì nhận thêm quà chào mừng.
 export default async function SignUpPage({
   searchParams,
 }: {
@@ -30,7 +31,10 @@ export default async function SignUpPage({
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
-  const open = !!cfg?.signup_enabled && !!inviter;
+  const open = !!cfg?.signup_enabled;
+  // Mã sai vẫn cho đăng ký thường, chỉ là không có quà.
+  const referred = !!inviter;
+  const badCode = !!code && !referred;
   const inviterName =
     (inviter as { full_name: string } | null)?.full_name || "Một người bạn";
 
@@ -42,7 +46,7 @@ export default async function SignUpPage({
           <span className="font-serif text-xl">{APP_NAME}</span>
         </Link>
 
-        {open ? (
+        {open && referred ? (
           <>
             <p className="eyebrow mb-2">Lời mời</p>
             <h1 className="font-serif text-3xl mb-1">
@@ -60,13 +64,28 @@ export default async function SignUpPage({
             </p>
             <SignUpForm code={code} />
           </>
+        ) : open ? (
+          <>
+            <p className="eyebrow mb-2">Đăng ký</p>
+            <h1 className="font-serif text-3xl mb-1">Tạo tài khoản</h1>
+            <p className="text-ink/60 text-sm mb-7">
+              Miễn phí — vào học thử ngay sau khi tạo.
+            </p>
+            {badCode && (
+              <p className="text-xs text-clay bg-clay-soft rounded-lg px-3 py-2 mb-4">
+                Mã giới thiệu “{code}” không đúng nên không có quà chào mừng —
+                bạn vẫn đăng ký bình thường được.
+              </p>
+            )}
+            <SignUpForm code="" />
+          </>
         ) : (
           <>
             <p className="eyebrow mb-2">Đăng ký</p>
-            <h1 className="font-serif text-3xl mb-2">Link chưa hợp lệ</h1>
+            <h1 className="font-serif text-3xl mb-2">Đăng ký đang tạm đóng</h1>
             <p className="text-ink/60 text-sm">
-              Link giới thiệu sai mã hoặc đăng ký đang tạm đóng. Hỏi lại người
-              đã gửi link, hoặc liên hệ coach để được cấp tài khoản.
+              Hiện chưa mở đăng ký tài khoản mới. Liên hệ coach để được cấp
+              tài khoản.
             </p>
           </>
         )}

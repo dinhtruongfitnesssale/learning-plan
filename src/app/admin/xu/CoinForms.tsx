@@ -105,10 +105,11 @@ export function CoinSettingsForm({ s }: { s: CoinSettings }) {
             className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-ink"
           />
           <span>
-            Cho phép tự đăng ký tài khoản qua link giới thiệu
+            Cho phép tự đăng ký tài khoản
             <span className="block text-xs text-ink/45">
-              Tắt thì link giới thiệu ngừng hoạt động; tài khoản vẫn chỉ do
-              coach tạo như cũ.
+              Ai cũng tạo được tài khoản ở trang Đăng ký; vào qua link giới
+              thiệu thì có thêm quà chào mừng. Tắt thì chỉ coach tạo tài khoản
+              như cũ (link giới thiệu cũng ngừng).
             </span>
           </span>
         </label>
