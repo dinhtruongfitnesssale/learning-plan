@@ -4,7 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { autoApproves } from "@/lib/coins";
+import { autoApproves, SUGGESTED_COIN_PACKS } from "@/lib/coins";
 import { requireCoach } from "@/lib/auth";
 import {
   slugify,
@@ -1504,6 +1504,20 @@ export async function createCoinPack(formData: FormData) {
     bonus: nonNeg(formData.get("bonus")),
     sort_order: nonNeg(formData.get("sort_order")),
   });
+  revalidatePath("/admin/xu");
+  revalidatePath("/hoc/xu");
+}
+
+// Tạo các gói gợi ý còn thiếu (so theo tên) — bấm lại không tạo trùng.
+export async function seedCoinPacks() {
+  const supabase = await guard();
+  const { data: existing } = await supabase.from("coin_packs").select("name, sort_order");
+  const names = new Set((existing ?? []).map((p) => p.name));
+  let order = Math.max(-1, ...(existing ?? []).map((p) => p.sort_order)) + 1;
+  const rows = SUGGESTED_COIN_PACKS.filter((p) => !names.has(p.name)).map(
+    (p) => ({ ...p, sort_order: order++ }),
+  );
+  if (rows.length) await supabase.from("coin_packs").insert(rows);
   revalidatePath("/admin/xu");
   revalidatePath("/hoc/xu");
 }

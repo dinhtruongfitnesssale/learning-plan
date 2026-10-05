@@ -11,6 +11,7 @@ import { Chapter } from "@/components/Chapter";
 import { BulkAssign } from "./BulkAssign";
 import { SaveForm } from "@/components/SaveForm";
 import { InviteByEmail } from "./InviteByEmail";
+import { PricingPresets } from "./PricingPresets";
 import {
   updateCourse,
   setCourseVisibility,
@@ -354,6 +355,7 @@ export default async function CourseEditor({
                   )}
                 </select>
               </label>
+              <PricingPresets />
               <label className="block">
                 <span className="text-sm text-ink/70">Học phí (VND)</span>
                 <input

@@ -2,10 +2,16 @@ import Link from "next/link";
 import { requireCoach } from "@/lib/auth";
 import { getCoinAdmin } from "@/lib/data";
 import { Card, Eyebrow, Badge, Stat, buttonClass } from "@/components/ui";
-import { daysToEarn, formatDays, isMonetized, maxDailyEarn } from "@/lib/coins";
+import {
+  daysToEarn,
+  formatDays,
+  isMonetized,
+  maxDailyEarn,
+  SUGGESTED_COIN_PACKS,
+} from "@/lib/coins";
 import { formatVnd } from "@/lib/payment";
 import { CoinSettingsForm, AdjustCoinsForm } from "./CoinForms";
-import { createCoinPack } from "../actions";
+import { createCoinPack, seedCoinPacks } from "../actions";
 import { CoinPackRow } from "./CoinPackRow";
 
 const inputCls =
@@ -16,6 +22,9 @@ export default async function CoinAdmin() {
   const { settings: s, packs, courses, stats } = await getCoinAdmin();
   const perDay = Math.floor(maxDailyEarn(s));
   const sold = courses.filter(({ course }) => isMonetized(course));
+  const missingPacks = SUGGESTED_COIN_PACKS.filter(
+    (sp) => !packs.some((p) => p.name === sp.name),
+  );
 
   return (
     <div className="space-y-8">
@@ -123,6 +132,30 @@ export default async function CoinAdmin() {
           </Link>{" "}
           là xu vào ví.
         </p>
+        {missingPacks.length > 0 && (
+          <Card className="p-5 space-y-3 bg-amber-soft/40">
+            <p className="text-sm">
+              💡 <b>Gói gợi ý</b> (mốc 1 xu ≈ 100đ, nạp nhiều tặng thêm):
+            </p>
+            <ul className="text-sm text-ink/70 space-y-0.5">
+              {missingPacks.map((p) => (
+                <li key={p.name}>
+                  {p.name}: {formatVnd(p.price)} →{" "}
+                  {(p.coins + p.bonus).toLocaleString("vi-VN")} xu
+                  {p.bonus > 0 && ` (tặng ${p.bonus})`}
+                </li>
+              ))}
+            </ul>
+            <form action={seedCoinPacks}>
+              <button className={buttonClass("primary")}>
+                Tạo {missingPacks.length} gói gợi ý
+              </button>
+            </form>
+            <p className="text-xs text-ink/50">
+              Tạo xong vẫn sửa / ẩn từng gói được như bình thường.
+            </p>
+          </Card>
+        )}
         {packs.length > 0 && (
           <Card className="divide-y divide-ink/10">
             {packs.map((p) => (

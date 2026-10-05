@@ -69,3 +69,10 @@ export function autoApproves(
     c.lesson_coin_price === 0
   );
 }
+
+// 3 gói nạp gợi ý, mốc 1 xu ≈ 100đ; nạp nhiều tặng thêm (+10%, +20%).
+export const SUGGESTED_COIN_PACKS = [
+  { name: "Gói nhỏ", price: 50000, coins: 500, bonus: 0 },
+  { name: "Gói vừa", price: 100000, coins: 1000, bonus: 100 },
+  { name: "Gói lớn", price: 200000, coins: 2000, bonus: 400 },
+];
