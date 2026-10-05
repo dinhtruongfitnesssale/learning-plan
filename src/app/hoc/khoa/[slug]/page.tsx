@@ -309,8 +309,16 @@ export default async function CoursePage({
               / bài. Bấm “Mở” ở bài tiếp theo.
             </p>
           )}
-          <div className="grid gap-2 sm:grid-cols-2">
-            {course.course_coin_price > 0 && (
+          {/* Chỉ MỘT nút chính: việc học viên làm được ngay. Đủ xu → mở bằng
+              xu; chưa đủ (hoặc khóa không bán bằng xu) → chuyển khoản. Cách
+              còn lại thu về một dòng chữ nhỏ bên dưới. */}
+          {(() => {
+            const sellsCoin = course.course_coin_price > 0;
+            const sellsCash = course.price > 0;
+            const coinPrimary =
+              sellsCoin && (!sellsCash || balance >= unlockCost);
+
+            const coinForm = (
               <form action={unlockCourse}>
                 <input type="hidden" name="course_id" value={course.id} />
                 <input type="hidden" name="course_slug" value={course.slug} />
@@ -321,50 +329,41 @@ export default async function CoursePage({
                 >
                   🪙 Mở cả khóa · {formatCoins(unlockCost)}
                 </button>
-                {unlockCost < course.course_coin_price && (
-                  <p className="text-xs text-herb mt-1">
-                    Đã trừ {course.course_coin_price - unlockCost} xu bạn mở lẻ
-                    trước đó.
-                  </p>
-                )}
-                {balance < unlockCost && (
-                  <p className="text-xs text-ink/50 mt-1">
-                    Còn thiếu {unlockCost - balance} xu —{" "}
-                    <Link href="/hoc/xu" className="link">
-                      làm nhiệm vụ hoặc nạp xu
-                    </Link>
-                    .
-                  </p>
-                )}
               </form>
-            )}
-            {course.price > 0 &&
-              (openPayment ? (
-                <Link
-                  href={`/hoc/thanh-toan/${openPayment.code}`}
-                  className={buttonClass("outline", "w-full")}
-                >
-                  {openPayment.status === "matched"
-                    ? "⏳ Đã nhận tiền · chờ xác nhận"
-                    : "💳 Tiếp tục thanh toán"}
-                </Link>
-              ) : (
-                <form action={startPayment}>
-                  <input type="hidden" name="course_id" value={course.id} />
-                  <button
-                    type="submit"
-                    className={buttonClass(
-                      course.course_coin_price > 0 ? "outline" : "primary",
-                      "w-full",
-                    )}
+            );
+
+            const cashAction = (primary: boolean) => {
+              const cls = primary ? buttonClass("primary", "w-full") : "link";
+              if (openPayment)
+                return (
+                  <Link
+                    href={`/hoc/thanh-toan/${openPayment.code}`}
+                    className={cls}
                   >
-                    💳 Chuyển khoản · {formatVnd(course.price)}
+                    {openPayment.status === "matched"
+                      ? "⏳ Đã nhận tiền · chờ xác nhận"
+                      : primary
+                        ? "💳 Tiếp tục thanh toán"
+                        : "tiếp tục thanh toán chuyển khoản"}
+                  </Link>
+                );
+              return (
+                <form
+                  action={startPayment}
+                  className={primary ? undefined : "inline"}
+                >
+                  <input type="hidden" name="course_id" value={course.id} />
+                  <button type="submit" className={cls}>
+                    {primary
+                      ? `💳 Chuyển khoản · ${formatVnd(course.price)}`
+                      : `chuyển khoản ${formatVnd(course.price)}`}
                   </button>
                 </form>
-              ))}
-            {course.price === 0 &&
-              course.course_coin_price === 0 &&
-              enrollStatus !== "pending" && (
+              );
+            };
+
+            if (!sellsCoin && !sellsCash)
+              return enrollStatus !== "pending" ? (
                 <form action={requestEnroll}>
                   <input type="hidden" name="course_id" value={course.id} />
                   <input type="hidden" name="slug" value={course.slug} />
@@ -372,8 +371,44 @@ export default async function CoursePage({
                     {instant ? "Vào học cả khóa" : "Yêu cầu học cả khóa"}
                   </button>
                 </form>
-              )}
-          </div>
+              ) : null;
+
+            return (
+              <div className="space-y-2">
+                {coinPrimary ? coinForm : cashAction(true)}
+                {sellsCoin && unlockCost < course.course_coin_price && (
+                  <p className="text-xs text-herb">
+                    Giá xu đã trừ {course.course_coin_price - unlockCost} xu bạn
+                    mở lẻ trước đó.
+                  </p>
+                )}
+                {coinPrimary && sellsCash && (
+                  <p className="text-sm text-ink/60">
+                    Hoặc {cashAction(false)}.
+                  </p>
+                )}
+                {!coinPrimary && sellsCoin && (
+                  <p className="text-sm text-ink/60">
+                    Hoặc mở bằng {formatCoins(unlockCost)} — bạn còn thiếu{" "}
+                    {unlockCost - balance} xu,{" "}
+                    <Link href="/hoc/xu" className="link">
+                      làm nhiệm vụ hoặc nạp xu
+                    </Link>
+                    .
+                  </p>
+                )}
+                {coinPrimary && !sellsCash && balance < unlockCost && (
+                  <p className="text-xs text-ink/50">
+                    Còn thiếu {unlockCost - balance} xu —{" "}
+                    <Link href="/hoc/xu" className="link">
+                      làm nhiệm vụ hoặc nạp xu
+                    </Link>
+                    .
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </Card>
       )}
 
