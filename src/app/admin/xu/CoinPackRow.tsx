@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { updateCoinPack, toggleCoinPack, deleteCoinPack } from "../actions";
 import { Badge, buttonClass } from "@/components/ui";
 import { formatVnd } from "@/lib/payment";
@@ -15,6 +15,24 @@ export function CoinPackRow({ pack: p }: { pack: CoinPack }) {
   const [editing, setEditing] = useState(false);
   const [state, action, pending] = useActionState(updateCoinPack, null);
   const [confirmDel, setConfirmDel] = useState(false);
+  // Ẩn / xóa: báo đang chạy, xóa xong ẩn dòng ngay, lỗi thì hiện ra.
+  const [busy, startBusy] = useTransition();
+  const [busyWhat, setBusyWhat] = useState<"toggle" | "delete" | null>(null);
+  const [gone, setGone] = useState(false);
+  const [rowError, setRowError] = useState<string | null>(null);
+
+  function run(what: "toggle" | "delete", fn: (fd: FormData) => Promise<{ ok: boolean; message: string }>) {
+    const fd = new FormData();
+    fd.set("id", p.id);
+    fd.set("active", String(p.active));
+    setBusyWhat(what);
+    setRowError(null);
+    startBusy(async () => {
+      const r = await fn(fd);
+      if (!r.ok) setRowError(r.message || "Không thực hiện được, thử lại nhé.");
+      else if (what === "delete") setGone(true);
+    });
+  }
 
   // Lưu xong thì đóng form.
   useEffect(() => {
@@ -22,6 +40,7 @@ export function CoinPackRow({ pack: p }: { pack: CoinPack }) {
   }, [state]);
 
   const total = p.coins + p.bonus;
+  if (gone) return null;
 
   return (
     <div className={`px-4 py-3 ${p.active ? "" : "opacity-60"}`}>
@@ -44,25 +63,33 @@ export function CoinPackRow({ pack: p }: { pack: CoinPack }) {
           >
             {editing ? "Đóng" : "Sửa"}
           </button>
-          <form action={toggleCoinPack}>
-            <input type="hidden" name="id" value={p.id} />
-            <input type="hidden" name="active" value={String(p.active)} />
-            <button className={buttonClass("ghost", smallBtn)}>
-              {p.active ? "Ẩn" : "Hiện"}
-            </button>
-          </form>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => run("toggle", toggleCoinPack)}
+            className={buttonClass("ghost", smallBtn)}
+          >
+            {busy && busyWhat === "toggle" ? "Đang lưu…" : p.active ? "Ẩn" : "Hiện"}
+          </button>
           {confirmDel ? (
-            <form action={deleteCoinPack} className="flex gap-1">
-              <input type="hidden" name="id" value={p.id} />
-              <button className={buttonClass("danger", smallBtn)}>Xóa hẳn</button>
+            <div className="flex gap-1">
               <button
                 type="button"
+                disabled={busy}
+                onClick={() => run("delete", deleteCoinPack)}
+                className={buttonClass("danger", smallBtn)}
+              >
+                {busy && busyWhat === "delete" ? "Đang xóa…" : "Xóa hẳn"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
                 onClick={() => setConfirmDel(false)}
                 className={buttonClass("ghost", smallBtn)}
               >
                 Thôi
               </button>
-            </form>
+            </div>
           ) : (
             <button
               type="button"
@@ -74,6 +101,12 @@ export function CoinPackRow({ pack: p }: { pack: CoinPack }) {
           )}
         </div>
       </div>
+
+      {rowError && (
+        <p role="alert" className="mt-2 text-sm text-clay">
+          ⚠ {rowError}
+        </p>
+      )}
 
       {editing && (
         <form

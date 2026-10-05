@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { refresh, revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -1551,23 +1551,32 @@ export async function updateCoinPack(
   return { ok: true, message: "Đã lưu." };
 }
 
-export async function toggleCoinPack(formData: FormData) {
+export async function toggleCoinPack(formData: FormData): Promise<Msg> {
   const supabase = await guard();
-  await supabase
+  const { error } = await supabase
     .from("coin_packs")
     .update({ active: formData.get("active") !== "true" })
     .eq("id", String(formData.get("id")));
+  if (error) return { ok: false, message: error.message };
   revalidatePath("/admin/xu");
   revalidatePath("/hoc/xu");
+  refresh(); // làm mới ngay màn hình coach đang xem
+  return { ok: true, message: "" };
 }
 
 // Gói đã có đơn thì payments.pack_id tự về null (on delete set null) — đơn
 // cũ vẫn giữ số xu đã chốt nên chốt muộn vẫn cộng đúng.
-export async function deleteCoinPack(formData: FormData) {
+export async function deleteCoinPack(formData: FormData): Promise<Msg> {
   const supabase = await guard();
-  await supabase.from("coin_packs").delete().eq("id", String(formData.get("id")));
+  const { error } = await supabase
+    .from("coin_packs")
+    .delete()
+    .eq("id", String(formData.get("id")));
+  if (error) return { ok: false, message: error.message };
   revalidatePath("/admin/xu");
   revalidatePath("/hoc/xu");
+  refresh(); // làm mới ngay màn hình coach đang xem
+  return { ok: true, message: "" };
 }
 
 // Coach tặng / trừ xu tay theo email (bù lỗi, thưởng sự kiện…).
