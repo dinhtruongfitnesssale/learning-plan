@@ -416,7 +416,7 @@ export default async function CourseEditor({
                     />
                   </label>
                   <label className="block min-w-0">
-                    <span className="text-xs text-ink/70">Hết hạn (để trống = không hạn)</span>
+                    <span className="text-xs text-ink/70">Ngày hết hạn</span>
                     <input
                       name="discount_ends_at"
                       type="datetime-local"
