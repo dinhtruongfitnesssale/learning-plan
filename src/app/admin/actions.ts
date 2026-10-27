@@ -59,6 +59,26 @@ export async function updateCourse(
   const slug = String(formData.get("slug"));
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { ok: false, message: "Tên khóa không được để trống." };
+  const price = Math.max(0, Math.round(Number(formData.get("price")) || 0));
+
+  // Ưu đãi học phí (0023). Ô loại để trống = tắt ưu đãi.
+  const rawType = String(formData.get("discount_type") ?? "");
+  const discountType = rawType === "percent" || rawType === "amount" ? rawType : null;
+  const discountValue = discountType ? nonNeg(formData.get("discount_value")) : 0;
+  if (discountType === "percent" && (discountValue < 1 || discountValue > 99))
+    return { ok: false, message: "Ưu đãi theo % phải từ 1 đến 99." };
+  if (discountType === "amount" && (discountValue < 1 || discountValue >= price))
+    return {
+      ok: false,
+      message: "Số tiền giảm phải lớn hơn 0 và nhỏ hơn học phí.",
+    };
+  // Ô datetime-local không có múi giờ → hiểu là giờ Việt Nam.
+  const rawEnds = String(formData.get("discount_ends_at") ?? "").trim().slice(0, 16);
+  const endsDate = rawEnds ? new Date(`${rawEnds}:00+07:00`) : null;
+  if (endsDate && Number.isNaN(endsDate.getTime()))
+    return { ok: false, message: "Hạn ưu đãi không hợp lệ." };
+  const discountEndsAt = discountType && endsDate ? endsDate.toISOString() : null;
+
   const { error } = await supabase
     .from("courses")
     .update({
@@ -73,7 +93,13 @@ export async function updateCourse(
       category: String(formData.get("category")),
       // Giá do coach nhập → ép về số nguyên không âm. Giá > 0 đổi nút của
       // học viên từ "Yêu cầu học" sang "Đăng ký" + chuyển khoản.
-      price: Math.max(0, Math.round(Number(formData.get("price")) || 0)),
+      price,
+      discount_type: discountType,
+      discount_value: discountValue,
+      discount_ends_at: discountEndsAt,
+      discount_label: discountType
+        ? String(formData.get("discount_label") ?? "").trim()
+        : "",
       // Học thử + giá xu (0018). 0 = tắt tính năng tương ứng.
       free_lessons: nonNeg(formData.get("free_lessons")),
       lesson_coin_price: nonNeg(formData.get("lesson_coin_price")),

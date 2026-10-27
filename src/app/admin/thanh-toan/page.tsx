@@ -234,6 +234,11 @@ function PaymentCard({ pay }: { pay: Row }) {
             <span className="font-mono tnum font-semibold text-ink">
               {formatVnd(pay.amount)}
             </span>
+            {pay.list_price != null && pay.list_price > pay.amount && (
+              <span className="text-herb" title="Đơn có ưu đãi">
+                🏷️ <s className="font-mono tnum text-ink/40">{formatVnd(pay.list_price)}</s>
+              </span>
+            )}
             <span className="font-mono text-amber">{pay.code}</span>
             <span className="text-ink/40 font-mono">
               {dt(matched ? (pay.matched_at ?? pay.created_at) : pay.created_at)}

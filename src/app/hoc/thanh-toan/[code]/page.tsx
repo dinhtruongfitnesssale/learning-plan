@@ -89,6 +89,12 @@ export default async function PaymentPage({
               <p className="font-mono tnum text-3xl font-semibold mt-1">
                 {formatVnd(pay.amount)}
               </p>
+              {pay.list_price != null && pay.list_price > pay.amount && (
+                <p className="text-xs text-herb mt-1">
+                  🏷️ Đã áp ưu đãi · giá gốc{" "}
+                  <s className="font-mono tnum">{formatVnd(pay.list_price)}</s>
+                </p>
+              )}
             </div>
 
             {bankConfigured() ? (

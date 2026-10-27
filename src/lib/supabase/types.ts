@@ -50,8 +50,18 @@ export interface Course {
   private: boolean;
   /** Tự duyệt: bấm là vào học ngay (chỉ có hiệu lực với khóa miễn phí). */
   auto_approve: boolean;
+  /** Ưu đãi học phí: giảm % hoặc giảm số tiền. null = không ưu đãi. */
+  discount_type: DiscountType | null;
+  /** Số % (1–99) hoặc số đồng được giảm. */
+  discount_value: number;
+  /** Hạn ưu đãi. null = không hạn. */
+  discount_ends_at: string | null;
+  /** Tên ưu đãi hiện cho học viên. */
+  discount_label: string;
   created_at: string;
 }
+
+export type DiscountType = "percent" | "amount";
 
 export interface CourseCategory {
   id: string;
@@ -134,6 +144,8 @@ export interface Payment {
   pack_id: string | null;
   /** Số xu sẽ cộng khi chốt (> 0 nghĩa là đơn nạp xu). */
   coins: number;
+  /** Học phí gốc lúc tạo đơn. Khác amount = đơn có ưu đãi. */
+  list_price: number | null;
 }
 
 // ── Xu ────────────────────────────────────────────────────────

@@ -12,6 +12,8 @@ import { BulkAssign } from "./BulkAssign";
 import { SaveForm } from "@/components/SaveForm";
 import { InviteByEmail } from "./InviteByEmail";
 import { PricingPresets } from "./PricingPresets";
+import { coursePrice, discountActive } from "@/lib/discount";
+import { formatVnd } from "@/lib/payment";
 import {
   updateCourse,
   setCourseVisibility,
@@ -27,6 +29,13 @@ const inputCls =
   "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
 
 const MODULES_PER_PAGE = 4;
+
+// timestamptz → giá trị ô datetime-local theo giờ Việt Nam.
+function toVnLocalInput(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(new Date(iso).getTime() + 7 * 3600 * 1000);
+  return d.toISOString().slice(0, 16);
+}
 
 // YYYY-MM-DD → dd/mm/yyyy (để trống nếu chưa đặt lịch).
 function fmtDate(d: string | null): string {
@@ -371,6 +380,67 @@ export default async function CourseEditor({
                   chuyển khoản để mở cả khóa.
                 </span>
               </label>
+              <fieldset className="rounded-lg border border-ink/10 p-3 space-y-3">
+                <legend className="px-1 text-sm font-medium">🏷️ Ưu đãi học phí</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block min-w-0">
+                    <span className="text-xs text-ink/70">Loại ưu đãi</span>
+                    <select
+                      name="discount_type"
+                      defaultValue={c.discount_type ?? ""}
+                      className={inputCls}
+                    >
+                      <option value="">Không ưu đãi</option>
+                      <option value="percent">Giảm theo %</option>
+                      <option value="amount">Giảm số tiền (VND)</option>
+                    </select>
+                  </label>
+                  <label className="block min-w-0">
+                    <span className="text-xs text-ink/70">Mức giảm</span>
+                    <input
+                      name="discount_value"
+                      type="number"
+                      min={0}
+                      defaultValue={c.discount_value || ""}
+                      placeholder="vd 20 hoặc 50000"
+                      className={inputCls}
+                    />
+                  </label>
+                  <label className="block min-w-0">
+                    <span className="text-xs text-ink/70">Tên ưu đãi</span>
+                    <input
+                      name="discount_label"
+                      defaultValue={c.discount_label}
+                      placeholder="vd Ưu đãi khai trương"
+                      className={inputCls}
+                    />
+                  </label>
+                  <label className="block min-w-0">
+                    <span className="text-xs text-ink/70">Hết hạn (để trống = không hạn)</span>
+                    <input
+                      name="discount_ends_at"
+                      type="datetime-local"
+                      defaultValue={toVnLocalInput(c.discount_ends_at)}
+                      className={inputCls}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-ink/45">
+                  Áp vào học phí chuyển khoản (giá xu giữ nguyên). Giảm % từ 1–99,
+                  làm tròn về nghìn đồng; giảm số tiền phải nhỏ hơn học phí.
+                </p>
+                {c.discount_type && c.discount_value > 0 && c.price > 0 && (
+                  discountActive(c) ? (
+                    <p className="text-xs text-herb bg-herb-soft rounded-md px-2.5 py-2">
+                      Đang áp dụng: học viên trả{" "}
+                      <b>{formatVnd(coursePrice(c))}</b> thay vì{" "}
+                      <s>{formatVnd(c.price)}</s>.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-clay">⚠ Ưu đãi đã hết hạn — đang bán giá gốc.</p>
+                  )
+                )}
+              </fieldset>
               <fieldset className="rounded-lg border border-ink/10 p-3 space-y-3">
                 <legend className="px-1 text-sm font-medium">🪙 Học thử &amp; xu</legend>
                 <div className="grid grid-cols-3 gap-2">

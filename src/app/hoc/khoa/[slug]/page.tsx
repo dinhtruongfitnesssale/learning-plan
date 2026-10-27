@@ -12,6 +12,7 @@ import { requestEnroll, requestRelearn, startPayment } from "../../khoa-hoc/acti
 import { unlockCourse, unlockLesson } from "../../xu/actions";
 import { isMonetized, formatCoins, autoApproves } from "@/lib/coins";
 import { formatVnd } from "@/lib/payment";
+import { coursePrice, discountActive, discountBadge, discountEndsText } from "@/lib/discount";
 import type { Lesson } from "@/lib/supabase/types";
 
 const MODULES_PER_PAGE = 4;
@@ -315,6 +316,7 @@ export default async function CoursePage({
           {(() => {
             const sellsCoin = course.course_coin_price > 0;
             const sellsCash = course.price > 0;
+            const cashPrice = coursePrice(course);
             const coinPrimary =
               sellsCoin && (!sellsCash || balance >= unlockCost);
 
@@ -355,8 +357,8 @@ export default async function CoursePage({
                   <input type="hidden" name="course_id" value={course.id} />
                   <button type="submit" className={cls}>
                     {primary
-                      ? `💳 Chuyển khoản · ${formatVnd(course.price)}`
-                      : `chuyển khoản ${formatVnd(course.price)}`}
+                      ? `💳 Chuyển khoản · ${formatVnd(cashPrice)}`
+                      : `chuyển khoản ${formatVnd(cashPrice)}`}
                   </button>
                 </form>
               );
@@ -375,6 +377,19 @@ export default async function CoursePage({
 
             return (
               <div className="space-y-2">
+                {sellsCash && discountActive(course) && (
+                  <p className="text-sm rounded-lg bg-herb-soft px-3 py-2">
+                    🏷️ <b>{course.discount_label || "Ưu đãi"}</b>{" "}
+                    <Badge accent="herb">{discountBadge(course)}</Badge>{" "}
+                    học phí <b className="font-mono tnum">{formatVnd(cashPrice)}</b>{" "}
+                    <s className="font-mono tnum text-ink/45">{formatVnd(course.price)}</s>
+                    {course.discount_ends_at && (
+                      <span className="block text-xs text-ink/55 mt-0.5">
+                        Áp dụng {discountEndsText(course)}
+                      </span>
+                    )}
+                  </p>
+                )}
                 {coinPrimary ? coinForm : cashAction(true)}
                 {sellsCoin && unlockCost < course.course_coin_price && (
                   <p className="text-xs text-herb">

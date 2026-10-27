@@ -6,6 +6,7 @@ import { CourseFilter } from "@/components/CourseFilter";
 import { LockedCourseButton } from "@/components/LockedCourse";
 import { Pagination } from "@/components/Pagination";
 import { formatVnd } from "@/lib/payment";
+import { coursePrice, discountActive, discountBadge } from "@/lib/discount";
 import { isMonetized, autoApproves } from "@/lib/coins";
 import { requestEnroll, requestRelearn } from "./actions";
 
@@ -102,11 +103,22 @@ export default async function Catalog({
                   {course.course_coin_price > 0 && (
                     <Badge accent="amber">🪙 {course.course_coin_price} xu</Badge>
                   )}
-                  {course.price > 0 && (
-                    <span className="font-mono tnum text-sm font-semibold text-ink">
-                      {formatVnd(course.price)}
-                    </span>
-                  )}
+                  {course.price > 0 &&
+                    (discountActive(course) ? (
+                      <>
+                        <Badge accent="herb">🏷️ {discountBadge(course)}</Badge>
+                        <span className="font-mono tnum text-sm font-semibold text-ink">
+                          {formatVnd(coursePrice(course))}
+                        </span>
+                        <s className="font-mono tnum text-xs text-ink/45">
+                          {formatVnd(course.price)}
+                        </s>
+                      </>
+                    ) : (
+                      <span className="font-mono tnum text-sm font-semibold text-ink">
+                        {formatVnd(course.price)}
+                      </span>
+                    ))}
                 </div>
               )}
               <div className="mt-5">
