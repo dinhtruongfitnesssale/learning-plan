@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { savePromo } from "../actions/promos";
 import { buttonClass } from "@/components/ui";
+import { MoneyInput } from "@/components/MoneyInput";
 import { formatVnd } from "@/lib/payment";
 import type { Course, PromoCode } from "@/lib/supabase/types";
 
@@ -87,16 +88,32 @@ export function PromoForm({
           <span className="text-sm text-ink/70">
             {type === "percent" ? "Giảm (%)" : "Giảm (VND)"}
           </span>
-          <input
-            name="discount_value"
-            type="number"
-            required
-            min={type === "percent" ? 1 : 1000}
-            max={type === "percent" ? 100 : undefined}
-            step={type === "percent" ? 1 : 1000}
-            defaultValue={promo?.discount_value}
-            className={inputCls}
-          />
+          {type === "amount" ? (
+            <MoneyInput
+              key="amount"
+              name="discount_value"
+              required
+              defaultValue={promo?.discount_type === "amount" ? promo.discount_value : null}
+              placeholder="50.000"
+              className={inputCls}
+            />
+          ) : (
+            <div className="relative">
+              <input
+                key="percent"
+                name="discount_value"
+                type="number"
+                required
+                min={1}
+                max={100}
+                defaultValue={promo?.discount_type === "percent" ? promo.discount_value : ""}
+                className={`${inputCls} pr-8`}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink/45">
+                %
+              </span>
+            </div>
+          )}
         </label>
         <label className="block min-w-0">
           <span className="text-sm text-ink/70">Tổng lượt</span>

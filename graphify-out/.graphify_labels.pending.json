@@ -1,10 +1,21 @@
 {
-  "2": "GuiMailForm.tsx",
+  "0": "thanh-toan/page.tsx",
+  "2": "payment-notify.ts",
   "3": "khoa-hoc/[slug]/page.tsx",
+  "4": "react",
   "5": "ui.tsx",
   "6": "package.json",
-  "7": "khoa/[slug]/page.tsx",
-  "14": "hoc/xu/page.tsx",
+  "7": "Card",
+  "8": "types.ts",
+  "14": "YouTubeLockedPlayer",
   "16": "requireUser",
-  "18": "public"
+  "17": "theo-doi/page.tsx",
+  "18": "public",
+  "20": "danh-gia/page.tsx",
+  "21": "0013_content_assignments.sql",
+  "25": "data.ts",
+  "27": "PushOptIn",
+  "40": "createClient",
+  "41": "BulkAssign.tsx",
+  "42": "public.course_reviews"
 }

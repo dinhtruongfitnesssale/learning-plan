@@ -13,6 +13,7 @@ import { formatVnd } from "@/lib/payment";
 import { CoinSettingsForm, AdjustCoinsForm } from "./CoinForms";
 import { createCoinPack, seedCoinPacks } from "../actions/coins";
 import { CoinPackRow } from "./CoinPackRow";
+import { MoneyInput } from "@/components/MoneyInput";
 
 const inputCls =
   "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";
@@ -171,7 +172,7 @@ export default async function CoinAdmin() {
             </label>
             <label className="block min-w-0">
               <span className="text-sm text-ink/70">Giá (VND)</span>
-              <input name="price" type="number" min={1000} step={1000} required className={inputCls} />
+              <MoneyInput name="price" required className={inputCls} />
             </label>
             <label className="block min-w-0">
               <span className="text-sm text-ink/70">Xu</span>

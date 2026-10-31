@@ -5,9 +5,10 @@ import { requireCoach } from "@/lib/auth";
 // Dùng chung cho các file action của admin. Không có "use server" để hai hàm
 // này không bị lộ thành Server Action gọi được từ trình duyệt.
 
-// Ô số do coach nhập → số nguyên không âm (ô trống / chữ = 0).
+// Ô số do coach nhập → số nguyên không âm (ô trống / chữ = 0). Bỏ mọi ký
+// tự không phải số trước, vì ô tiền (MoneyInput) gửi lên dạng "99.000".
 export function nonNeg(v: FormDataEntryValue | null) {
-  return Math.max(0, Math.round(Number(v) || 0));
+  return Math.max(0, Math.round(Number(String(v ?? "").replace(/\D/g, "")) || 0));
 }
 
 // Mọi action đều kiểm tra coach (RLS cũng chặn, đây là lớp phòng vệ thứ hai).

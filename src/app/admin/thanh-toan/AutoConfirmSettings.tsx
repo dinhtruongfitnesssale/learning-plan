@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updatePaymentSettings } from "../actions/payments";
 import { buttonClass } from "@/components/ui";
+import { MoneyInput } from "@/components/MoneyInput";
 import { formatVnd } from "@/lib/payment";
 import type { PaymentSettings } from "@/lib/data";
 
@@ -58,22 +59,16 @@ export function AutoConfirmSettings({
           <div className="grid grid-cols-2 gap-3">
             <label className="block min-w-0">
               <span className="text-xs text-ink/70">Trần học phí (VND)</span>
-              <input
+              <MoneyInput
                 name="auto_course_max"
-                type="number"
-                min={0}
-                step={10000}
                 defaultValue={s.auto_course_max}
                 className={inputCls}
               />
             </label>
             <label className="block min-w-0">
               <span className="text-xs text-ink/70">Trần nạp xu (VND)</span>
-              <input
+              <MoneyInput
                 name="auto_topup_max"
-                type="number"
-                min={0}
-                step={10000}
                 defaultValue={s.auto_topup_max}
                 className={inputCls}
               />

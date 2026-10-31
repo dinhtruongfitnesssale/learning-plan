@@ -12,6 +12,8 @@ import { BulkAssign } from "./BulkAssign";
 import { SaveForm } from "@/components/SaveForm";
 import { InviteByEmail } from "./InviteByEmail";
 import { PricingPresets } from "./PricingPresets";
+import { DiscountFields } from "./DiscountFields";
+import { MoneyInput } from "@/components/MoneyInput";
 import { coursePrice, discountActive } from "@/lib/discount";
 import { formatVnd } from "@/lib/payment";
 import {
@@ -367,14 +369,7 @@ export default async function CourseEditor({
               <PricingPresets />
               <label className="block">
                 <span className="text-sm text-ink/70">Học phí (VND)</span>
-                <input
-                  name="price"
-                  type="number"
-                  min={0}
-                  step={1000}
-                  defaultValue={c.price}
-                  className={inputCls}
-                />
+                <MoneyInput name="price" defaultValue={c.price} placeholder="0" className={inputCls} />
                 <span className="text-xs text-ink/45">
                   Để 0 = không bán bằng chuyển khoản. Lớn hơn 0 thì học viên
                   chuyển khoản để mở cả khóa.
@@ -383,29 +378,11 @@ export default async function CourseEditor({
               <fieldset className="rounded-lg border border-ink/10 p-3 space-y-3">
                 <legend className="px-1 text-sm font-medium">🏷️ Ưu đãi học phí</legend>
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="block min-w-0">
-                    <span className="text-xs text-ink/70">Loại ưu đãi</span>
-                    <select
-                      name="discount_type"
-                      defaultValue={c.discount_type ?? ""}
-                      className={inputCls}
-                    >
-                      <option value="">Không ưu đãi</option>
-                      <option value="percent">Giảm theo %</option>
-                      <option value="amount">Giảm số tiền (VND)</option>
-                    </select>
-                  </label>
-                  <label className="block min-w-0">
-                    <span className="text-xs text-ink/70">Mức giảm</span>
-                    <input
-                      name="discount_value"
-                      type="number"
-                      min={0}
-                      defaultValue={c.discount_value || ""}
-                      placeholder="vd 20 hoặc 50000"
-                      className={inputCls}
-                    />
-                  </label>
+                  <DiscountFields
+                    type={c.discount_type}
+                    value={c.discount_value}
+                    inputCls={inputCls}
+                  />
                   <label className="block min-w-0">
                     <span className="text-xs text-ink/70">Tên ưu đãi</span>
                     <input

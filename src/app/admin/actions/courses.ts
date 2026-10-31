@@ -42,7 +42,7 @@ export async function updateCourse(
   const slug = String(formData.get("slug"));
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { ok: false, message: "Tên khóa không được để trống." };
-  const price = Math.max(0, Math.round(Number(formData.get("price")) || 0));
+  const price = nonNeg(formData.get("price"));
 
   // Ưu đãi học phí (0023). Ô loại để trống = tắt ưu đãi.
   const rawType = String(formData.get("discount_type") ?? "");

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { updateCoinPack, toggleCoinPack, deleteCoinPack } from "../actions/coins";
 import { Badge, buttonClass } from "@/components/ui";
+import { MoneyInput } from "@/components/MoneyInput";
 import { formatVnd } from "@/lib/payment";
 import type { CoinPack } from "@/lib/supabase/types";
 
@@ -120,15 +121,7 @@ export function CoinPackRow({ pack: p }: { pack: CoinPack }) {
           </label>
           <label className="block min-w-0">
             <span className="text-xs text-ink/70">Giá (VND)</span>
-            <input
-              name="price"
-              type="number"
-              min={1000}
-              step={1000}
-              required
-              defaultValue={p.price}
-              className={inputCls}
-            />
+            <MoneyInput name="price" required defaultValue={p.price} className={inputCls} />
           </label>
           <label className="block min-w-0">
             <span className="text-xs text-ink/70">Xu</span>
