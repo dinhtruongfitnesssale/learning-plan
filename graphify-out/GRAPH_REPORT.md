@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `00cb2f94`
+- Built from commit: `03775a2d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -70,10 +70,10 @@
   .claude/CLAUDE.md → CLAUDE.md
 - `GuiMailForm()` --indirect_call--> `sendBroadcastEmail()`  [INFERRED]
   src/app/admin/gui-mail/GuiMailForm.tsx → src/app/admin/actions/email.ts
-- `updatePaymentSettings()` --calls--> `nonNeg()`  [EXTRACTED]
+- `confirmPayment()` --calls--> `guard()`  [EXTRACTED]
   src/app/admin/actions/payments.ts → src/app/admin/actions/_shared.ts
-- `savePromo()` --calls--> `nonNeg()`  [EXTRACTED]
-  src/app/admin/actions/promos.ts → src/app/admin/actions/_shared.ts
+- `PaymentActions()` --indirect_call--> `confirmPayment()`  [INFERRED]
+  src/app/admin/thanh-toan/PaymentActions.tsx → src/app/admin/actions/payments.ts
 
 ## Import Cycles
 - None detected.
@@ -111,7 +111,7 @@ Nodes (63): updateLesson(), assignCourse(), assignCourseToLearners(), setContent
 
 ### Community 6 - "package.json"
 Cohesion: 0.05
-Nodes (51): dependencies, next@16.2.9, nodemailer@^9.0.3, react@19.2.4, react-dom@19.2.4, react-markdown@^10.1.0, remark-gfm@^4.0.1, @supabase/ssr@^0.12.0 (+43 more)
+Nodes (51): dependencies, next@16.4.3, nodemailer@^9.0.3, react@19.2.4, react-dom@19.2.4, react-markdown@^10.1.0, remark-gfm@^4.0.1, @supabase/ssr@^0.12.0 (+43 more)
 
 ### Community 7 - "hoc/xu/page.tsx"
 Cohesion: 0.22
