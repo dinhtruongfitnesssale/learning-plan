@@ -13,6 +13,7 @@ import { SaveForm } from "@/components/SaveForm";
 import { InviteByEmail } from "./InviteByEmail";
 import { PricingPresets } from "./PricingPresets";
 import { DiscountFields } from "./DiscountFields";
+import { LessonImportForm } from "./LessonImportForm";
 import { MoneyInput } from "@/components/MoneyInput";
 import { coursePrice, discountActive } from "@/lib/discount";
 import { formatVnd } from "@/lib/payment";
@@ -322,6 +323,8 @@ export default async function CourseEditor({
               <button className={buttonClass("primary", "shrink-0")}>Thêm</button>
             </form>
           </Card>
+
+          <LessonImportForm courseId={c.id} courseSlug={c.slug} />
         </div>
 
         {/* Cột phải: phân khóa + thông tin khóa + chương */}

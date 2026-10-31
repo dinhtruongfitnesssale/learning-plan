@@ -283,6 +283,161 @@ export async function deleteLesson(formData: FormData) {
   redirect(`/admin/khoa-hoc/${courseSlug}`);
 }
 
+// ── Cập nhật chương + bài học từ Excel ────────────────────────
+export type LessonImportState = {
+  ok: boolean;
+  created?: number;
+  updated?: number;
+  newChapters?: number;
+  errors?: string[];
+};
+
+// So khớp tên chương / tên bài: không phân biệt hoa thường, khoảng trắng thừa.
+const nameKey = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+
+export async function importLessons(
+  _prev: LessonImportState,
+  formData: FormData,
+): Promise<LessonImportState> {
+  const supabase = await guard();
+  const courseId = String(formData.get("course_id"));
+  const courseSlug = String(formData.get("course_slug"));
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, errors: ["Chưa chọn file Excel."] };
+  }
+  const { parseLessonWorkbook } = await import("@/lib/lesson-import");
+  const { rows, errors } = parseLessonWorkbook(Buffer.from(await file.arrayBuffer()));
+  if (errors.length > 0) return { ok: false, errors };
+
+  const [{ data: modData }, { data: lessonData }] = await Promise.all([
+    supabase
+      .from("modules")
+      .select("id, title, sort_order")
+      .eq("course_id", courseId)
+      .order("sort_order")
+      .order("id"),
+    supabase
+      .from("lessons")
+      .select("id, slug, title, module_id, sort_order")
+      .eq("course_id", courseId),
+  ]);
+  const mods = modData ?? [];
+  const existing = lessonData ?? [];
+  const bySlug = new Map(existing.map((l) => [l.slug as string, l]));
+
+  // Mã bài lạ (vd. file tải từ khóa khác) → báo lỗi, không nhập gì.
+  for (const r of rows) {
+    if (r.slug && !bySlug.has(r.slug)) {
+      errors.push(
+        `Dòng ${r.excelRow}: "Mã bài" ${r.slug} không có trong khóa này — bài mới thì để trống ô này.`,
+      );
+    }
+  }
+  if (errors.length > 0) return { ok: false, errors };
+
+  // Chương: dùng lại chương trùng tên, chưa có thì tạo. Chương theo thứ tự
+  // xuất hiện trong file, các chương không nhắc tới xếp sau.
+  const modByKey = new Map<string, string>();
+  for (const m of mods) if (!modByKey.has(nameKey(m.title))) modByKey.set(nameKey(m.title), m.id);
+  const fileChapters: string[] = [];
+  for (const r of rows) {
+    if (r.chapter && !fileChapters.some((c) => nameKey(c) === nameKey(r.chapter))) {
+      fileChapters.push(r.chapter);
+    }
+  }
+  const toCreate = fileChapters.filter((c) => !modByKey.has(nameKey(c)));
+  if (toCreate.length > 0) {
+    const { data: created, error } = await supabase
+      .from("modules")
+      .insert(toCreate.map((title, i) => ({ course_id: courseId, title, sort_order: mods.length + i })))
+      .select("id, title");
+    if (error) return { ok: false, errors: ["Tạo chương lỗi: " + error.message] };
+    for (const m of created ?? []) modByKey.set(nameKey(m.title), m.id);
+  }
+  const modOrder = [
+    ...fileChapters.map((c) => modByKey.get(nameKey(c))!),
+    ...mods.map((m) => m.id).filter((id) => !fileChapters.some((c) => modByKey.get(nameKey(c)) === id)),
+  ];
+
+  // Bài: khớp theo Mã bài, không có mã thì theo tên bài (chưa khớp dòng nào).
+  const used = new Set<string>();
+  const matches = rows.map((r) => {
+    let hit = r.slug ? bySlug.get(r.slug) : undefined;
+    if (!hit) {
+      hit = existing.find((l) => !used.has(l.id) && nameKey(l.title) === nameKey(r.title));
+    }
+    if (hit) used.add(hit.id);
+    return hit;
+  });
+
+  // Slug cho bài mới: không trùng bài nào trong khóa.
+  const slugs = new Set(existing.map((l) => l.slug as string));
+  const freshSlug = (title: string) => {
+    const base = slugify(title) || "bai";
+    let s = base;
+    for (let n = 2; slugs.has(s); n++) s = `${base}-${n}`;
+    slugs.add(s);
+    return s;
+  };
+
+  // Thứ tự bài: theo file, rồi các bài không có trong file giữ thứ tự cũ.
+  const rest = existing
+    .filter((l) => !used.has(l.id))
+    .sort((a, b) => a.sort_order - b.sort_order);
+
+  const inserts: Record<string, unknown>[] = [];
+  const updates: { id: string; patch: Record<string, unknown> }[] = [];
+  rows.forEach((r, i) => {
+    const fields: Record<string, unknown> = {
+      title: r.title,
+      module_id: r.chapter ? modByKey.get(nameKey(r.chapter)) : null,
+      sort_order: i,
+    };
+    // Ô trống: bài cũ giữ nguyên, bài mới lấy mặc định của bảng.
+    for (const k of ["summary", "video_url", "pdf_url", "pdf_name", "content", "est_minutes", "published"] as const) {
+      if (r[k] !== null) fields[k] = r[k];
+    }
+    const hit = matches[i];
+    if (hit) updates.push({ id: hit.id, patch: fields });
+    else inserts.push({ ...fields, course_id: courseId, slug: freshSlug(r.title) });
+  });
+  rest.forEach((l, i) => {
+    const sort_order = rows.length + i;
+    if (l.sort_order !== sort_order) updates.push({ id: l.id, patch: { sort_order } });
+  });
+
+  // Ghi: chương trước (thứ tự), rồi bài cũ, rồi bài mới. Chạy song song theo lô nhỏ.
+  const failures: string[] = [];
+  const jobs: (() => PromiseLike<{ error: { message: string } | null }>)[] = [
+    ...modOrder
+      .map((id, i) => ({ id, i, old: mods.find((m) => m.id === id)?.sort_order }))
+      .filter((m) => m.old !== m.i)
+      .map((m) => () => supabase.from("modules").update({ sort_order: m.i }).eq("id", m.id)),
+    ...updates.map((u) => () => supabase.from("lessons").update(u.patch).eq("id", u.id)),
+  ];
+  for (let i = 0; i < jobs.length; i += 10) {
+    const res = await Promise.all(jobs.slice(i, i + 10).map((j) => j()));
+    for (const { error } of res) if (error) failures.push(error.message);
+  }
+  if (inserts.length > 0) {
+    const { error } = await supabase.from("lessons").insert(inserts);
+    if (error) failures.push("Thêm bài mới lỗi: " + error.message);
+  }
+
+  revalidatePath(`/admin/khoa-hoc/${courseSlug}`, "layout");
+  if (failures.length > 0) {
+    return { ok: false, errors: [`Đã ghi một phần, còn ${failures.length} lỗi:`, ...failures.slice(0, 5)] };
+  }
+  return {
+    ok: true,
+    created: inserts.length,
+    updated: rows.length - inserts.length,
+    newChapters: toCreate.length,
+  };
+}
+
 // Đổi trạng thái khóa: nháp / riêng tư / công khai (gộp published + private).
 export async function setCourseVisibility(formData: FormData) {
   const supabase = await guard();
