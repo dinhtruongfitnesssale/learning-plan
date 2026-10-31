@@ -239,6 +239,11 @@ function PaymentCard({ pay }: { pay: Row }) {
                 🏷️ <s className="font-mono tnum text-ink/40">{formatVnd(pay.list_price)}</s>
               </span>
             )}
+            {pay.promoCodes.length > 0 && (
+              <span className="text-herb font-mono" title="Mã khuyến mãi đã áp">
+                {pay.promoCodes.join(" + ")}
+              </span>
+            )}
             <span className="font-mono text-amber">{pay.code}</span>
             <span className="text-ink/40 font-mono">
               {dt(matched ? (pay.matched_at ?? pay.created_at) : pay.created_at)}

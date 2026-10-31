@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { remindInactiveNow } from "../actions";
+import { remindInactiveNow } from "../actions/learners";
 import { buttonClass } from "@/components/ui";
 
 export function RemindNowButton() {

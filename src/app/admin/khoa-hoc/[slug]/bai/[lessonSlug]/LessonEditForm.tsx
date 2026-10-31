@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateLesson, deleteLesson } from "../../../../actions";
+import { updateLesson, deleteLesson } from "../../../../actions/courses";
 import { Card, buttonClass } from "@/components/ui";
 import type { Lesson, Module } from "@/lib/supabase/types";
 

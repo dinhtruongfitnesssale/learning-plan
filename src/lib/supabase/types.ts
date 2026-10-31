@@ -146,6 +146,37 @@ export interface Payment {
   coins: number;
   /** Học phí gốc lúc tạo đơn. Khác amount = đơn có ưu đãi. */
   list_price: number | null;
+  /** Tiền của đơn ngay trước khi áp mã khuyến mãi đầu tiên (0024). */
+  pre_promo_amount: number | null;
+}
+
+// ── Mã khuyến mãi (0024) ──────────────────────────────────────
+export interface PromoCode {
+  id: string;
+  /** Chữ hoa, số, - và _ (3–30 ký tự). */
+  code: string;
+  label: string;
+  discount_type: "percent" | "amount";
+  /** Số % (1–100) hoặc số đồng được giảm. */
+  discount_value: number;
+  /** false = chỉ áp cho các khóa trong promo_code_courses. */
+  all_courses: boolean;
+  /** Tổng số lượt. null = không giới hạn. */
+  max_uses: number | null;
+  ends_at: string | null;
+  /** Cộng dồn được với mã khác. */
+  stackable: boolean;
+  /** Giảm tiếp trên giá đã có ưu đãi của khóa. */
+  with_course_discount: boolean;
+  active: boolean;
+  created_at: string;
+}
+
+/** Mã đã áp vào một đơn — điều kiện chụp lại lúc áp. */
+export interface PaymentPromo {
+  code: string;
+  discount_type: "percent" | "amount";
+  discount_value: number;
 }
 
 // ── Xu ────────────────────────────────────────────────────────

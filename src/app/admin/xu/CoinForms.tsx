@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updateCoinSettings, adjustCoins } from "../actions";
+import { updateCoinSettings, adjustCoins } from "../actions/coins";
 import { buttonClass } from "@/components/ui";
 import type { CoinSettings } from "@/lib/supabase/types";
 

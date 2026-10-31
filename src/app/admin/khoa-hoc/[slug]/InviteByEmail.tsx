@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { inviteGuestsToCourse } from "../../actions";
+import { inviteGuestsToCourse } from "../../actions/email";
 import { parseEmails } from "@/lib/slug";
 import { Card, buttonClass } from "@/components/ui";
 

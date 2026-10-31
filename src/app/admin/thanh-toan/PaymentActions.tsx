@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { confirmPayment, rejectPayment } from "../actions";
+import { confirmPayment, rejectPayment } from "../actions/payments";
 import { buttonClass } from "@/components/ui";
 
 // Hai nút cho một đơn. Tách ra client component để hiện được lỗi trả về

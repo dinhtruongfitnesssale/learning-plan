@@ -11,7 +11,7 @@ import {
 } from "@/lib/coins";
 import { formatVnd } from "@/lib/payment";
 import { CoinSettingsForm, AdjustCoinsForm } from "./CoinForms";
-import { createCoinPack, seedCoinPacks } from "../actions";
+import { createCoinPack, seedCoinPacks } from "../actions/coins";
 import { CoinPackRow } from "./CoinPackRow";
 
 const inputCls =

@@ -5,7 +5,7 @@ import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { CourseFilter } from "@/components/CourseFilter";
 import { Pagination } from "@/components/Pagination";
 import { courseVisibility, VISIBILITY } from "@/lib/course-status";
-import { createCourse, createCategory, deleteCategory } from "../actions";
+import { createCourse, createCategory, deleteCategory } from "../actions/courses";
 
 const inputCls =
   "w-full rounded-lg border border-ink/15 bg-paper px-3 py-2 text-sm outline-none focus:border-amber focus:ring-2 focus:ring-amber/20";

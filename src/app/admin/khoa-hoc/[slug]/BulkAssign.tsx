@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { assignCourseToLearners } from "../../actions";
+import { assignCourseToLearners } from "../../actions/learners";
 import { Card, Badge, buttonClass } from "@/components/ui";
 
 type Learner = {

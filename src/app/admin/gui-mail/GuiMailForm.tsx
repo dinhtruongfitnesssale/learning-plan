@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
-import { sendBroadcastEmail } from "../actions";
+import { sendBroadcastEmail } from "../actions/email";
 import { Card, buttonClass } from "@/components/ui";
 
 type Learner = {

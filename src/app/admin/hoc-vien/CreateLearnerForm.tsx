@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { createLearner } from "../actions";
+import { createLearner } from "../actions/learners";
 import { buttonClass } from "@/components/ui";
 import { SendEmailButton } from "./SendEmailButton";
 

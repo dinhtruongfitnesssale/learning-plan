@@ -72,6 +72,7 @@ export function getNavItems({
     { href: "/admin/theo-doi", label: "Theo dõi", icon: "📈" },
     { href: "/admin/danh-gia", label: "Đánh giá", icon: "⭐" },
     { href: "/admin/xu", label: "Xu & nhiệm vụ", short: "Xu", icon: "🪙" },
+    { href: "/admin/khuyen-mai", label: "Mã khuyến mãi", short: "Mã KM", icon: "🏷️" },
     {
       href: "/admin/yeu-cau",
       label: "Yêu cầu",

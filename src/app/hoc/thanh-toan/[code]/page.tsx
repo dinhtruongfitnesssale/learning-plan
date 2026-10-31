@@ -12,6 +12,7 @@ import {
   vietQrUrl,
 } from "@/lib/payment";
 import { PaymentPoll, CopyButton } from "./PaymentLive";
+import { PromoBox } from "./PromoBox";
 
 export default async function PaymentPage({
   params,
@@ -50,7 +51,9 @@ export default async function PaymentPage({
           <p className="font-medium">
             {topup
               ? `Đã cộng ${pay.coins.toLocaleString("vi-VN")} xu vào ví của bạn.`
-              : "Đã nhận học phí, khóa học đã mở."}
+              : pay.amount === 0
+                ? "Mã khuyến mãi đã giảm hết học phí, khóa học đã mở."
+                : "Đã nhận học phí, khóa học đã mở."}
           </p>
           {topup && (
             <Link href="/hoc/xu" className={buttonClass("primary", "w-full")}>
@@ -96,6 +99,15 @@ export default async function PaymentPage({
                 </p>
               )}
             </div>
+
+            {/* Mã khuyến mãi chỉ đổi được khi tiền chưa về. */}
+            {!topup && pay.status === "pending" && (
+              <PromoBox
+                paymentCode={pay.code}
+                amount={pay.amount}
+                promos={pay.promos}
+              />
+            )}
 
             {bankConfigured() ? (
               <div className="flex justify-center">

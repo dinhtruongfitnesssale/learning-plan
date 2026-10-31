@@ -1,7 +1,7 @@
 import { requireCoach } from "@/lib/auth";
 import { getPendingRequests } from "@/lib/data";
 import { Card, Eyebrow, buttonClass } from "@/components/ui";
-import { approveEnrollment, denyEnrollment } from "../actions";
+import { approveEnrollment, denyEnrollment } from "../actions/learners";
 
 export default async function Requests() {
   await requireCoach();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { setContentAssignments } from "../../actions";
+import { setContentAssignments } from "../../actions/learners";
 import { Card, Badge, buttonClass } from "@/components/ui";
 import type { ContentCourse } from "@/lib/data";
 

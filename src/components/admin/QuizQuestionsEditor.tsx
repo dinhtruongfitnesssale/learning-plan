@@ -1,5 +1,5 @@
 import { buttonClass } from "@/components/ui";
-import { addQuestion, editQuestion, deleteQuestion } from "@/app/admin/actions";
+import { addQuestion, editQuestion, deleteQuestion } from "@/app/admin/actions/quiz";
 import { QuizImportForm } from "@/components/admin/QuizImportForm";
 import type { QuizQuestion } from "@/lib/supabase/types";
 

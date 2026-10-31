@@ -22,7 +22,7 @@ import {
   updateModule,
   deleteModule,
   createLesson,
-} from "../../actions";
+} from "../../actions/courses";
 import type { Course, Lesson, Module } from "@/lib/supabase/types";
 
 const inputCls =

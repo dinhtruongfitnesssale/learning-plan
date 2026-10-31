@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
-import { updateCoinPack, toggleCoinPack, deleteCoinPack } from "../actions";
+import { updateCoinPack, toggleCoinPack, deleteCoinPack } from "../actions/coins";
 import { Badge, buttonClass } from "@/components/ui";
 import { formatVnd } from "@/lib/payment";
 import type { CoinPack } from "@/lib/supabase/types";

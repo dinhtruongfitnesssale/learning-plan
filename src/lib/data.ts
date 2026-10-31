@@ -18,6 +18,8 @@ import type {
   CoinSettings,
   CoinPack,
   CoinLedgerRow,
+  PaymentPromo,
+  PromoCode,
 } from "./supabase/types";
 
 // Tổng quan cho bảng học của học viên.
@@ -1239,16 +1241,22 @@ export async function getCourseReviews() {
 // xếp trước 'pending' vì đó mới là việc cần làm ngay.
 export async function getOpenPayments() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("payments")
-    .select("*, courses(cover_emoji, slug), profiles(full_name)")
-    .in("status", ["pending", "matched"])
-    .order("status", { ascending: false })
-    .order("created_at", { ascending: true });
-  return (data ?? []).map((r) => ({
+  const query = (cols: string) =>
+    supabase
+      .from("payments")
+      .select(cols)
+      .in("status", ["pending", "matched"])
+      .order("status", { ascending: false })
+      .order("created_at", { ascending: true });
+  const base = "*, courses(cover_emoji, slug), profiles(full_name)";
+  let { data, error } = await query(`${base}, payment_promos(code)`);
+  // Chưa chạy 0024 (chưa có payment_promos) → đọc như cũ, trang không sập.
+  if (error) ({ data } = await query(base));
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
     ...(r as unknown as Payment),
     course: r.courses as unknown as { cover_emoji: string; slug: string } | null,
     learner: r.profiles as unknown as { full_name: string } | null,
+    promoCodes: ((r.payment_promos ?? []) as { code: string }[]).map((x) => x.code),
   }));
 }
 
@@ -1295,12 +1303,19 @@ export async function getMyOpenPayment(userId: string, courseId: string) {
 // learner chỉ đọc được đơn của chính mình, coach đọc được tất cả.
 export async function getPaymentByCode(code: string) {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("payments")
-    .select("*, courses(title, slug, cover_emoji)")
-    .eq("code", code)
-    .maybeSingle();
+  const query = (cols: string) =>
+    supabase.from("payments").select(cols).eq("code", code).maybeSingle();
+  const base = "*, courses(title, slug, cover_emoji)";
+  let { data, error } = await query(
+    `${base}, payment_promos(code, discount_type, discount_value, applied_at)`,
+  );
+  // Chưa chạy 0024 (chưa có payment_promos) → đọc như cũ, trang không sập.
+  if (error) ({ data } = await query(base));
   if (!data) return null;
+  return toPaymentView(data as unknown as Record<string, unknown>);
+}
+
+function toPaymentView(data: Record<string, unknown>) {
   return {
     ...(data as unknown as Payment),
     course: data.courses as unknown as {
@@ -1308,6 +1323,56 @@ export async function getPaymentByCode(code: string) {
       slug: string;
       cover_emoji: string;
     } | null,
+    promos: ((data.payment_promos ?? []) as (PaymentPromo & { applied_at: string })[])
+      .sort((a, b) => a.applied_at.localeCompare(b.applied_at)),
+  };
+}
+
+// ── Mã khuyến mãi ────────────────────────────────────────────
+
+// Trang quản trị mã khuyến mãi: danh sách mã + khóa áp dụng + lượt đã dùng.
+// Lượt = mã nằm trên đơn còn sống (khớp promo_uses() ở DB).
+export async function getPromoAdmin() {
+  const supabase = await createClient();
+  const [{ data: promos }, { data: links }, { data: courses }, { data: uses }] =
+    await Promise.all([
+      supabase.from("promo_codes").select("*").order("created_at", { ascending: false }),
+      supabase.from("promo_code_courses").select("promo_id, course_id"),
+      supabase
+        .from("courses")
+        .select("id, title, cover_emoji, price")
+        .gt("price", 0)
+        .order("sort_order"),
+      supabase
+        .from("payment_promos")
+        .select("promo_id, payments(status, expires_at)")
+        .not("promo_id", "is", null),
+    ]);
+
+  const now = Date.now();
+  const used = new Map<string, number>();
+  for (const u of uses ?? []) {
+    const p = u.payments as unknown as { status: string; expires_at: string } | null;
+    const live =
+      !!p &&
+      (p.status === "matched" ||
+        p.status === "confirmed" ||
+        (p.status === "pending" && new Date(p.expires_at).getTime() > now));
+    if (live) used.set(u.promo_id as string, (used.get(u.promo_id as string) ?? 0) + 1);
+  }
+  const coursesOf = new Map<string, string[]>();
+  for (const l of links ?? []) {
+    const k = l.promo_id as string;
+    coursesOf.set(k, [...(coursesOf.get(k) ?? []), l.course_id as string]);
+  }
+
+  return {
+    promos: ((promos ?? []) as PromoCode[]).map((p) => ({
+      ...p,
+      courseIds: coursesOf.get(p.id) ?? [],
+      uses: used.get(p.id) ?? 0,
+    })),
+    courses: (courses ?? []) as Pick<Course, "id" | "title" | "cover_emoji" | "price">[],
   };
 }
 

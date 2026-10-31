@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
-import { importQuestions, type ImportState } from "@/app/admin/actions";
+import { importQuestions, type ImportState } from "@/app/admin/actions/quiz";
 import { buttonClass } from "@/components/ui";
 
 // Nhập câu hỏi hàng loạt từ file Excel theo mẫu.

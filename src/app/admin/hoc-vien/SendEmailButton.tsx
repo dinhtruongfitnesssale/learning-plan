@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { sendLearnerEmail } from "../actions";
+import { sendLearnerEmail } from "../actions/email";
 import { buttonClass } from "@/components/ui";
 
 // Nút gửi email hướng dẫn (link đăng nhập + email + mật khẩu + cách học) cho học viên.

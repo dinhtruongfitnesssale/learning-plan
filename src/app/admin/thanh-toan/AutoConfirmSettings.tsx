@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { updatePaymentSettings } from "../actions";
+import { updatePaymentSettings } from "../actions/payments";
 import { buttonClass } from "@/components/ui";
 import { formatVnd } from "@/lib/payment";
 import type { PaymentSettings } from "@/lib/data";

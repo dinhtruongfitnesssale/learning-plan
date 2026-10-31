@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { assignCourse, unassignCourse } from "../../actions";
+import { assignCourse, unassignCourse } from "../../actions/learners";
 import { Badge, buttonClass } from "@/components/ui";
 
 type UnassignedCourse = {

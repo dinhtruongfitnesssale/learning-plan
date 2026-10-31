@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import type { QuizFormState } from "../../../../actions";
+import type { QuizFormState } from "../../../../actions/quiz";
 import { buttonClass } from "@/components/ui";
 import type { Quiz } from "@/lib/supabase/types";
 

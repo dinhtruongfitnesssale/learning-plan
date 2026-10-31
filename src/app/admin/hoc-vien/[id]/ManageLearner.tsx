@@ -6,7 +6,7 @@ import {
   resetLearnerPassword,
   deleteLearner,
   setLearnerGuest,
-} from "../../actions";
+} from "../../actions/learners";
 import { Card, buttonClass } from "@/components/ui";
 import { SendEmailButton } from "../SendEmailButton";
 

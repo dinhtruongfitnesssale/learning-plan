@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Eyebrow, Badge } from "@/components/ui";
-import { upsertModuleQuiz, deleteQuiz } from "../../../../actions";
+import { upsertModuleQuiz, deleteQuiz } from "../../../../actions/quiz";
 import { QuizConfigForm } from "../../bai/[lessonSlug]/QuizConfigForm";
 import { QuizQuestionsEditor } from "@/components/admin/QuizQuestionsEditor";
 import { DeleteQuizButton } from "@/components/admin/DeleteQuizButton";
