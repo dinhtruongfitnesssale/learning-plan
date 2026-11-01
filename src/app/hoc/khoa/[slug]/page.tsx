@@ -5,6 +5,8 @@ import { getCourseDetail, getCategories } from "@/lib/data";
 import { Card, Eyebrow, Badge, buttonClass } from "@/components/ui";
 import { ProgressRing } from "@/components/ProgressRing";
 import { Pagination } from "@/components/Pagination";
+import { RememberPage } from "@/components/RememberPage";
+import { resolveCoursePage } from "@/lib/course-page";
 import { Chapter } from "@/components/Chapter";
 import { CourseReview } from "@/components/CourseReview";
 import { LockedCourseButton } from "@/components/LockedCourse";
@@ -94,7 +96,8 @@ export default async function CoursePage({
     1,
     Math.ceil(moduleGroups.length / MODULES_PER_PAGE),
   );
-  const page = Math.min(totalPages, Math.max(1, Number(sp.page) || 1));
+  // Không có ?page (refresh / quay lại từ bài học) → mở trang đã xem gần nhất.
+  const page = Math.min(totalPages, Math.max(1, await resolveCoursePage(sp.page)));
   const from = (page - 1) * MODULES_PER_PAGE;
   const pageGroups = moduleGroups.slice(from, from + MODULES_PER_PAGE);
 
@@ -613,7 +616,9 @@ export default async function CoursePage({
             basePath={`/hoc/khoa/${course.slug}`}
             page={page}
             totalPages={totalPages}
+            explicitFirst
           />
+          <RememberPage path={`/hoc/khoa/${course.slug}`} page={page} />
         </div>
 
         {/* Bảng xếp hạng tuần (chỉ khi đã được học) */}

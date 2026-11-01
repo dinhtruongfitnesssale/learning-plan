@@ -12,6 +12,7 @@ export function Pagination({
   params = {},
   pageParam = "page",
   hash,
+  explicitFirst = false,
 }: {
   basePath: string;
   page: number;
@@ -21,6 +22,9 @@ export function Pagination({
   pageParam?: string;
   // Neo (id) để bấm chuyển trang vẫn đứng ở đúng mục, không nhảy lên đầu.
   hash?: string;
+  // Ghi rõ ?page=1 cho trang 1 — dùng khi trang tự nhớ trang cũ lúc URL
+  // không có ?page (RememberPage), để bấm "1" vẫn về được trang 1.
+  explicitFirst?: boolean;
 }) {
   if (totalPages <= 1) return null;
 
@@ -29,7 +33,7 @@ export function Pagination({
     Object.entries(params).forEach(([k, v]) => {
       if (v) sp.set(k, v);
     });
-    if (p > 1) sp.set(pageParam, String(p));
+    if (p > 1 || explicitFirst) sp.set(pageParam, String(p));
     const qs = sp.toString();
     return `${basePath}${qs ? `?${qs}` : ""}${hash ? `#${hash}` : ""}`;
   };
