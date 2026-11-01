@@ -112,6 +112,38 @@ export async function updateCourse(
   return { ok: true, message: "Đã lưu" };
 }
 
+// Nội dung trang giới thiệu khóa (/hoc/khoa-hoc/<slug>) — cột thêm ở 0025.
+export async function updateCourseLanding(
+  _prev: { ok: boolean; message: string } | null,
+  formData: FormData,
+): Promise<{ ok: boolean; message: string }> {
+  const supabase = await guard();
+  const id = String(formData.get("id"));
+  const slug = String(formData.get("slug"));
+  const text = (k: string) => String(formData.get(k) ?? "").trim();
+  const { error } = await supabase
+    .from("courses")
+    .update({
+      intro: text("intro"),
+      outcomes: text("outcomes"),
+      audience: text("audience"),
+      instructor_name: text("instructor_name"),
+      instructor_bio: text("instructor_bio"),
+    })
+    .eq("id", id);
+  if (error) {
+    return {
+      ok: false,
+      message: /column/i.test(error.message)
+        ? "Chưa lưu được: cần chạy migration 0025_course_landing.sql trên Supabase trước."
+        : `Chưa lưu được: ${error.message}`,
+    };
+  }
+  revalidatePath(`/admin/khoa-hoc/${slug}`);
+  revalidatePath(`/hoc/khoa-hoc/${slug}`);
+  return { ok: true, message: "Đã lưu" };
+}
+
 // ── Loại khóa học ─────────────────────────────────────────────
 export async function createCategory(formData: FormData) {
   const supabase = await guard();

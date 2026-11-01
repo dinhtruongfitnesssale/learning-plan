@@ -58,6 +58,14 @@ export interface Course {
   discount_ends_at: string | null;
   /** Tên ưu đãi hiện cho học viên. */
   discount_label: string;
+  /** Trang giới thiệu khóa (0025). Giới thiệu chi tiết, markdown. */
+  intro?: string;
+  /** Bạn sẽ học được gì — mỗi dòng một ý. */
+  outcomes?: string;
+  /** Khóa này dành cho ai — mỗi dòng một ý. */
+  audience?: string;
+  instructor_name?: string;
+  instructor_bio?: string;
   created_at: string;
 }
 

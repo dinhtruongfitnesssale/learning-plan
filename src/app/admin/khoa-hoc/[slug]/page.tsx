@@ -21,6 +21,7 @@ import { coursePrice, discountActive } from "@/lib/discount";
 import { formatVnd } from "@/lib/payment";
 import {
   updateCourse,
+  updateCourseLanding,
   setCourseVisibility,
   deleteCourse,
   createModule,
@@ -330,6 +331,72 @@ export default async function CourseEditor({
           </Card>
 
           <LessonImportForm courseId={c.id} courseSlug={c.slug} />
+
+          {/* Trang giới thiệu khóa (học viên bấm "Chi tiết" ở danh mục) */}
+          <Card className="p-5" as="section">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+              <h3 className="font-serif text-lg">Trang giới thiệu khóa</h3>
+              <Link href={`/hoc/khoa-hoc/${c.slug}`} className="link text-sm">
+                Xem trang →
+              </Link>
+            </div>
+            <SaveForm action={updateCourseLanding} className="space-y-3">
+              <input type="hidden" name="id" value={c.id} />
+              <input type="hidden" name="slug" value={c.slug} />
+              <label className="block">
+                <span className="text-sm text-ink/70">Bạn sẽ học được gì (mỗi dòng một ý)</span>
+                <textarea
+                  name="outcomes"
+                  rows={4}
+                  defaultValue={c.outcomes ?? ""}
+                  placeholder={"Tự tính calo và macro cho bản thân\nLên thực đơn giảm mỡ không bỏ món yêu thích"}
+                  className={inputCls}
+                />
+                <span className="text-xs text-ink/45">Bỏ trống thì trang dùng tên các chương.</span>
+              </label>
+              <label className="block">
+                <span className="text-sm text-ink/70">Giới thiệu chi tiết (Markdown như nội dung bài)</span>
+                <textarea
+                  name="intro"
+                  rows={6}
+                  defaultValue={c.intro ?? ""}
+                  placeholder="Vì sao nên học khóa này, học xong thay đổi gì, cách học…"
+                  className={inputCls}
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm text-ink/70">Khóa này dành cho ai (mỗi dòng một ý)</span>
+                <textarea
+                  name="audience"
+                  rows={3}
+                  defaultValue={c.audience ?? ""}
+                  placeholder={"Người mới bắt đầu tập\nNgười đã thử nhiều cách giảm cân chưa thành công"}
+                  className={inputCls}
+                />
+              </label>
+              <div className="grid sm:grid-cols-[200px_1fr] gap-3">
+                <label className="block min-w-0">
+                  <span className="text-sm text-ink/70">Giảng viên</span>
+                  <input
+                    name="instructor_name"
+                    defaultValue={c.instructor_name ?? ""}
+                    placeholder="Tên hiển thị"
+                    className={inputCls}
+                  />
+                </label>
+                <label className="block min-w-0">
+                  <span className="text-sm text-ink/70">Giới thiệu giảng viên</span>
+                  <textarea
+                    name="instructor_bio"
+                    rows={2}
+                    defaultValue={c.instructor_bio ?? ""}
+                    placeholder="Kinh nghiệm, chứng chỉ, số học viên đã đồng hành…"
+                    className={inputCls}
+                  />
+                </label>
+              </div>
+            </SaveForm>
+          </Card>
         </div>
 
         {/* Cột phải: phân khóa + thông tin khóa + chương */}

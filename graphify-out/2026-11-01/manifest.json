@@ -138,9 +138,9 @@
     "semantic_hash": ""
   },
   "src/app/admin/khoa-hoc/[slug]/page.tsx": {
-    "mtime": 1793450480.9676647,
-    "seen": 1793450574.0185852,
-    "ast_hash": "2bc22bb6de9c5a0b960fa123b83d51a3",
+    "mtime": 1793500419.5614083,
+    "seen": 1793500509.0620935,
+    "ast_hash": "53ce33b77c6d8067449e53723f4ef900",
     "semantic_hash": ""
   },
   "src/app/admin/khoa-hoc/page.tsx": {
@@ -306,10 +306,10 @@
     "semantic_hash": "4ff027ad34f79f35127d3054d7e22264"
   },
   "src/app/hoc/khoa/[slug]/page.tsx": {
-    "mtime": 1793074597.554508,
-    "seen": 1793414094.951752,
-    "ast_hash": "a6316a2cc9c5b28cc68bb0a2449d14fc",
-    "semantic_hash": "a6316a2cc9c5b28cc68bb0a2449d14fc"
+    "mtime": 1793500419.4119098,
+    "seen": 1793500509.0620935,
+    "ast_hash": "ae6fcb9a16dba6c42c930479d396ea5e",
+    "semantic_hash": ""
   },
   "src/app/hoc/layout.tsx": {
     "mtime": 1790832470.919211,
@@ -450,10 +450,10 @@
     "semantic_hash": "6ab19de9be75fd99b463b123726d82bf"
   },
   "src/components/Pagination.tsx": {
-    "mtime": 1790914675.7885244,
-    "seen": 1793414094.951752,
-    "ast_hash": "2375ed13c7f23f62414fe216f966fecf",
-    "semantic_hash": "2375ed13c7f23f62414fe216f966fecf"
+    "mtime": 1793500404.3897958,
+    "seen": 1793500509.0620935,
+    "ast_hash": "94522b6787633fc1726b51f1e55acdee",
+    "semantic_hash": ""
   },
   "src/components/ProgressRing.tsx": {
     "mtime": 1789055783.516775,
@@ -969,6 +969,24 @@
     "mtime": 1793450413.912625,
     "seen": 1793450574.0195937,
     "ast_hash": "21e8e96e15146e7b99ebeec1d15d396f",
+    "semantic_hash": ""
+  },
+  "src/components/RememberPage.tsx": {
+    "mtime": 1793500393.652523,
+    "seen": 1793500509.0620935,
+    "ast_hash": "bd9966459ea6eae79958664c15a07618",
+    "semantic_hash": ""
+  },
+  "src/lib/course-page-cookie.ts": {
+    "mtime": 1793500392.697036,
+    "seen": 1793500509.0620935,
+    "ast_hash": "a76cd45edf77c7e3b770ee556e382d95",
+    "semantic_hash": ""
+  },
+  "src/lib/course-page.ts": {
+    "mtime": 1793500391.8119135,
+    "seen": 1793500509.0620935,
+    "ast_hash": "2f31d03b158152a1e6908128c24221bd",
     "semantic_hash": ""
   },
   "package-lock.json": {

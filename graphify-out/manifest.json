@@ -138,9 +138,9 @@
     "semantic_hash": ""
   },
   "src/app/admin/khoa-hoc/[slug]/page.tsx": {
-    "mtime": 1793500419.5614083,
-    "seen": 1793500509.0620935,
-    "ast_hash": "53ce33b77c6d8067449e53723f4ef900",
+    "mtime": 1793514815.4393735,
+    "seen": 1793514905.5381184,
+    "ast_hash": "81247c084610f683eff0cae61efa655c",
     "semantic_hash": ""
   },
   "src/app/admin/khoa-hoc/page.tsx": {
@@ -288,10 +288,10 @@
     "semantic_hash": "a6bd6fa7fb9de9efb74a98c1d9adf0d3"
   },
   "src/app/hoc/khoa-hoc/page.tsx": {
-    "mtime": 1793074597.5555763,
-    "seen": 1793414094.951752,
-    "ast_hash": "3b925093734a8e13e7e9ea22e605f025",
-    "semantic_hash": "3b925093734a8e13e7e9ea22e605f025"
+    "mtime": 1793514753.3874488,
+    "seen": 1793514905.5381184,
+    "ast_hash": "8e89e113f41b4a2635190a101a2f10e4",
+    "semantic_hash": ""
   },
   "src/app/hoc/khoa/[slug]/[lessonSlug]/page.tsx": {
     "mtime": 1790835747.4860675,
@@ -546,9 +546,9 @@
     "semantic_hash": "e78da8f59383aa7e17eda2cd909b5810"
   },
   "src/lib/data.ts": {
-    "mtime": 1793415196.1419244,
-    "seen": 1793415233.2037525,
-    "ast_hash": "c64660c778d5275cbdeac31ed9d90f74",
+    "mtime": 1793514641.7928107,
+    "seen": 1793514905.5381184,
+    "ast_hash": "0d7e4ca0c65629bcea705c9253e18db1",
     "semantic_hash": ""
   },
   "src/lib/discount.ts": {
@@ -642,9 +642,9 @@
     "semantic_hash": "ac765117cccfe0620701ff538dd3540b"
   },
   "src/lib/supabase/types.ts": {
-    "mtime": 1793414919.7418263,
-    "seen": 1793415175.064839,
-    "ast_hash": "f435c5734675d0603b1ccc07336277b8",
+    "mtime": 1793514640.9198403,
+    "seen": 1793514905.5381184,
+    "ast_hash": "00e074e6c44de8e957ae20999f587d45",
     "semantic_hash": ""
   },
   "src/proxy.ts": {
@@ -864,9 +864,9 @@
     "semantic_hash": ""
   },
   "src/app/admin/actions/courses.ts": {
-    "mtime": 1793450458.5980053,
-    "seen": 1793450574.0185852,
-    "ast_hash": "d13e4ed9d488536f27eeaee571769867",
+    "mtime": 1793514767.1598516,
+    "seen": 1793514905.5381184,
+    "ast_hash": "589201b1bac4223300f88608bb6a3f78",
     "semantic_hash": ""
   },
   "src/app/admin/actions/email.ts": {
@@ -987,6 +987,18 @@
     "mtime": 1793500391.8119135,
     "seen": 1793500509.0620935,
     "ast_hash": "2f31d03b158152a1e6908128c24221bd",
+    "semantic_hash": ""
+  },
+  "src/app/hoc/khoa-hoc/[slug]/page.tsx": {
+    "mtime": 1793514733.3734734,
+    "seen": 1793514905.5381184,
+    "ast_hash": "14578bb97af6699996fc35fe95555594",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/0025_course_landing.sql": {
+    "mtime": 1793514628.5869622,
+    "seen": 1793514905.5381184,
+    "ast_hash": "5150e9a21523583bd12a62cbb462c1a0",
     "semantic_hash": ""
   },
   "package-lock.json": {

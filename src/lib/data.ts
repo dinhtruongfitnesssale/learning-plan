@@ -612,6 +612,38 @@ export async function getCourseDetail(
   };
 }
 
+// Trang giới thiệu khóa: dữ liệu như trang khóa + số học viên, đánh giá
+// công khai (0025). Chưa chạy 0025 thì phần số liệu để trống, trang vẫn chạy.
+export interface PublicReview {
+  first_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+export async function getCourseLanding(
+  slug: string,
+  userId: string,
+  isGuest = false,
+  isCoach = false,
+) {
+  const detail = await getCourseDetail(slug, userId, isGuest, isCoach);
+  if (!detail) return null;
+  const supabase = await createClient();
+  const [{ data: stats }, { data: reviews }] = await Promise.all([
+    supabase.rpc("course_public_stats", { p_course_id: detail.course.id }),
+    supabase.rpc("course_public_reviews", { p_course_id: detail.course.id, p_limit: 6 }),
+  ]);
+  const s = (stats as { learners: number; reviews: number; avg_rating: number | null }[] | null)?.[0];
+  return {
+    ...detail,
+    learners: s?.learners ?? 0,
+    reviewCount: s?.reviews ?? 0,
+    avgRating: s?.avg_rating != null ? Number(s.avg_rating) : null,
+    reviews: (reviews as PublicReview[] | null) ?? [],
+  };
+}
+
 // Chi tiết tiến độ một học viên (cho coach).
 export async function getLearnerDetail(userId: string) {
   const supabase = await createClient();

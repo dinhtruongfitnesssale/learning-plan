@@ -90,7 +90,9 @@ export default async function Catalog({
                 className="font-serif text-xl mt-3 line-clamp-2 break-words"
                 title={course.title}
               >
-                {course.title}
+                <Link href={`/hoc/khoa-hoc/${course.slug}`} className="hover:text-amber transition-colors">
+                  {course.title}
+                </Link>
               </h3>
               <p className="text-sm text-ink/60 mt-1.5 flex-1 leading-relaxed">
                 {course.summary}
@@ -121,7 +123,10 @@ export default async function Catalog({
                     ))}
                 </div>
               )}
-              <div className="mt-5">
+              {/* Nút chính + "Chi tiết": điện thoại mỗi nút một dòng, máy rộng
+                  nằm cạnh nhau (hẹp quá thì tự xuống dòng). */}
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <div className="sm:flex-[2_1_auto] min-w-0">
                 {status === "approved" ? (
                   <Link
                     href={`/hoc/khoa/${course.slug}`}
@@ -173,6 +178,13 @@ export default async function Catalog({
                     </button>
                   </form>
                 )}
+                </div>
+                <Link
+                  href={`/hoc/khoa-hoc/${course.slug}`}
+                  className={buttonClass("outline", "sm:flex-[1_1_auto]")}
+                >
+                  Chi tiết
+                </Link>
               </div>
             </Card>
             );
